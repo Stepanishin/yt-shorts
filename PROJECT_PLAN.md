@@ -261,6 +261,17 @@
    - сохраняет в `jokes` с `safeForYoutube=true/false`
 4. После ingest → обновляется статистика для Dashboard (кол-во новых шуток, ошибки)
 
+#### Реализация Dev-инструментов (MVP)
+- `collectJokePreview()` объединяет Chistes, Yavendras, TodoChistes в единый формат (`JokeCandidate`)
+- `POST /api/ingest/preview` — сохраняет выбранные превью-шутки в коллекцию `joke_candidates`
+- `GET /api/ingest/queue` — просмотр последних сохраненных шуток (по умолчанию 50, максимум 200)
+- `POST /api/ingest/queue/reserve` — выдаёт первую `pending` шутку и помечает её `reserved`
+- `POST /api/ingest/queue/status` — обновляет статус шутки после генерации/фильтрации
+- `POST /api/ingest/run` — собирает шутки по дефолтной конфигурации (Chistes random + топовые категории Yavendras + TodoChistes)
+- Конфигурация источников хранится в `lib/ingest/config.ts` (можно расширять списки категорий, таймауты, базовые URL)
+- `POST /api/videos/generate` — создаёт задачу генерации (резервирует шутку, создаёт запись в `video_jobs`)
+- `GET /api/videos/jobs` — просмотр состояния задач генерации
+
 #### Фильтрация и модерация
 - Базовый список стоп-слов (грубая лексика, расизм, NSFW)
 - Использование OpenAI Moderation API (бюджетно: GPT-4o-mini moderation endpoint)
@@ -630,6 +641,7 @@ Remotion + FFmpeg
 /api/videos/[id]         GET    - получить видео
 /api/videos/[id]         DELETE - удалить видео
 /api/videos/[id]/upload  POST   - загрузить на YouTube
+/api/videos/jobs         GET    - посмотреть задачи генерации видео
 
 /api/stats               GET    - статистика
 
@@ -637,6 +649,17 @@ Remotion + FFmpeg
 /api/music/upload        POST   - загрузить трек
 /api/music/[id]          DELETE - удалить трек
 /api/music/generate      POST   - сгенерировать трек (AI)
+
+/api/debug/chistes       GET    - тестовый запрос к random API Chistes.com (dev)
+/api/debug/yavendras     GET    - превью шуток из Yavendras (dev)
+/api/debug/todochistes   GET    - превью шуток из TodoChistes (dev)
+/api/debug/jokes-preview GET    - объединить все источники в единую выдачу (dev)
+
+/api/ingest/preview      POST   - сохранить выбранные шутки в Mongo очередь
+/api/ingest/queue        GET    - посмотреть очередь сохраненных шуток
+/api/ingest/queue/reserve POST  - зарезервировать шутку для генерации (помечает status=reserved)
+/api/ingest/queue/status POST  - обновить статус шутки (used/rejected/pending)
+/api/ingest/run          POST   - запустить сбор шуток по дефолтной конфигурации
 
 /api/youtube/auth        GET    - OAuth redirect
 /api/youtube/callback    GET    - OAuth callback
