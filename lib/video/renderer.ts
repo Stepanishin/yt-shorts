@@ -10,11 +10,14 @@ const execAsync = promisify(exec);
  * Рендерит финальное видео с текстом и эмодзи поверх видео-фона
  * Использует FFmpeg для наложения текста и эмодзи на видео
  */
+export type EmojiAnimationType = "none" | "pulse" | "rotate" | "bounce" | "fade";
+
 export interface RenderVideoOptions {
   backgroundVideoUrl: string;
   jokeTitle?: string;
   editedText: string;
   emoji?: string;
+  emojiAnimation?: EmojiAnimationType; // Тип анимации эмодзи
   jobId: string;
 }
 
@@ -22,6 +25,70 @@ export interface RenderVideoResult {
   videoUrl: string;
   filePath: string;
   duration: number;
+}
+
+/**
+ * Создает выражение анимации для эмодзи
+ * @param animationType Тип анимации
+ * @param baseValue Базовое значение (размер или координата)
+ * @param param Дополнительный параметр (для разных типов анимации)
+ * @returns FFmpeg выражение для анимации
+ */
+function createEmojiAnimationExpression(
+  animationType: EmojiAnimationType,
+  baseValue: number,
+  param: "x" | "y" | "scale" = "scale"
+): string {
+  if (animationType === "none") {
+    return baseValue.toString();
+  }
+
+  // t - время в секундах от начала видео
+  // 2*PI - полный цикл
+  // Используем sin/cos для плавной анимации
+  
+  switch (animationType) {
+    case "pulse": {
+      // Пульсация размера: от 0.9 до 1.1 от базового размера
+      if (param === "scale") {
+        return `${baseValue}*(0.9+0.1*sin(2*PI*t/1.5))`;
+      }
+      // Для координат не применяем pulse
+      return baseValue.toString();
+    }
+    
+    case "rotate": {
+      // Вращение с небольшим смещением координат
+      if (param === "x") {
+        const offset = 10; // Радиус вращения
+        return `${baseValue}+${offset}*sin(2*PI*t/2)`;
+      }
+      if (param === "y") {
+        const offset = 10;
+        return `${baseValue}+${offset}*cos(2*PI*t/2)`;
+      }
+      return baseValue.toString();
+    }
+    
+    case "bounce": {
+      // Подпрыгивание: вертикальное движение
+      if (param === "y") {
+        const bounceHeight = 15; // Высота подпрыгивания
+        // Используем abs(sin) для эффекта подпрыгивания
+        return `${baseValue}-${bounceHeight}*abs(sin(2*PI*t/1.2))`;
+      }
+      return baseValue.toString();
+    }
+    
+    case "fade": {
+      // Fade in для overlay (через alpha)
+      // Этот тип анимации применяется через отдельный параметр
+      return baseValue.toString();
+    }
+    
+    default:
+      return baseValue.toString();
+  }
 }
 
 /**
@@ -43,7 +110,14 @@ async function checkFFmpegAvailable(): Promise<boolean> {
 export async function renderFinalVideo(
   options: RenderVideoOptions
 ): Promise<RenderVideoResult> {
-  const { backgroundVideoUrl, jokeTitle, editedText, emoji = "😂", jobId } = options;
+  const { 
+    backgroundVideoUrl, 
+    jokeTitle, 
+    editedText, 
+    emoji = "😂", 
+    emojiAnimation = "pulse",
+    jobId 
+  } = options;
 
   // Проверяем наличие FFmpeg
   const ffmpegAvailable = await checkFFmpegAvailable();
@@ -176,27 +250,74 @@ export async function renderFinalVideo(
       // Вычисляем абсолютные координаты (текст центрирован, поэтому используем вычисленные значения)
       const textRightEdge = 360 + Math.floor(estimatedTextWidth / 2); // 360 = w/2 = 720/2
       const textBottomEdge = 640 + Math.floor(estimatedTextHeight / 2); // 640 = h/2 = 1280/2
-      const emojiX = textRightEdge - emojiSize - emojiOffset;
-      const emojiY = textBottomEdge - emojiSize - emojiOffset;
+      const baseEmojiX = textRightEdge - emojiSize - emojiOffset;
+      const baseEmojiY = textBottomEdge - emojiSize - emojiOffset;
+      
+      // Применяем анимацию к координатам
+      const animatedEmojiX = createEmojiAnimationExpression(emojiAnimation, baseEmojiX, "x");
+      const animatedEmojiY = createEmojiAnimationExpression(emojiAnimation, baseEmojiY, "y");
       
       console.log("Text file path:", textFilePath);
       console.log("Escaped text file path:", escapedTextFilePath);
       console.log("Emoji exists:", emojiExists);
-      console.log("Emoji position - X:", emojiX, "Y:", emojiY);
+      console.log("Emoji animation:", emojiAnimation);
+      console.log("Emoji position - X:", animatedEmojiX, "Y:", animatedEmojiY);
       
       let filterComplex: string;
       if (emojiExists) {
-        // Используем изображение эмодзи если оно было создано
+        // Создаем фильтр для эмодзи с анимацией
+        // Используем scale2ref или правильный синтаксис для динамического масштабирования
+        let emojiFilter = `[1:v]fps=fps=25`;
+        
+        // FFmpeg scale не поддерживает выражения с временем (t) напрямую
+        // Для всех анимаций используем статический размер
+        // Pulse эффект будет создан через координаты и визуальное движение
+        emojiFilter += `,scale=${emojiSize}:${emojiSize}`;
+        
+        // Для fade анимации добавляем alpha
+        if (emojiAnimation === "fade") {
+          // Fade in за 0.5 секунды, затем полностью видимый
+          emojiFilter += `,format=rgba,colorchannelmixer=aa='if(lt(t,0.5),t*2,1)'`;
+        }
+        
+        emojiFilter += `[emoji]`;
+        
+        // Определяем выражение для overlay
+        // Если выражение содержит функции (sin, cos, etc.), оборачиваем в кавычки
+        const needsQuotes = emojiAnimation !== "none" && (animatedEmojiX.includes("sin") || animatedEmojiX.includes("cos") || animatedEmojiX.includes("abs") || animatedEmojiY.includes("sin") || animatedEmojiY.includes("cos") || animatedEmojiY.includes("abs"));
+        const emojiXExpr = needsQuotes ? `'${animatedEmojiX}'` : animatedEmojiX;
+        const emojiYExpr = needsQuotes ? `'${animatedEmojiY}'` : animatedEmojiY;
+        
+        // Для pulse используем упрощенный подход: изменение координат для визуального эффекта
+        // Реальный pulse (изменение размера) требует более сложных фильтров
+        let overlayXExpr = emojiXExpr;
+        let overlayYExpr = emojiYExpr;
+        
+        if (emojiAnimation === "pulse") {
+          // Для pulse создаем эффект пульсации через большее движение
+          // Комбинируем движение по кругу и вперед-назад для визуального эффекта пульсации
+          const pulseAmplitude = 8; // Амплитуда движения для пульсации
+          // Движение вперед-назад (к камере и от камеры)
+          overlayXExpr = `'${baseEmojiX}+${pulseAmplitude}*sin(2*PI*t/1.5)'`;
+          overlayYExpr = `'${baseEmojiY}+${pulseAmplitude}*sin(2*PI*t/1.5)'`;
+        }
+        
+        let overlayExpression = `${overlayXExpr}:${overlayYExpr}`;
+        
+        // Для fade добавляем параметр alpha
+        if (emojiAnimation === "fade") {
+          overlayExpression += `:enable='between(t,0,999)'`;
+        }
+        
         filterComplex = [
           // Обрабатываем фоновое видео: масштабируем, добавляем padding, накладываем текст
           `[0:v]scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=22:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=24:line_spacing=10[v0]`,
-          // Масштабируем изображение эмодзи и синхронизируем с основным видео
-          // Используем fps filter чтобы синхронизировать framerate изображения с видео
-          `[1:v]scale=64:64,fps=fps=25[emoji]`,
-          // Накладываем эмодзи поверх видео с текстом
-          `[v0][emoji]overlay=${emojiX}:${emojiY}[v]`
+          // Применяем анимацию к эмодзи
+          emojiFilter,
+          // Накладываем эмодзи поверх видео с текстом с анимированными координатами
+          `[v0][emoji]overlay=${overlayExpression}[v]`
         ].join(";");
-        console.log("Using complex filter with emoji image");
+        console.log("Using complex filter with emoji image and animation");
         console.log("Filter:", filterComplex);
       } else {
         // Используем drawtext напрямую с шрифтом эмодзи
@@ -217,15 +338,49 @@ export async function renderFinalVideo(
         const emojiFontSize = 56;
         // Для drawtext размер эмодзи 56px (вместо 64px для изображения)
         // Корректируем позицию: добавляем разницу в размерах (64-56=8px)
-        const emojiXDrawtext = emojiX + (emojiSize - emojiFontSize); // Корректировка для размера шрифта
-        const emojiYDrawtext = emojiY + (emojiSize - emojiFontSize); // Корректировка для размера шрифта
+        const baseEmojiXDrawtext = baseEmojiX + (emojiSize - emojiFontSize);
+        const baseEmojiYDrawtext = baseEmojiY + (emojiSize - emojiFontSize);
+        
+        // Применяем анимацию к координатам (drawtext поддерживает выражения)
+        // Для pulse в drawtext можно использовать динамический fontsize
+        let emojiSizeExpression = emojiFontSize.toString();
+        if (emojiAnimation === "pulse") {
+          // Пульсация размера шрифта
+          emojiSizeExpression = `${emojiFontSize}*(0.9+0.1*sin(2*PI*t/1.5))`;
+        }
+        
+        // Создаем анимированные координаты
+        const animatedEmojiXDrawtext = createEmojiAnimationExpression(
+          emojiAnimation,
+          baseEmojiXDrawtext,
+          "x"
+        );
+        const animatedEmojiYDrawtext = createEmojiAnimationExpression(
+          emojiAnimation,
+          baseEmojiYDrawtext,
+          "y"
+        );
+        
+        // Оборачиваем выражения в кавычки если они содержат функции
+        const needsQuotesDrawtext = emojiAnimation !== "none" && (
+          animatedEmojiXDrawtext.includes("sin") || 
+          animatedEmojiXDrawtext.includes("cos") || 
+          animatedEmojiYDrawtext.includes("sin") || 
+          animatedEmojiYDrawtext.includes("cos") ||
+          emojiSizeExpression.includes("sin") ||
+          emojiSizeExpression.includes("cos")
+        );
+        const emojiXDrawtextExpr = needsQuotesDrawtext ? `'${animatedEmojiXDrawtext}'` : animatedEmojiXDrawtext;
+        const emojiYDrawtextExpr = needsQuotesDrawtext ? `'${animatedEmojiYDrawtext}'` : animatedEmojiYDrawtext;
+        const emojiSizeDrawtextExpr = needsQuotesDrawtext && emojiSizeExpression.includes("sin") ? `'${emojiSizeExpression}'` : emojiSizeExpression;
         
         filterComplex = [
           // Обрабатываем фоновое видео: масштабируем, добавляем padding, накладываем текст и эмодзи
-          `scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=22:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=24:line_spacing=10,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiFontSize}:x=${emojiXDrawtext}:y=${emojiYDrawtext}`
+          `scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=22:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=24:line_spacing=10,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiSizeDrawtextExpr}:x=${emojiXDrawtextExpr}:y=${emojiYDrawtextExpr}`
         ].join(",");
-        console.log("Using simple video filter with drawtext");
-        console.log("Emoji position (drawtext) - X:", emojiXDrawtext, "Y:", emojiYDrawtext);
+        console.log("Using simple video filter with drawtext and animation");
+        console.log("Emoji animation:", emojiAnimation);
+        console.log("Emoji position (drawtext) - X:", animatedEmojiXDrawtext, "Y:", animatedEmojiYDrawtext);
         console.log("Filter:", filterComplex);
       }
 
