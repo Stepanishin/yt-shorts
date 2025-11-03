@@ -15,6 +15,8 @@ export interface VideoJob {
   status: VideoJobStatus;
   backgroundVideoUrl?: string;
   backgroundPrompt?: string;
+  finalVideoUrl?: string; // URL финального видео с текстом и эмодзи
+  renderingStatus?: "pending" | "running" | "completed" | "failed"; // Статус рендеринга финального видео
   createdAt: Date;
   updatedAt: Date;
   error?: string;
@@ -70,6 +72,8 @@ export const updateVideoJobStatus = async ({
   backgroundVideoUrl,
   backgroundPrompt,
   editedText,
+  finalVideoUrl,
+  renderingStatus,
 }: {
   id: unknown;
   status: VideoJobStatus;
@@ -77,6 +81,8 @@ export const updateVideoJobStatus = async ({
   backgroundVideoUrl?: string;
   backgroundPrompt?: string;
   editedText?: string;
+  finalVideoUrl?: string;
+  renderingStatus?: "pending" | "running" | "completed" | "failed";
 }) => {
   const collection = await getCollection();
   const objectId: ObjectId | unknown = ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : id;
@@ -96,6 +102,12 @@ export const updateVideoJobStatus = async ({
   }
   if (editedText !== undefined) {
     update.editedText = editedText;
+  }
+  if (finalVideoUrl !== undefined) {
+    update.finalVideoUrl = finalVideoUrl;
+  }
+  if (renderingStatus !== undefined) {
+    update.renderingStatus = renderingStatus;
   }
 
   await collection.updateOne({ _id: objectId as ObjectId }, { $set: update });

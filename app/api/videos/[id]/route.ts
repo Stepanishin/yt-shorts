@@ -27,6 +27,8 @@ export async function GET(
       backgroundVideoUrl: job.backgroundVideoUrl,
       backgroundPrompt: job.backgroundPrompt,
       editedText: job.editedText,
+      finalVideoUrl: job.finalVideoUrl,
+      renderingStatus: job.renderingStatus,
     };
 
     return NextResponse.json({ job: serialized });
@@ -76,6 +78,8 @@ export async function PATCH(
       backgroundVideoUrl: updatedJob!.backgroundVideoUrl,
       backgroundPrompt: updatedJob!.backgroundPrompt,
       editedText: updatedJob!.editedText,
+      finalVideoUrl: updatedJob!.finalVideoUrl,
+      renderingStatus: updatedJob!.renderingStatus,
     };
 
     return NextResponse.json({ job: serialized });

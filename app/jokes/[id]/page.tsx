@@ -24,6 +24,8 @@ interface VideoJob {
   backgroundVideoUrl?: string;
   backgroundPrompt?: string;
   editedText?: string;
+  finalVideoUrl?: string;
+  renderingStatus?: "pending" | "running" | "completed" | "failed";
 }
 
 export default function JokeDetailPage() {
@@ -37,6 +39,7 @@ export default function JokeDetailPage() {
   const [editedText, setEditedText] = useState("");
   const [saving, setSaving] = useState(false);
   const [randomEmoji, setRandomEmoji] = useState("");
+  const [rendering, setRendering] = useState(false);
 
   // Выбираем случайную эмодзи при монтировании и при изменении текста
   useEffect(() => {
@@ -236,6 +239,75 @@ export default function JokeDetailPage() {
     }
   };
 
+  const handleRenderVideo = async () => {
+    if (!videoJob?._id) return;
+
+    setRendering(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/videos/${videoJob._id}/render`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          emoji: randomEmoji,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Не удалось начать рендеринг видео");
+      }
+
+      // Начинаем polling статуса рендеринга
+      startRenderingPolling(videoJob._id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to render video:", err);
+      setRendering(false);
+    }
+  };
+
+  const startRenderingPolling = (jobId: string) => {
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/videos/${jobId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setVideoJob(data.job);
+
+          // Останавливаем polling если рендеринг завершен
+          if (data.job.renderingStatus === "completed" || data.job.renderingStatus === "failed") {
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
+            setRendering(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to poll rendering status:", err);
+      }
+    };
+
+    // Первый запрос сразу
+    poll();
+
+    // Затем polling каждые 2 секунды
+    intervalId = setInterval(poll, 2000);
+
+    // Останавливаем polling через 10 минут
+    setTimeout(() => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      setRendering(false);
+    }, 10 * 60 * 1000);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -382,7 +454,7 @@ export default function JokeDetailPage() {
             </h2>
 
             {/* Кнопки генерации */}
-            <div className="flex gap-3 mb-6">
+            <div className="flex gap-3 mb-6 flex-wrap">
               {!videoJob || videoJob.status === "failed" ? (
                 <button
                   onClick={generateVideo}
@@ -396,13 +468,28 @@ export default function JokeDetailPage() {
                       : "Сгенерировать видео"}
                 </button>
               ) : (
-                <button
-                  onClick={regenerateBackground}
-                  disabled={generating}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
-                >
-                  {generating ? "Перегенерация фона..." : "Перегенерировать фон"}
-                </button>
+                <>
+                  <button
+                    onClick={regenerateBackground}
+                    disabled={generating}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                  >
+                    {generating ? "Перегенерация фона..." : "Перегенерировать фон"}
+                  </button>
+                  {videoJob.status === "completed" && videoJob.backgroundVideoUrl && (
+                    <button
+                      onClick={handleRenderVideo}
+                      disabled={rendering || videoJob.renderingStatus === "running"}
+                      className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                    >
+                      {rendering || videoJob.renderingStatus === "running"
+                        ? "Рендеринг видео..."
+                        : videoJob.finalVideoUrl
+                          ? "Перерендерить видео"
+                          : "Собрать финальное видео"}
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
@@ -453,6 +540,53 @@ export default function JokeDetailPage() {
                 </div>
                 {videoJob.error && (
                   <div className="mt-2 text-sm text-red-600">{videoJob.error}</div>
+                )}
+              </div>
+            )}
+
+            {/* Статус рендеринга финального видео */}
+            {videoJob?.renderingStatus && (
+              <div
+                className={`mb-6 rounded-lg border p-4 ${
+                  videoJob.renderingStatus === "completed"
+                    ? "border-green-200 bg-green-50"
+                    : videoJob.renderingStatus === "failed"
+                      ? "border-red-200 bg-red-50"
+                      : videoJob.renderingStatus === "running"
+                        ? "border-purple-200 bg-purple-50"
+                        : "border-yellow-200 bg-yellow-50"
+                }`}
+              >
+                <div
+                  className={`font-medium mb-2 ${
+                    videoJob.renderingStatus === "completed"
+                      ? "text-green-800"
+                      : videoJob.renderingStatus === "failed"
+                        ? "text-red-800"
+                        : videoJob.renderingStatus === "running"
+                          ? "text-purple-800"
+                          : "text-yellow-800"
+                  }`}
+                >
+                  {videoJob.renderingStatus === "completed"
+                    ? "Финальное видео готово!"
+                    : videoJob.renderingStatus === "failed"
+                      ? "Ошибка рендеринга"
+                      : videoJob.renderingStatus === "running"
+                        ? "Рендеринг финального видео..."
+                        : "Ожидание начала рендеринга"}
+                </div>
+                {videoJob.finalVideoUrl && (
+                  <div className="mt-3">
+                    <a
+                      href={videoJob.finalVideoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-700 underline"
+                    >
+                      Скачать финальное видео
+                    </a>
+                  </div>
                 )}
               </div>
             )}

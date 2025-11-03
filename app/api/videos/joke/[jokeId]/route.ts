@@ -27,6 +27,8 @@ export async function GET(
       backgroundVideoUrl: job.backgroundVideoUrl,
       backgroundPrompt: job.backgroundPrompt,
       editedText: job.editedText,
+      finalVideoUrl: job.finalVideoUrl,
+      renderingStatus: job.renderingStatus,
     };
 
     return NextResponse.json({ job: serialized });
