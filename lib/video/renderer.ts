@@ -3,7 +3,6 @@ import * as path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
 import ffmpeg from "fluent-ffmpeg";
-import { createCanvas } from "canvas";
 
 const execAsync = promisify(exec);
 
@@ -312,42 +311,49 @@ export async function renderFinalVideo(
 }
 
 /**
- * Создает PNG изображение с эмодзи используя canvas
- * На macOS canvas должен поддерживать цветные эмодзи через системный шрифт
+ * Создает PNG изображение с эмодзи используя Twemoji API
+ * Twemoji предоставляет цветные изображения эмодзи от Twitter
  */
 async function createEmojiImage(emoji: string, outputPath: string): Promise<void> {
-  // Создаем canvas большего размера для лучшего качества (256x256)
-  const canvas = createCanvas(256, 256);
-  const ctx = canvas.getContext("2d");
+  // Конвертируем эмодзи в Unicode codepoint для Twemoji URL
+  const codePoint = emoji.codePointAt(0)?.toString(16);
   
-  // Прозрачный фон
-  ctx.clearRect(0, 0, 256, 256);
-  
-  // Определяем системный шрифт эмодзи в зависимости от ОС
-  let emojiFont = "Apple Color Emoji";
-  
-  if (process.platform === "darwin") {
-    emojiFont = "Apple Color Emoji";
-  } else if (process.platform === "linux") {
-    emojiFont = "Noto Color Emoji";
-  } else if (process.platform === "win32") {
-    emojiFont = "Segoe UI Emoji";
+  if (!codePoint) {
+    throw new Error(`Invalid emoji: ${emoji}`);
   }
   
-  // Используем большой размер шрифта для четкости
-  // Canvas должен автоматически использовать системный шрифт эмодзи если он доступен
-  ctx.font = `180px "${emojiFont}", "Arial Unicode MS", Arial`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  // Twemoji CDN URL для SVG эмодзи (высокое качество)
+  // Для составных эмодзи (с модификаторами) нужно обработать все codepoints
+  const codePoints: string[] = [];
+  for (const char of emoji) {
+    const cp = char.codePointAt(0);
+    if (cp) {
+      codePoints.push(cp.toString(16));
+    }
+  }
+  const emojiCode = codePoints.join('-');
   
-  // Рисуем эмодзи по центру canvas
-  ctx.fillText(emoji, 128, 128);
+  // Используем PNG версию Twemoji для лучшей совместимости с FFmpeg
+  const twemojiUrl = `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/${emojiCode}.png`;
   
-  // Сохраняем PNG с высоким качеством
-  const buffer = canvas.toBuffer("image/png");
-  await fs.writeFile(outputPath, buffer);
+  console.log(`Downloading emoji from Twemoji: ${twemojiUrl}`);
   
-  console.log(`Emoji image created: ${outputPath}`);
+  try {
+    // Скачиваем изображение эмодзи
+    const response = await fetch(twemojiUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to download emoji: ${response.statusText}`);
+    }
+    
+    const buffer = Buffer.from(await response.arrayBuffer());
+    await fs.writeFile(outputPath, buffer);
+    
+    console.log(`Emoji image downloaded and saved: ${outputPath}`);
+  } catch (error) {
+    console.error(`Failed to download emoji from Twemoji:`, error);
+    throw error;
+  }
 }
 
 /**
