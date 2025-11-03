@@ -23,6 +23,7 @@ interface VideoJob {
   error?: string;
   backgroundVideoUrl?: string;
   backgroundPrompt?: string;
+  editedText?: string;
 }
 
 export default function JokeDetailPage() {
@@ -32,6 +33,9 @@ export default function JokeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [videoJob, setVideoJob] = useState<VideoJob | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const id = params?.id as string;
 
@@ -44,6 +48,10 @@ export default function JokeDetailPage() {
         if (response.ok) {
           const data = await response.json();
           setVideoJob(data.job);
+          // Обновляем editedText если он изменился
+          if (data.job.editedText !== undefined) {
+            setEditedText(data.job.editedText || joke?.text || "");
+          }
 
           // Останавливаем polling если статус завершенный
           if (data.job.status === "completed" || data.job.status === "failed") {
@@ -99,9 +107,11 @@ export default function JokeDetailPage() {
       try {
         const response = await fetch(`/api/videos/joke/${id}`);
         if (response.ok) {
-          const data = await response.json();
+            const data = await response.json();
           if (data.job) {
             setVideoJob(data.job);
+            // Устанавливаем editedText если есть, иначе используем оригинальный текст
+            setEditedText(data.job.editedText || joke?.text || "");
             // Если видео еще генерируется, запускаем polling
             if (data.job.status === "running" || data.job.status === "pending") {
               startPolling(data.job._id);
@@ -140,6 +150,7 @@ export default function JokeDetailPage() {
 
       const result = await response.json();
       setVideoJob(result.job);
+      setEditedText(result.job.editedText || joke?.text || "");
 
       // Начинаем polling статуса
       startPolling(result.job._id);
@@ -173,6 +184,7 @@ export default function JokeDetailPage() {
 
       const result = await response.json();
       setVideoJob(result.job);
+      setEditedText(result.job.editedText || joke?.text || "");
 
       // Начинаем polling статуса
       startPolling(result.job._id);
@@ -183,6 +195,37 @@ export default function JokeDetailPage() {
     }
   };
 
+  const handleSaveText = async () => {
+    if (!videoJob?._id) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/videos/${videoJob._id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          editedText: editedText,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Не удалось сохранить текст");
+      }
+
+      const result = await response.json();
+      setVideoJob(result.job);
+      setIsEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to save text:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -272,9 +315,55 @@ export default function JokeDetailPage() {
 
           {/* Текст анекдота */}
           <div className="mb-8">
-            <div className="text-lg text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {joke.text}
+            <div className="flex items-start justify-between mb-3">
+              <h3 className="text-lg font-medium text-gray-900">Текст анекдота</h3>
+              {videoJob && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"
+                >
+                  {isEditing ? "Отмена редактирования" : "Редактировать текст"}
+                </button>
+              )}
             </div>
+            {isEditing ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Текст анекдота
+                  </label>
+                  <textarea
+                    value={editedText}
+                    onChange={(e) => setEditedText(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md text-gray-900 text-lg leading-relaxed min-h-[200px] resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Введите текст анекдота..."
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSaveText}
+                    disabled={saving}
+                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                  >
+                    {saving ? "Сохранение..." : "Сохранить изменения"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditedText(videoJob?.editedText || joke?.text || "");
+                    }}
+                    disabled={saving}
+                    className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-lg text-gray-700 whitespace-pre-wrap leading-relaxed bg-gray-50 p-4 rounded-md border border-gray-200">
+                {editedText || joke.text}
+              </div>
+            )}
           </div>
 
           {/* Секция генерации видео */}
@@ -380,15 +469,15 @@ export default function JokeDetailPage() {
                 )}
 
                 {/* Текст анекдота на фоне */}
-                <div className="absolute inset-0 flex items-center justify-center p-6">
-                  <div className="bg-white/60 backdrop-blur-sm rounded-lg px-6 py-8 max-w-[90%] text-center">
+                <div className="absolute inset-0 flex items-center justify-center p-6 overflow-y-auto">
+                  <div className="bg-white/60 backdrop-blur-sm rounded-lg px-6 py-8 max-w-[90%] w-full text-center">
                     {joke.title && (
                       <h4 className="text-xl font-bold mb-3 text-gray-900">
                         {joke.title}
                       </h4>
                     )}
-                    <p className="text-base font-bold leading-relaxed line-clamp-6 text-gray-900">
-                      {joke.text}
+                    <p className="text-base font-bold leading-relaxed text-gray-900 whitespace-pre-wrap break-words">
+                      {editedText || joke.text}
                     </p>
                   </div>
                 </div>

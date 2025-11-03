@@ -10,6 +10,7 @@ export interface VideoJob {
   jokeSource: string;
   jokeText: string;
   jokeTitle?: string;
+  editedText?: string; // Отредактированный текст для отображения в видео
   jokeMeta?: Record<string, unknown>;
   status: VideoJobStatus;
   backgroundVideoUrl?: string;
@@ -68,12 +69,14 @@ export const updateVideoJobStatus = async ({
   error,
   backgroundVideoUrl,
   backgroundPrompt,
+  editedText,
 }: {
   id: unknown;
   status: VideoJobStatus;
   error?: string;
   backgroundVideoUrl?: string;
   backgroundPrompt?: string;
+  editedText?: string;
 }) => {
   const collection = await getCollection();
   const objectId: ObjectId | unknown = ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : id;
@@ -90,6 +93,9 @@ export const updateVideoJobStatus = async ({
   }
   if (backgroundPrompt !== undefined) {
     update.backgroundPrompt = backgroundPrompt;
+  }
+  if (editedText !== undefined) {
+    update.editedText = editedText;
   }
 
   await collection.updateOne({ _id: objectId as ObjectId }, { $set: update });

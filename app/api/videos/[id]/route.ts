@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listVideoJobs } from "@/lib/video/storage";
+import { findVideoJobById, updateVideoJobStatus } from "@/lib/video/storage";
 
 export async function GET(
   request: Request,
@@ -11,8 +11,7 @@ export async function GET(
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
 
-    const jobs = await listVideoJobs({ limit: 100 });
-    const job = jobs.find((j) => String(j._id) === id);
+    const job = await findVideoJobById(id);
 
     if (!job) {
       return NextResponse.json({ error: "Video job not found" }, { status: 404 });
@@ -27,12 +26,62 @@ export async function GET(
       updatedAt: job.updatedAt ? new Date(job.updatedAt).toISOString() : undefined,
       backgroundVideoUrl: job.backgroundVideoUrl,
       backgroundPrompt: job.backgroundPrompt,
+      editedText: job.editedText,
     };
 
     return NextResponse.json({ job: serialized });
   } catch (error) {
     console.error("Failed to load video job", error);
     return NextResponse.json({ error: "Failed to load video job" }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    if (!id) {
+      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const { editedText } = body as { editedText?: string };
+
+    if (editedText === undefined) {
+      return NextResponse.json({ error: "editedText is required" }, { status: 400 });
+    }
+
+    const job = await findVideoJobById(id);
+    if (!job) {
+      return NextResponse.json({ error: "Video job not found" }, { status: 404 });
+    }
+
+    await updateVideoJobStatus({
+      id,
+      status: job.status,
+      editedText,
+    });
+
+    // Получаем обновленную джобу
+    const updatedJob = await findVideoJobById(id);
+
+    const serialized = {
+      ...updatedJob!,
+      _id: updatedJob!._id ? String(updatedJob!._id) : undefined,
+      jokeId: updatedJob!.jokeId ? String(updatedJob!.jokeId) : undefined,
+      createdAt: updatedJob!.createdAt ? new Date(updatedJob!.createdAt).toISOString() : undefined,
+      updatedAt: updatedJob!.updatedAt ? new Date(updatedJob!.updatedAt).toISOString() : undefined,
+      backgroundVideoUrl: updatedJob!.backgroundVideoUrl,
+      backgroundPrompt: updatedJob!.backgroundPrompt,
+      editedText: updatedJob!.editedText,
+    };
+
+    return NextResponse.json({ job: serialized });
+  } catch (error) {
+    console.error("Failed to update video job", error);
+    return NextResponse.json({ error: "Failed to update video job" }, { status: 500 });
   }
 }
 

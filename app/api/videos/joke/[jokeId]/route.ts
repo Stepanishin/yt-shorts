@@ -26,6 +26,7 @@ export async function GET(
       updatedAt: job.updatedAt ? new Date(job.updatedAt).toISOString() : undefined,
       backgroundVideoUrl: job.backgroundVideoUrl,
       backgroundPrompt: job.backgroundPrompt,
+      editedText: job.editedText,
     };
 
     return NextResponse.json({ job: serialized });
