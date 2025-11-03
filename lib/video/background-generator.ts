@@ -11,17 +11,13 @@ export interface GenerateBackgroundResult {
 }
 
 /**
- * Генерирует видео фон для YouTube Shorts через OpenAI Sora 2
- * Создает вертикальное видео (720x1280, Portrait) в природном стиле
+ * Генерирует видео фон для YouTube Shorts через PiAPI/Luma Dream Machine
+ * Создает вертикальное видео (9:16) в природном стиле
  */
 export async function generateBackground(
   options: GenerateBackgroundOptions
 ): Promise<GenerateBackgroundResult> {
   const { jokeText, jokeTitle, style = "nature" } = options;
-
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY environment variable is not set");
-  }
 
   // Создаем промпт для генерации видео фона
   const prompt = createBackgroundPrompt({
@@ -30,272 +26,182 @@ export async function generateBackground(
     style,
   });
 
-  // Пытаемся сгенерировать видео с автоматическим повторением при внутренних ошибках
-  const maxRetries = 3;
-  let lastError: Error | null = null;
+  const apiKey = process.env.PIAPI_X_API_KEY || "bf691bd4c7a534dc2c2c24f19c950d7a5c57eee25ed636c46185ad5e0b09b147";
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      if (attempt > 0) {
-        console.log(`Retry attempt ${attempt + 1}/${maxRetries} for video generation...`);
-        // Ждем перед повторной попыткой (увеличиваем время с каждой попыткой)
-        await new Promise((resolve) => setTimeout(resolve, attempt * 5000 + 2000));
-      }
+  if (!apiKey) {
+    throw new Error("PIAPI_X_API_KEY environment variable is not set");
+  }
 
-      // Генерируем видео через Sora API
-      // Endpoint: /v1/videos согласно документации OpenAI
-      const response = await fetch("https://api.openai.com/v1/videos", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
+  // Генерируем видео через PiAPI/Luma Dream Machine
+  // Согласно документации: POST https://api.piapi.ai/api/v1/task
+  const response = await fetch("https://api.piapi.ai/api/v1/task", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "luma",
+      task_type: "video_generation",
+      input: {
+        prompt: prompt,
+        model_name: "ray-v2", // ray-v2 для лучшего качества (можно использовать ray-v1)
+        duration: 10, // 10 секунд для txt2video (можно использовать 5)
+        aspect_ratio: "9:16", // Вертикальный формат для YouTube Shorts
+      },
+      config: {
+        webhook_config: {
+          endpoint: "",
+          secret: "",
         },
-        body: JSON.stringify({
-          model: "sora-2",
-          prompt: prompt,
-          // Portrait формат для вертикального видео (720x1280)
-          size: "720x1280", // Формат: ширина×высота для портретной ориентации
-        }),
+        service_mode: "public", // PAYG mode
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("PiAPI/Luma error:", response.status, errorText);
+    throw new Error(`PiAPI/Luma request failed: ${response.status} ${errorText}`);
+  }
+
+  const responseData = await response.json();
+  
+  // API возвращает ответ в формате { code, data, message }
+  // task_id находится в data.task_id
+  const taskId = responseData.data?.task_id || responseData.task_id;
+  const status = responseData.data?.status || responseData.status;
+  
+  if (!taskId) {
+    console.error("Unexpected PiAPI/Luma response format:", JSON.stringify(responseData, null, 2));
+    throw new Error(`Unexpected PiAPI/Luma response format: ${JSON.stringify(responseData)}`);
+  }
+
+  // Асинхронная генерация - нужно ждать завершения
+  console.log(`Video generation task created. Task ID: ${taskId}, Status: ${status}`);
+  const videoUrl = await pollForLumaCompletion(apiKey, taskId);
+  return {
+    videoUrl,
+    revisedPrompt: prompt,
+    generationId: taskId,
+  };
+}
+
+
+/**
+ * Ожидает завершения генерации видео через Luma Dream Machine
+ * Проверяет статус задачи через GET /api/v1/task/{task_id}
+ * Таймаут: 10 минут (200 попыток * 3 секунды)
+ */
+async function pollForLumaCompletion(apiKey: string, taskId: string, maxAttempts = 300): Promise<string> {
+  // Согласно документации: GET https://api.piapi.ai/api/v1/task/{task_id}
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const response = await fetch(`https://api.piapi.ai/api/v1/task/${taskId}`, {
+        method: "GET",
+        headers: {
+          "x-api-key": apiKey,
+        },
       });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Sora API error:", response.status, errorText);
+      if (!response.ok) {
+        throw new Error(`Failed to check task status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
       
-      // Пытаемся распарсить JSON ошибки для более понятного сообщения
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.error?.message) {
-          // Проверяем на специфичные ошибки
-          if (errorData.error.message.includes("organization must be verified") || 
-              errorData.error.message.includes("must be verified")) {
-            throw new Error(
-              `Доступ к Sora еще не активирован. ` +
-              `Если вы только что верифицировали организацию, подождите до 15 минут для активации доступа. ` +
-              `Проверьте статус на https://platform.openai.com/settings/organization/general`
-            );
+      // API возвращает ответ в формате { code, data, message }
+      const data = responseData.data || responseData;
+      const status = data.status;
+      
+      console.log(`Task ${taskId} status: ${status} (attempt ${attempt + 1}/${maxAttempts})`);
+      
+      // Успешное завершение
+      // Согласно документации Luma, статус может быть "Completed" (с большой буквы)
+      if (status === "completed" || status === "Completed") {
+        // Согласно документации Luma, видео находится в data.output.video или data.output.video_raw
+        // API может возвращать как строку URL, так и объект { url, width, height }
+        const extractVideoUrl = (video: unknown): string | null => {
+          if (!video) return null;
+          // Если это строка - возвращаем как есть
+          if (typeof video === "string") {
+            return video;
           }
-          throw new Error(`Failed to generate video: ${errorData.error.message}`);
+          // Если это объект - извлекаем url
+          if (typeof video === "object" && video !== null && "url" in video) {
+            const videoObj = video as { url: string };
+            return videoObj.url;
+          }
+          return null;
+        };
+
+        const videoUrl = 
+          extractVideoUrl(data.output?.video) ||
+          extractVideoUrl(data.output?.video_raw) ||
+          data.output?.video_url ||
+          data.output?.url ||
+          extractVideoUrl(data.result?.video) ||
+          data.result?.video_url ||
+          data.video_url ||
+          data.url;
+
+        if (videoUrl) {
+          console.log("Background video generated successfully:", data.output?.video || data.output?.video_raw || { url: videoUrl });
+          return videoUrl;
         }
-      } catch {
-        // Если не удалось распарсить JSON, используем исходный текст
+        
+        // Логируем полный ответ для отладки
+        console.error("Task completed but no video URL found. Full response:", JSON.stringify(responseData, null, 2));
+        throw new Error(`Video generation completed but no URL found. Response: ${JSON.stringify(responseData)}`);
       }
-      
-      throw new Error(`Failed to generate video: ${response.status} ${errorText}`);
-    }
 
-    const data = await response.json();
-    
-    // Проверяем формат ответа Sora API
-    let videoUrl: string;
-    let generationId: string | undefined;
+      // Ошибка генерации
+      if (status === "failed" || status === "Failed") {
+        const errorData = data.error || responseData.error || {};
+        const errorMsg = errorData.message || errorData.raw_message || responseData.message || "Unknown error";
+        
+        // Более понятные сообщения на русском для частых ошибок
+        if (errorMsg.includes("insufficient credits") || errorMsg.includes("credit")) {
+          throw new Error(
+            `Недостаточно кредитов на аккаунте PiAPI для генерации видео. ` +
+            `Пожалуйста, пополните баланс на https://piapi.ai или проверьте статус аккаунта. ` +
+            `(Error: ${errorMsg})`
+          );
+        }
+        
+        throw new Error(`Luma video generation failed: ${errorMsg}`);
+      }
 
-    // Sora может возвращать видео напрямую или через асинхронную генерацию
-    if (data.video_url) {
-      // Готовое видео
-      videoUrl = data.video_url;
-      generationId = data.id;
-    } else if (data.url) {
-      videoUrl = data.url;
-      generationId = data.id;
-    } else if (data.id && (
-      data.status === "pending" || 
-      data.status === "processing" || 
-      data.status === "queued" ||
-      data.status === "in_progress"
-    )) {
-      // Асинхронная генерация - нужно ждать завершения
-      console.log(`Video generation queued/processing, waiting for completion. ID: ${data.id}, Status: ${data.status}`);
-      generationId = data.id;
-      videoUrl = await pollForVideoCompletion(generationId!);
-    } else if (data.data && data.data[0]?.video_url) {
-      videoUrl = data.data[0].video_url;
-    } else if (data.data && data.data[0]?.url) {
-      videoUrl = data.data[0].url;
-    } else {
-      console.error("Unexpected Sora API response format:", JSON.stringify(data, null, 2));
-      throw new Error(`Failed to get video URL from Sora API response. Response: ${JSON.stringify(data)}`);
-    }
+      // Если статус еще обрабатывается, ждем
+      // Согласно документации Luma: Processing, Pending, Staged
+      if (status === "processing" || status === "Processing" || 
+          status === "pending" || status === "Pending" ||
+          status === "staged" || status === "Staged") {
+        // Логируем прогресс если доступен
+        if (data.progress !== undefined) {
+          console.log(`Task progress: ${data.progress}%`);
+        }
+        // Ждем перед следующей попыткой
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        continue;
+      }
 
-      return {
-        videoUrl,
-        revisedPrompt: prompt,
-        generationId,
-      };
+      // Неизвестный статус - ждем и пробуем снова
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`Failed to generate background video with Sora (attempt ${attempt + 1}/${maxRetries}):`, errorMessage);
-      
-      // Проверяем, можно ли повторить попытку
-      const isRetryable = errorMessage.includes("internal error") || 
-                         errorMessage.includes("temporary") ||
-                         errorMessage.includes("timeout") ||
-                         errorMessage.includes("rate limit");
-      
-      if (isRetryable && attempt < maxRetries - 1) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        continue; // Пробуем еще раз
+      // Если это не последняя попытка, продолжаем
+      if (attempt < maxAttempts - 1) {
+        console.error(`Error checking task status (attempt ${attempt + 1}):`, error);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        continue;
       }
-      
-      // Если это последняя попытка или ошибка не повторяемая - выбрасываем
       throw error;
     }
   }
 
-  // Если все попытки исчерпаны
-  throw lastError || new Error("Failed to generate video after all retry attempts");
+  throw new Error("Luma video generation timed out after 10 minutes");
 }
 
-/**
- * Ожидает завершения генерации видео и возвращает URL готового видео
- */
-async function pollForVideoCompletion(generationId: string, maxAttempts = 60): Promise<string> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const response = await fetch(`https://api.openai.com/v1/videos/${generationId}`, {
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to check video generation status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    // Успешное завершение
-    if (data.status === "succeeded" || data.status === "completed" || data.status === "success") {
-      // Логируем полный ответ для отладки
-      console.log("Video generation completed. Full response:", JSON.stringify(data, null, 2));
-      
-      // Проверяем все возможные поля с URL
-      if (data.video_url) {
-        return data.video_url;
-      } else if (data.url) {
-        return data.url;
-      } else if (data.video) {
-        // Возможно URL вложен в объект video
-        if (typeof data.video === "string") {
-          return data.video;
-        } else if (data.video.url) {
-          return data.video.url;
-        } else if (data.video.video_url) {
-          return data.video.video_url;
-        }
-      } else if (data.result?.video_url) {
-        return data.result.video_url;
-      } else if (data.result?.url) {
-        return data.result.url;
-      } else if (data.output?.video_url) {
-        return data.output.video_url;
-      } else if (data.output?.url) {
-        return data.output.url;
-      }
-      
-      // Если URL не найден в ответе, но статус completed - ждем немного и запрашиваем снова
-      // Иногда URL появляется в следующем запросе после завершения
-      if (data.id && data.status === "completed") {
-        console.log(`Video completed but URL not in response, waiting and retrying...`);
-        // Ждем 2 секунды и запрашиваем еще раз
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        
-        // Повторный запрос для получения URL
-        const retryResponse = await fetch(`https://api.openai.com/v1/videos/${data.id}`, {
-          headers: {
-            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          },
-        });
-        
-        if (retryResponse.ok) {
-          const retryData = await retryResponse.json();
-          console.log("Retry response:", JSON.stringify(retryData, null, 2));
-          
-          if (retryData.video_url) {
-            return retryData.video_url;
-          } else if (retryData.url) {
-            return retryData.url;
-          }
-        }
-        
-        // Если все еще нет URL, пробуем endpoint /download
-        console.log(`Trying /download endpoint for video ID: ${data.id}`);
-        try {
-          const downloadResponse = await fetch(`https://api.openai.com/v1/videos/${data.id}/download`, {
-            method: "GET",
-            headers: {
-              "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-            },
-            redirect: "follow", // Автоматически следуем редиректам
-          });
-          
-          if (downloadResponse.ok) {
-            // Проверяем final URL после всех редиректов
-            const finalUrl = downloadResponse.url;
-            if (finalUrl && finalUrl.includes("http") && !finalUrl.includes("/v1/videos")) {
-              console.log(`Got video URL from download endpoint: ${finalUrl}`);
-              return finalUrl;
-            }
-            
-            // Или проверяем заголовок Location
-            const location = downloadResponse.headers.get("location");
-            if (location) {
-              console.log(`Got video URL from Location header: ${location}`);
-              return location;
-            }
-            
-            // Или может быть в теле ответа
-            const contentType = downloadResponse.headers.get("content-type");
-            if (contentType && contentType.startsWith("application/json")) {
-              const downloadData = await downloadResponse.json();
-              if (downloadData.url || downloadData.video_url) {
-                return downloadData.url || downloadData.video_url;
-              }
-            }
-          }
-        } catch (downloadError) {
-          console.error("Download endpoint error:", downloadError);
-        }
-      }
-      
-      // Если ничего не найдено, выводим ошибку с полным ответом
-      throw new Error(
-        `Video generation completed but no URL found. ` +
-        `Response: ${JSON.stringify(data)}. ` +
-        `Video ID: ${data.id}. ` +
-        `Попробуйте проверить видео вручную на https://platform.openai.com или обратитесь в поддержку OpenAI.`
-      );
-    }
-
-    // Ошибка генерации
-    if (data.status === "failed" || data.status === "error") {
-      const errorMsg = data.error?.message || data.error || "Unknown error";
-      console.error(`Video generation failed. Status: ${data.status}, Error:`, errorMsg);
-      
-      // Проверяем тип ошибки для более понятного сообщения
-      if (errorMsg.includes("internal error")) {
-        throw new Error(
-          `Внутренняя ошибка OpenAI при генерации видео. ` +
-          `Это временная проблема на стороне сервера. ` +
-          `Попробуйте позже или повторите запрос. ` +
-          `(Error: ${errorMsg})`
-        );
-      }
-      
-      throw new Error(`Video generation failed: ${errorMsg}`);
-    }
-
-    // Продолжаем ждать для статусов: queued, pending, processing, in_progress
-    // Логируем прогресс если доступен
-    if (data.progress !== undefined) {
-      console.log(`Video generation progress: ${data.progress}% (Status: ${data.status})`);
-    }
-
-    // Ждем перед следующей попыткой (3 секунды для видео генерации)
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-  }
-
-  throw new Error("Video generation timed out after 3 minutes");
-}
 
 function createBackgroundPrompt(options: {
   jokeText: string;

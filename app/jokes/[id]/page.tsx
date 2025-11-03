@@ -35,6 +35,45 @@ export default function JokeDetailPage() {
 
   const id = params?.id as string;
 
+  const startPolling = (jobId: string) => {
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/videos/${jobId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setVideoJob(data.job);
+
+          // Останавливаем polling если статус завершенный
+          if (data.job.status === "completed" || data.job.status === "failed") {
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
+            setGenerating(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to poll video status:", err);
+      }
+    };
+
+    // Первый запрос сразу
+    poll();
+
+    // Затем polling каждые 2 секунды
+    intervalId = setInterval(poll, 2000);
+
+    // Останавливаем polling через 10 минут (на случай если что-то пошло не так)
+    setTimeout(() => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      setGenerating(false);
+    }, 10 * 60 * 1000);
+  };
+
   useEffect(() => {
     if (!id) return;
 
@@ -56,7 +95,26 @@ export default function JokeDetailPage() {
       }
     };
 
+    const loadVideoJob = async () => {
+      try {
+        const response = await fetch(`/api/videos/joke/${id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.job) {
+            setVideoJob(data.job);
+            // Если видео еще генерируется, запускаем polling
+            if (data.job.status === "running" || data.job.status === "pending") {
+              startPolling(data.job._id);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load video job:", err);
+      }
+    };
+
     loadJoke();
+    loadVideoJob();
   }, [id]);
 
   const generateVideo = async () => {
@@ -92,44 +150,39 @@ export default function JokeDetailPage() {
     }
   };
 
-  const startPolling = (jobId: string) => {
-    let intervalId: NodeJS.Timeout | null = null;
-    
-    const poll = async () => {
-      try {
-        const response = await fetch(`/api/videos/${jobId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setVideoJob(data.job);
+  const regenerateBackground = async () => {
+    if (!joke?._id || !videoJob?._id) return;
 
-          // Останавливаем polling если статус завершенный
-          if (data.job.status === "completed" || data.job.status === "failed") {
-            if (intervalId) {
-              clearInterval(intervalId);
-            }
-            setGenerating(false);
-            return;
-          }
-        }
-      } catch (err) {
-        console.error("Failed to poll video status:", err);
+    setGenerating(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/videos/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jokeId: joke._id,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Не удалось начать перегенерацию видео");
       }
-    };
 
-    // Первый запрос сразу
-    poll();
+      const result = await response.json();
+      setVideoJob(result.job);
 
-    // Затем polling каждые 2 секунды
-    intervalId = setInterval(poll, 2000);
-
-    // Останавливаем polling через 5 минут (на случай если что-то пошло не так)
-    setTimeout(() => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      // Начинаем polling статуса
+      startPolling(result.job._id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to regenerate background:", err);
       setGenerating(false);
-    }, 5 * 60 * 1000);
+    }
   };
+
 
   if (loading) {
     return (
@@ -230,18 +283,30 @@ export default function JokeDetailPage() {
               Генерация видео
             </h2>
 
-            {/* Кнопка генерации */}
-            <button
-              onClick={generateVideo}
-              disabled={generating || joke.status === "used"}
-              className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium mb-6"
-            >
-              {generating
-                ? "Генерация видео..."
-                : joke.status === "used"
-                  ? "Анекдот уже использован"
-                  : "Сгенерировать видео"}
-            </button>
+            {/* Кнопки генерации */}
+            <div className="flex gap-3 mb-6">
+              {!videoJob || videoJob.status === "failed" ? (
+                <button
+                  onClick={generateVideo}
+                  disabled={generating || joke.status === "used"}
+                  className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                >
+                  {generating
+                    ? "Генерация видео..."
+                    : joke.status === "used"
+                      ? "Анекдот уже использован"
+                      : "Сгенерировать видео"}
+                </button>
+              ) : (
+                <button
+                  onClick={regenerateBackground}
+                  disabled={generating}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                >
+                  {generating ? "Перегенерация фона..." : "Перегенерировать фон"}
+                </button>
+              )}
+            </div>
 
             {/* Статус генерации */}
             {videoJob && (
@@ -314,20 +379,15 @@ export default function JokeDetailPage() {
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500" />
                 )}
 
-                {/* Overlay для читаемости текста */}
-                {videoJob?.backgroundVideoUrl && (
-                  <div className="absolute inset-0 bg-black/20" />
-                )}
-
                 {/* Текст анекдота на фоне */}
                 <div className="absolute inset-0 flex items-center justify-center p-6">
-                  <div className="text-white text-center drop-shadow-2xl">
+                  <div className="bg-white/60 backdrop-blur-sm rounded-lg px-6 py-8 max-w-[90%] text-center">
                     {joke.title && (
-                      <h4 className="text-lg font-bold mb-3 drop-shadow-lg">
+                      <h4 className="text-xl font-bold mb-3 text-gray-900">
                         {joke.title}
                       </h4>
                     )}
-                    <p className="text-sm leading-relaxed line-clamp-6 drop-shadow-lg">
+                    <p className="text-base font-bold leading-relaxed line-clamp-6 text-gray-900">
                       {joke.text}
                     </p>
                   </div>
@@ -346,7 +406,7 @@ export default function JokeDetailPage() {
 
               {videoJob?.backgroundVideoUrl && (
                 <div className="mt-3 text-xs text-gray-500 text-center">
-                  Видео фон сгенерирован через OpenAI Sora
+                  Видео фон сгенерирован через Luma Dream Machine
                 </div>
               )}
               

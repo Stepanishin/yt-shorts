@@ -51,6 +51,17 @@ export const findVideoJobById = async (id: unknown) => {
   return collection.findOne({ _id: objectId as ObjectId });
 };
 
+export const findVideoJobByJokeId = async (jokeId: unknown) => {
+  const collection = await getCollection();
+  // Пробуем найти как ObjectId, если не получается - как строку
+  const jokeIdQuery: unknown = ObjectId.isValid(String(jokeId)) 
+    ? new ObjectId(String(jokeId)) 
+    : String(jokeId);
+  // Ищем самую последнюю job для этого jokeId
+  const jobs = await collection.find({ jokeId: jokeIdQuery }, { sort: { createdAt: -1 }, limit: 1 }).toArray();
+  return jobs[0] || null;
+};
+
 export const updateVideoJobStatus = async ({
   id,
   status,
