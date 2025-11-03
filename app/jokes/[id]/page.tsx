@@ -36,6 +36,15 @@ export default function JokeDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [randomEmoji, setRandomEmoji] = useState("");
+
+  // Выбираем случайную эмодзи при монтировании и при изменении текста
+  useEffect(() => {
+    // Смеющиеся эмодзи
+    const laughingEmojis = ["😂", "🤣", "😆", "😄", "😃", "😊", "😁", "😀", "🤪", "😜", "🥳", "😋"];
+    const randomIndex = Math.floor(Math.random() * laughingEmojis.length);
+    setRandomEmoji(laughingEmojis[randomIndex]);
+  }, [editedText, videoJob?.editedText]);
 
   const id = params?.id as string;
 
@@ -470,7 +479,7 @@ export default function JokeDetailPage() {
 
                 {/* Текст анекдота на фоне */}
                 <div className="absolute inset-0 flex items-center justify-center p-6 overflow-y-auto">
-                  <div className="bg-white/60 backdrop-blur-sm rounded-lg px-6 py-8 max-w-[90%] w-full text-center">
+                  <div className="bg-white/60 backdrop-blur-sm rounded-lg px-6 py-8 max-w-[90%] w-full text-center relative">
                     {joke.title && (
                       <h4 className="text-xl font-bold mb-3 text-gray-900">
                         {joke.title}
@@ -479,6 +488,12 @@ export default function JokeDetailPage() {
                     <p className="text-base font-bold leading-relaxed text-gray-900 whitespace-pre-wrap break-words">
                       {editedText || joke.text}
                     </p>
+                    {/* Рандомная смеющаяся эмодзи справа внизу */}
+                    {randomEmoji && (
+                      <div className="absolute bottom-2 right-2 text-4xl animate-bounce">
+                        <span className="inline-block">{randomEmoji}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
