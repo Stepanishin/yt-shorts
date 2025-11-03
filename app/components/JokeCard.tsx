@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 interface JokeCardProps {
   joke: {
     _id?: string;
@@ -38,8 +40,17 @@ export default function JokeCard({ joke }: JokeCardProps) {
   const status = joke.status ?? "pending";
   const sourceLabel = sourceLabels[joke.source] ?? joke.source;
 
+  if (!joke._id) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="text-gray-500">Анекдот без ID</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+    <Link href={`/jokes/${joke._id}`}>
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-600">{sourceLabel}</span>
@@ -62,25 +73,11 @@ export default function JokeCard({ joke }: JokeCardProps) {
         {joke.text}
       </div>
 
-      {/* <div className="flex items-center gap-4 text-xs text-gray-500">
-        {joke.ratingPercent !== undefined && (
-          <span>Рейтинг: {joke.ratingPercent}%</span>
-        )}
-        {joke.votesTotal !== undefined && joke.votesTotal > 0 && (
-          <span>Голосов: {joke.votesTotal}</span>
-        )}
-        {joke.createdAt && (
-          <span>
-            Добавлен:{" "}
-            {new Date(joke.createdAt).toLocaleDateString("ru-RU", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-        )}
-      </div> */}
-    </div>
+        <div className="mt-4 text-xs text-blue-600 font-medium">
+          Нажмите, чтобы открыть →
+        </div>
+      </div>
+    </Link>
   );
 }
 

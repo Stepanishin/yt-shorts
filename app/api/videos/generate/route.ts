@@ -7,6 +7,7 @@ import {
   reserveNextJokeCandidate,
 } from "@/lib/ingest/storage";
 import { createVideoJob } from "@/lib/video/storage";
+import { processVideoJob } from "@/lib/video/processor";
 
 export async function POST(request: Request) {
   try {
@@ -37,6 +38,11 @@ export async function POST(request: Request) {
       jokeTitle: candidate.title,
       jokeMeta: candidate.meta,
       status: "pending",
+    });
+
+    // Запускаем обработку видео в фоне (не ждем завершения)
+    processVideoJob(job._id).catch((error) => {
+      console.error("Failed to process video job in background", error);
     });
 
     return NextResponse.json({ job, joke: candidate });

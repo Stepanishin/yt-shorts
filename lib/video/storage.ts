@@ -12,6 +12,8 @@ export interface VideoJob {
   jokeTitle?: string;
   jokeMeta?: Record<string, unknown>;
   status: VideoJobStatus;
+  backgroundVideoUrl?: string;
+  backgroundPrompt?: string;
   createdAt: Date;
   updatedAt: Date;
   error?: string;
@@ -43,26 +45,42 @@ export const listVideoJobs = async ({ limit = 50 }: { limit?: number } = {}) => 
   return collection.find({}, { sort: { createdAt: -1 }, limit }).toArray();
 };
 
+export const findVideoJobById = async (id: unknown) => {
+  const collection = await getCollection();
+  const objectId: ObjectId | unknown = ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : id;
+  return collection.findOne({ _id: objectId as ObjectId });
+};
+
 export const updateVideoJobStatus = async ({
   id,
   status,
   error,
+  backgroundVideoUrl,
+  backgroundPrompt,
 }: {
   id: unknown;
   status: VideoJobStatus;
   error?: string;
+  backgroundVideoUrl?: string;
+  backgroundPrompt?: string;
 }) => {
   const collection = await getCollection();
   const objectId: ObjectId | unknown = ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : id;
-  await collection.updateOne(
-    { _id: objectId as ObjectId },
-    {
-      $set: {
-        status,
-        error,
-        updatedAt: new Date(),
-      },
-    }
-  );
+  const update: Record<string, unknown> = {
+    status,
+    updatedAt: new Date(),
+  };
+
+  if (error !== undefined) {
+    update.error = error;
+  }
+  if (backgroundVideoUrl !== undefined) {
+    update.backgroundVideoUrl = backgroundVideoUrl;
+  }
+  if (backgroundPrompt !== undefined) {
+    update.backgroundPrompt = backgroundPrompt;
+  }
+
+  await collection.updateOne({ _id: objectId as ObjectId }, { $set: update });
 };
 

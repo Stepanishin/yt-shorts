@@ -1,0 +1,369 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+
+interface JokeData {
+  _id?: string;
+  source: string;
+  title?: string;
+  text: string;
+  category?: string;
+  status?: "pending" | "reserved" | "used" | "rejected";
+  ratingPercent?: number;
+  votesTotal?: number;
+  createdAt?: string;
+}
+
+interface VideoJob {
+  _id?: string;
+  status: "pending" | "running" | "completed" | "failed";
+  jokeId?: string;
+  error?: string;
+  backgroundVideoUrl?: string;
+  backgroundPrompt?: string;
+}
+
+export default function JokeDetailPage() {
+  const params = useParams();
+  const [joke, setJoke] = useState<JokeData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [videoJob, setVideoJob] = useState<VideoJob | null>(null);
+
+  const id = params?.id as string;
+
+  useEffect(() => {
+    if (!id) return;
+
+    const loadJoke = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/jokes/${id}`);
+        if (!response.ok) {
+          throw new Error("Не удалось загрузить анекдот");
+        }
+        const data = await response.json();
+        setJoke(data.joke);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Произошла ошибка");
+        console.error("Failed to load joke:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadJoke();
+  }, [id]);
+
+  const generateVideo = async () => {
+    if (!joke?._id) return;
+
+    setGenerating(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/videos/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jokeId: joke._id,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Не удалось начать генерацию видео");
+      }
+
+      const result = await response.json();
+      setVideoJob(result.job);
+
+      // Начинаем polling статуса
+      startPolling(result.job._id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to generate video:", err);
+      setGenerating(false);
+    }
+  };
+
+  const startPolling = (jobId: string) => {
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/videos/${jobId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setVideoJob(data.job);
+
+          // Останавливаем polling если статус завершенный
+          if (data.job.status === "completed" || data.job.status === "failed") {
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
+            setGenerating(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to poll video status:", err);
+      }
+    };
+
+    // Первый запрос сразу
+    poll();
+
+    // Затем polling каждые 2 секунды
+    intervalId = setInterval(poll, 2000);
+
+    // Останавливаем polling через 5 минут (на случай если что-то пошло не так)
+    setTimeout(() => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      setGenerating(false);
+    }, 5 * 60 * 1000);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Загрузка анекдота...</div>
+      </div>
+    );
+  }
+
+  if (error && !joke) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <main className="container mx-auto px-4 py-8 max-w-4xl">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <div className="text-red-800 font-medium mb-2">Ошибка</div>
+            <div className="text-red-600 text-sm mb-3">{error}</div>
+            <Link
+              href="/"
+              className="text-blue-600 hover:text-blue-700 underline"
+            >
+              Вернуться к списку
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!joke) {
+    return null;
+  }
+
+  const sourceLabels: Record<string, string> = {
+    chistes: "Chistes.com",
+    yavendras: "Yavendras.com",
+    todochistes: "TodoChistes.net",
+  };
+
+  const statusLabels: Record<string, string> = {
+    pending: "Ожидает",
+    reserved: "Зарезервирован",
+    used: "Использован",
+    rejected: "Отклонен",
+  };
+
+  const statusColors: Record<string, string> = {
+    pending: "bg-gray-100 text-gray-800",
+    reserved: "bg-blue-100 text-blue-800",
+    used: "bg-green-100 text-green-800",
+    rejected: "bg-red-100 text-red-800",
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <main className="container mx-auto px-4 py-8 max-w-4xl">
+        <Link
+          href="/"
+          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6"
+        >
+          ← Вернуться к списку
+        </Link>
+
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
+          {/* Заголовок и метаданные */}
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-600">
+                {sourceLabels[joke.source] ?? joke.source}
+              </span>
+              {joke.category && (
+                <span className="text-xs text-gray-500">• {joke.category}</span>
+              )}
+            </div>
+            <span
+              className={`text-xs font-medium px-2 py-1 rounded-full ${
+                statusColors[joke.status ?? "pending"] ?? statusColors.pending
+              }`}
+            >
+              {statusLabels[joke.status ?? "pending"] ?? joke.status}
+            </span>
+          </div>
+
+          {/* Заголовок анекдота */}
+          {joke.title && (
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">{joke.title}</h1>
+          )}
+
+          {/* Текст анекдота */}
+          <div className="mb-8">
+            <div className="text-lg text-gray-700 whitespace-pre-wrap leading-relaxed">
+              {joke.text}
+            </div>
+          </div>
+
+          {/* Секция генерации видео */}
+          <div className="border-t pt-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Генерация видео
+            </h2>
+
+            {/* Кнопка генерации */}
+            <button
+              onClick={generateVideo}
+              disabled={generating || joke.status === "used"}
+              className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium mb-6"
+            >
+              {generating
+                ? "Генерация видео..."
+                : joke.status === "used"
+                  ? "Анекдот уже использован"
+                  : "Сгенерировать видео"}
+            </button>
+
+            {/* Статус генерации */}
+            {videoJob && (
+              <div
+                className={`mb-6 rounded-lg border p-4 ${
+                  videoJob.status === "completed"
+                    ? "border-green-200 bg-green-50"
+                    : videoJob.status === "failed"
+                      ? "border-red-200 bg-red-50"
+                      : videoJob.status === "running"
+                        ? "border-blue-200 bg-blue-50"
+                        : "border-yellow-200 bg-yellow-50"
+                }`}
+              >
+                <div
+                  className={`font-medium mb-2 ${
+                    videoJob.status === "completed"
+                      ? "text-green-800"
+                      : videoJob.status === "failed"
+                        ? "text-red-800"
+                        : videoJob.status === "running"
+                          ? "text-blue-800"
+                          : "text-yellow-800"
+                  }`}
+                >
+                  {videoJob.status === "completed"
+                    ? "Видео готово!"
+                    : videoJob.status === "failed"
+                      ? "Ошибка генерации"
+                      : videoJob.status === "running"
+                        ? "Видео генерируется..."
+                        : "Ожидание начала генерации"}
+                </div>
+                <div
+                  className={`text-sm ${
+                    videoJob.status === "completed"
+                      ? "text-green-600"
+                      : videoJob.status === "failed"
+                        ? "text-red-600"
+                        : videoJob.status === "running"
+                          ? "text-blue-600"
+                          : "text-yellow-600"
+                  }`}
+                >
+                  Статус: {videoJob.status}
+                </div>
+                {videoJob.error && (
+                  <div className="mt-2 text-sm text-red-600">{videoJob.error}</div>
+                )}
+              </div>
+            )}
+
+            {/* Превью видео / Бэкграунд */}
+            <div className="mt-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-3">
+                Превью видео
+              </h3>
+              <div className="aspect-[9/16] max-w-sm mx-auto rounded-lg overflow-hidden relative shadow-lg bg-gray-100">
+                {/* Фон: сгенерированное видео или градиент-заглушка */}
+                {videoJob?.backgroundVideoUrl ? (
+                  <video
+                    src={videoJob.backgroundVideoUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500" />
+                )}
+
+                {/* Overlay для читаемости текста */}
+                {videoJob?.backgroundVideoUrl && (
+                  <div className="absolute inset-0 bg-black/20" />
+                )}
+
+                {/* Текст анекдота на фоне */}
+                <div className="absolute inset-0 flex items-center justify-center p-6">
+                  <div className="text-white text-center drop-shadow-2xl">
+                    {joke.title && (
+                      <h4 className="text-lg font-bold mb-3 drop-shadow-lg">
+                        {joke.title}
+                      </h4>
+                    )}
+                    <p className="text-sm leading-relaxed line-clamp-6 drop-shadow-lg">
+                      {joke.text}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Индикатор загрузки видео фона */}
+                {videoJob?.status === "running" && !videoJob.backgroundVideoUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <div className="text-white text-center">
+                      <div className="text-sm mb-2">Генерация видео фона...</div>
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent mx-auto" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {videoJob?.backgroundVideoUrl && (
+                <div className="mt-3 text-xs text-gray-500 text-center">
+                  Видео фон сгенерирован через OpenAI Sora
+                </div>
+              )}
+              
+              {!videoJob?.backgroundVideoUrl && (
+                <div className="mt-3 text-xs text-gray-500 text-center">
+                  Превью того, как будет выглядеть видео с анекдотом
+                </div>
+              )}
+            </div>
+
+            {error && (
+              <div className="mt-4 text-sm text-red-600">{error}</div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
