@@ -23,6 +23,7 @@ interface VideoJob {
   error?: string;
   backgroundVideoUrl?: string;
   backgroundPrompt?: string;
+  audioUrl?: string; // URL сгенерированного аудио
   editedText?: string;
   finalVideoUrl?: string;
   renderingStatus?: "pending" | "running" | "completed" | "failed";
@@ -40,6 +41,7 @@ export default function JokeDetailPage() {
   const [saving, setSaving] = useState(false);
   const [randomEmoji, setRandomEmoji] = useState("");
   const [rendering, setRendering] = useState(false);
+  const [generatingAudio, setGeneratingAudio] = useState(false);
 
   // Выбираем случайную эмодзи при монтировании и при изменении текста
   useEffect(() => {
@@ -269,6 +271,35 @@ export default function JokeDetailPage() {
     }
   };
 
+  const handleResetRenderingStatus = async () => {
+    if (!videoJob?._id) return;
+
+    setError(null);
+    try {
+      const response = await fetch(`/api/videos/${videoJob._id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          renderingStatus: "pending", // Сбрасываем статус
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Не удалось сбросить статус рендеринга");
+      }
+
+      const result = await response.json();
+      setVideoJob(result.job);
+      setRendering(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to reset rendering status:", err);
+    }
+  };
+
   const startRenderingPolling = (jobId: string) => {
     let intervalId: NodeJS.Timeout | null = null;
     
@@ -306,6 +337,87 @@ export default function JokeDetailPage() {
       }
       setRendering(false);
     }, 10 * 60 * 1000);
+  };
+
+  const handleGenerateAudio = async () => {
+    if (!videoJob?._id) return;
+
+    setGeneratingAudio(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/videos/${videoJob._id}/audio`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taskType: "txt2audio-base", // Можно сделать выбор качества
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Не удалось начать генерацию аудио");
+      }
+
+      // Начинаем polling статуса для проверки появления audioUrl
+      startAudioPolling(videoJob._id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to generate audio:", err);
+      setGeneratingAudio(false);
+    }
+  };
+
+  const startAudioPolling = (jobId: string) => {
+    let intervalId: NodeJS.Timeout | null = null;
+    let attempts = 0;
+    const maxAttempts = 150; // 5 минут (150 * 2 секунды)
+    
+    const poll = async () => {
+      try {
+        attempts++;
+        const response = await fetch(`/api/videos/${jobId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setVideoJob(data.job);
+
+          // Останавливаем polling если аудио сгенерировано
+          if (data.job.audioUrl) {
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
+            setGeneratingAudio(false);
+            return;
+          }
+
+          // Останавливаем если превышен лимит попыток
+          if (attempts >= maxAttempts) {
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
+            setGeneratingAudio(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to poll audio status:", err);
+      }
+    };
+
+    // Первый запрос сразу
+    poll();
+
+    // Затем polling каждые 2 секунды
+    intervalId = setInterval(poll, 2000);
+
+    // Останавливаем polling через 5 минут
+    setTimeout(() => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      setGeneratingAudio(false);
+    }, 5 * 60 * 1000);
   };
 
   if (loading) {
@@ -476,18 +588,42 @@ export default function JokeDetailPage() {
                   >
                     {generating ? "Перегенерация фона..." : "Перегенерировать фон"}
                   </button>
-                  {videoJob.status === "completed" && videoJob.backgroundVideoUrl && (
+                  {videoJob.status === "completed" && (
                     <button
-                      onClick={handleRenderVideo}
-                      disabled={rendering || videoJob.renderingStatus === "running"}
-                      className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                      onClick={handleGenerateAudio}
+                      disabled={generatingAudio || !videoJob.backgroundVideoUrl}
+                      className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
                     >
-                      {rendering || videoJob.renderingStatus === "running"
-                        ? "Рендеринг видео..."
-                        : videoJob.finalVideoUrl
-                          ? "Перерендерить видео"
-                          : "Собрать финальное видео"}
+                      {generatingAudio
+                        ? "Генерация аудио..."
+                        : videoJob.audioUrl
+                          ? "Перегенерировать аудио"
+                          : "Сгенерировать аудио"}
                     </button>
+                  )}
+                  {videoJob.status === "completed" && videoJob.backgroundVideoUrl && (
+                    <>
+                      {videoJob.renderingStatus === "running" && (
+                        <button
+                          onClick={handleResetRenderingStatus}
+                          className="px-6 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors font-medium"
+                          title="Сбросить статус рендеринга если процесс завис"
+                        >
+                          Сбросить статус рендеринга
+                        </button>
+                      )}
+                      <button
+                        onClick={handleRenderVideo}
+                        disabled={rendering || videoJob.renderingStatus === "running"}
+                        className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                      >
+                        {rendering || videoJob.renderingStatus === "running"
+                          ? "Рендеринг видео..."
+                          : videoJob.finalVideoUrl
+                            ? "Перерендерить видео"
+                            : "Собрать финальное видео"}
+                      </button>
+                    </>
                   )}
                 </>
               )}
@@ -540,6 +676,52 @@ export default function JokeDetailPage() {
                 </div>
                 {videoJob.error && (
                   <div className="mt-2 text-sm text-red-600">{videoJob.error}</div>
+                )}
+              </div>
+            )}
+
+            {/* Статус генерации аудио */}
+            {videoJob && (
+              <div
+                className={`mb-6 rounded-lg border p-4 ${
+                  videoJob.audioUrl
+                    ? "border-green-200 bg-green-50"
+                    : generatingAudio
+                      ? "border-indigo-200 bg-indigo-50"
+                      : videoJob.status === "completed"
+                        ? "border-gray-200 bg-gray-50"
+                        : "border-yellow-200 bg-yellow-50"
+                }`}
+              >
+                <div
+                  className={`font-medium mb-2 ${
+                    videoJob.audioUrl
+                      ? "text-green-800"
+                      : generatingAudio
+                        ? "text-indigo-800"
+                        : "text-gray-800"
+                  }`}
+                >
+                  {videoJob.audioUrl
+                    ? "✅ Аудио готово!"
+                    : generatingAudio
+                      ? "🎵 Генерация аудио через DiffRhythm..."
+                      : "🎵 Аудио не сгенерировано"}
+                </div>
+                {videoJob.audioUrl && (
+                  <div className="mt-3 space-y-2">
+                    <div className="text-sm text-green-600">
+                      Аудио успешно сгенерировано через DiffRhythm AI
+                    </div>
+                    <a
+                      href={videoJob.audioUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-700 underline inline-block"
+                    >
+                      Прослушать аудио
+                    </a>
+                  </div>
                 )}
               </div>
             )}

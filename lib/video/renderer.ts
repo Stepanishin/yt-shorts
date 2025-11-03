@@ -18,6 +18,7 @@ export interface RenderVideoOptions {
   editedText: string;
   emoji?: string;
   emojiAnimation?: EmojiAnimationType; // Тип анимации эмодзи
+  audioUrl?: string; // URL аудио для наложения на видео
   jobId: string;
 }
 
@@ -116,6 +117,7 @@ export async function renderFinalVideo(
     editedText, 
     emoji = "😂", 
     emojiAnimation = "pulse",
+    audioUrl,
     jobId 
   } = options;
 
@@ -136,6 +138,7 @@ export async function renderFinalVideo(
 
   // Пути для временных файлов и результата
   const tempVideoPath = path.join(videosDir, `temp_${jobId}.mp4`);
+  const tempAudioPath = audioUrl ? path.join(videosDir, `temp_audio_${jobId}.mp3`) : null;
   const outputVideoPath = path.join(videosDir, `final_${jobId}.mp4`);
   const outputVideoUrl = `/videos/final_${jobId}.mp4`;
 
@@ -149,6 +152,23 @@ export async function renderFinalVideo(
     const videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
     await fs.writeFile(tempVideoPath, videoBuffer);
     console.log("Background video downloaded");
+
+    // 1.5. Скачиваем аудио, если предоставлено
+    if (audioUrl && tempAudioPath) {
+      console.log("Downloading audio:", audioUrl);
+      try {
+        const audioResponse = await fetch(audioUrl);
+        if (audioResponse.ok) {
+          const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
+          await fs.writeFile(tempAudioPath, audioBuffer);
+          console.log("Audio downloaded successfully");
+        } else {
+          console.warn("Failed to download audio, continuing without audio:", audioResponse.statusText);
+        }
+      } catch (audioError) {
+        console.warn("Failed to download audio, continuing without audio:", audioError);
+      }
+    }
 
     // 2. Подготавливаем текст для наложения
     // Разбиваем текст на строки для компактного отображения (как в preview)
@@ -227,7 +247,27 @@ export async function renderFinalVideo(
       emojiExists = false;
     }
 
-    // 3. Создаем команду FFmpeg для наложения текста и эмодзи
+    // 3. Проверяем существование аудио файла (если был скачан)
+    const hasAudioFile = tempAudioPath ? await fs.stat(tempAudioPath).then(() => true).catch(() => false) : false;
+    
+    // 3.5. Получаем длительность видео-фона (должно быть 10 секунд)
+    let videoDuration = 0;
+    let audioDuration = 0;
+    try {
+      videoDuration = await getVideoDuration(tempVideoPath);
+      console.log(`Background video duration: ${videoDuration} seconds`);
+      
+      if (hasAudioFile && tempAudioPath) {
+        audioDuration = await getVideoDuration(tempAudioPath); // ffprobe работает и с аудио
+        console.log(`Audio duration: ${audioDuration} seconds`);
+      }
+    } catch (error) {
+      console.warn("Failed to get video duration:", error);
+      // Используем дефолтную длительность 10 секунд если не удалось получить
+      videoDuration = 10;
+    }
+    
+    // 4. Создаем команду FFmpeg для наложения текста и эмодзи
     // Используем сложный фильтр для лучшего контроля
     return new Promise((resolve, reject) => {
       // Создаем фильтр с полупрозрачным фоном для текста (как в preview)
@@ -398,6 +438,15 @@ export async function renderFinalVideo(
           ]);
       }
       
+      // Добавляем вход для аудио, если оно скачано
+      let audioInputIndex = 1; // Индекс для аудио (после видео и возможного эмодзи)
+      if (emojiExists) audioInputIndex = 2; // Если есть эмодзи, аудио будет третьим входом
+      
+      if (hasAudioFile && tempAudioPath) {
+        command = command.input(tempAudioPath);
+        console.log("Audio input added to FFmpeg command");
+      }
+      
       // Настраиваем опции вывода
       const outputOpts = [
         // Видео кодек
@@ -405,26 +454,85 @@ export async function renderFinalVideo(
         "-preset medium",
         "-crf 23",
         "-pix_fmt yuv420p",
-        // Аудио кодек (копируем если есть, иначе добавляем тишину)
+        // Аудио кодек
         "-c:a aac",
         "-b:a 128k",
-        "-shortest",
       ];
+      
+      // Явно обрезаем до длительности видео-фона (обычно 10 секунд)
+      // Это гарантирует что финальное видео будет той же длины что и фон
+      if (videoDuration > 0) {
+        outputOpts.push("-t", videoDuration.toString());
+        console.log(`Output will be trimmed to ${videoDuration} seconds`);
+      } else {
+        // Fallback: используем -shortest если не удалось получить длительность
+        outputOpts.push("-shortest");
+      }
       
       // Добавляем фильтр в зависимости от метода
       if (emojiExists) {
         // Используем complex filter для наложения изображения
         // Сначала указываем filter_complex, потом мапим выходные потоки
-        outputOpts.push("-filter_complex", filterComplex);
-        outputOpts.push("-map", "[v]");
-        // Мапим аудио из первого входа (если есть)
-        outputOpts.push("-map", "0:a?");
+        
+        // Если есть аудио, добавляем его обработку в фильтр
+        if (hasAudioFile) {
+          let audioFilter: string;
+          // Если видео длиннее аудио, зацикливаем аудио
+          if (videoDuration > 0 && audioDuration > 0 && videoDuration > audioDuration) {
+            // Вычисляем количество циклов (округление вверх)
+            const loops = Math.ceil(videoDuration / audioDuration);
+            console.log(`Audio needs ${loops} loops to match video duration (${videoDuration}s)`);
+            // Используем loop с конкретным количеством циклов
+            audioFilter = `[${audioInputIndex}:a]aloop=loop=${loops}:size=2e+09,asetpts=N/SR/TB[audio]`;
+          } else {
+            // Если аудио длиннее видео, обрезаем аудио до длительности видео
+            // Это гарантирует что аудио будет точно соответствовать видео
+            if (videoDuration > 0) {
+              audioFilter = `[${audioInputIndex}:a]atrim=0:${videoDuration},asetpts=PTS-STARTPTS[audio]`;
+              console.log(`Audio will be trimmed to ${videoDuration} seconds`);
+            } else {
+              audioFilter = `[${audioInputIndex}:a]asetpts=N/SR/TB[audio]`;
+            }
+          }
+          filterComplex = `${filterComplex};${audioFilter}`;
+          outputOpts.push("-filter_complex", filterComplex);
+          outputOpts.push("-map", "[v]");
+          outputOpts.push("-map", "[audio]");
+        } else {
+          outputOpts.push("-filter_complex", filterComplex);
+          outputOpts.push("-map", "[v]");
+          // Мапим аудио из первого входа (если есть)
+          outputOpts.push("-map", "0:a?");
+        }
       } else {
         // Используем обычный video filter для drawtext
         // При использовании -vf видео мапится автоматически, НЕ нужно указывать -map 0:v
         outputOpts.push("-vf", filterComplex);
-        // Аудио нужно указать явно, но только если оно есть
-        outputOpts.push("-map", "0:a?");
+        
+        // Аудио
+        if (hasAudioFile) {
+          // Добавляем обработку аудио через complex filter
+          let audioFilter: string;
+          // Если видео длиннее аудио, зацикливаем аудио
+          if (videoDuration > 0 && audioDuration > 0 && videoDuration > audioDuration) {
+            const loops = Math.ceil(videoDuration / audioDuration);
+            console.log(`Audio needs ${loops} loops to match video duration (${videoDuration}s)`);
+            audioFilter = `[${audioInputIndex}:a]aloop=loop=${loops}:size=2e+09,asetpts=N/SR/TB[audio]`;
+          } else {
+            // Если аудио длиннее видео, обрезаем аудио до длительности видео
+            if (videoDuration > 0) {
+              audioFilter = `[${audioInputIndex}:a]atrim=0:${videoDuration},asetpts=PTS-STARTPTS[audio]`;
+              console.log(`Audio will be trimmed to ${videoDuration} seconds`);
+            } else {
+              audioFilter = `[${audioInputIndex}:a]asetpts=N/SR/TB[audio]`;
+            }
+          }
+          outputOpts.push("-filter_complex", audioFilter);
+          outputOpts.push("-map", "[audio]");
+        } else {
+          // Аудио из исходного видео (если есть)
+          outputOpts.push("-map", "0:a?");
+        }
       }
       
       // Выводим финальную команду для отладки
@@ -452,6 +560,9 @@ export async function renderFinalVideo(
             await fs.unlink(tempVideoPath).catch(() => {});
             await fs.unlink(textFilePath).catch(() => {});
             await fs.unlink(emojiImagePath).catch(() => {});
+            if (tempAudioPath) {
+              await fs.unlink(tempAudioPath).catch(() => {});
+            }
 
             console.log("Video rendering completed:", outputVideoUrl);
             resolve({
@@ -470,6 +581,9 @@ export async function renderFinalVideo(
           fs.unlink(tempVideoPath).catch(() => {});
           fs.unlink(textFilePath).catch(() => {});
           fs.unlink(emojiImagePath).catch(() => {});
+          if (tempAudioPath) {
+            fs.unlink(tempAudioPath).catch(() => {});
+          }
           reject(new Error(`FFmpeg error: ${error.message}`));
         })
         .run();
@@ -481,6 +595,9 @@ export async function renderFinalVideo(
     await fs.unlink(tempVideoPath).catch(() => {});
     await fs.unlink(textFilePath).catch(() => {});
     await fs.unlink(emojiImagePath).catch(() => {});
+    if (tempAudioPath) {
+      await fs.unlink(tempAudioPath).catch(() => {});
+    }
     throw error;
   }
 }

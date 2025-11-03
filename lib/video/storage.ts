@@ -15,6 +15,7 @@ export interface VideoJob {
   status: VideoJobStatus;
   backgroundVideoUrl?: string;
   backgroundPrompt?: string;
+  audioUrl?: string; // URL сгенерированного аудио через DiffRhythm
   finalVideoUrl?: string; // URL финального видео с текстом и эмодзи
   renderingStatus?: "pending" | "running" | "completed" | "failed"; // Статус рендеринга финального видео
   createdAt: Date;
@@ -72,6 +73,7 @@ export const updateVideoJobStatus = async ({
   backgroundVideoUrl,
   backgroundPrompt,
   editedText,
+  audioUrl,
   finalVideoUrl,
   renderingStatus,
 }: {
@@ -81,6 +83,7 @@ export const updateVideoJobStatus = async ({
   backgroundVideoUrl?: string;
   backgroundPrompt?: string;
   editedText?: string;
+  audioUrl?: string;
   finalVideoUrl?: string;
   renderingStatus?: "pending" | "running" | "completed" | "failed";
 }) => {
@@ -102,6 +105,9 @@ export const updateVideoJobStatus = async ({
   }
   if (editedText !== undefined) {
     update.editedText = editedText;
+  }
+  if (audioUrl !== undefined) {
+    update.audioUrl = audioUrl;
   }
   if (finalVideoUrl !== undefined) {
     update.finalVideoUrl = finalVideoUrl;

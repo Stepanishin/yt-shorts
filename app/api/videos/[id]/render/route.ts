@@ -96,6 +96,7 @@ async function renderVideo(job: any, emoji?: string): Promise<void> {
       jokeTitle: job.jokeTitle,
       editedText: job.editedText || job.jokeText,
       emoji: emojiToUse,
+      audioUrl: job.audioUrl, // Передаем сгенерированное аудио
       jobId: String(job._id),
     });
 

@@ -49,10 +49,14 @@ export async function PATCH(
     }
 
     const body = await request.json().catch(() => ({}));
-    const { editedText } = body as { editedText?: string };
+    const { editedText, renderingStatus } = body as { 
+      editedText?: string;
+      renderingStatus?: "pending" | "running" | "completed" | "failed";
+    };
 
-    if (editedText === undefined) {
-      return NextResponse.json({ error: "editedText is required" }, { status: 400 });
+    // Нужно хотя бы одно поле для обновления
+    if (editedText === undefined && renderingStatus === undefined) {
+      return NextResponse.json({ error: "Either editedText or renderingStatus is required" }, { status: 400 });
     }
 
     const job = await findVideoJobById(id);
@@ -64,6 +68,7 @@ export async function PATCH(
       id,
       status: job.status,
       editedText,
+      renderingStatus,
     });
 
     // Получаем обновленную джобу
