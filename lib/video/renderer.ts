@@ -112,15 +112,13 @@ export async function renderFinalVideo(
     
     const wrappedText = wrapText(textToRender);
     
-    // Вычисляем примерную высоту текстового блока для позиционирования эмодзи
-    // Количество строк в тексте
+    // Вычисляем параметры текста для позиционирования эмодзи
     const lineCount = wrappedText.split('\n').length;
-    // Примерная высота одной строки с учетом fontsize=22 и line_spacing=10
     const lineHeight = 22 + 10; // fontsize + line_spacing
-    // Общая высота текста: количество строк * высота строки + отступы (boxborderw=24)
-    const estimatedTextHeight = lineCount * lineHeight + 48; // +48 для отступов (24px сверху и снизу)
-    // Примерная ширина текста (для вертикального видео): ~80% от ширины, но с отступами
-    const estimatedTextWidth = 720 * 0.85; // примерно 612px
+    const textBoxPadding = 24; // boxborderw
+    const estimatedTextHeight = lineCount * lineHeight + textBoxPadding * 2;
+    // Примерная ширина текста: ~85% от ширины видео (720px)
+    const estimatedTextWidth = Math.floor(720 * 0.85);
     
     // Создаем временный файл для текста, чтобы избежать проблем с экранированием
     const textFilePath = path.join(videosDir, `text_${jobId}.txt`);
@@ -167,12 +165,24 @@ export async function renderFinalVideo(
       // Формат: textfile='path' где одинарные кавычки внутри path экранируются как '\''
       const escapedTextFilePath = textFilePath.replace(/'/g, "'\\''");
       
-      const emojiX = `w/2+${Math.floor(estimatedTextWidth/2 - 60)}`;
-      const emojiY = `h/2+${Math.floor(estimatedTextHeight/2 - 40)}`;
+      // Позиционируем эмодзи в правом нижнем углу текста
+      // Текст находится по центру экрана (720x1280)
+      // Правый край текста: центр + половина ширины текста = 720/2 + estimatedTextWidth/2
+      // Нижний край текста: центр + половина высоты текста = 1280/2 + estimatedTextHeight/2
+      // Размер эмодзи: 64x64, добавляем небольшой отступ (8px) от края текста
+      // Overlay позиционирует левый верхний угол, поэтому вычитаем размер эмодзи
+      const emojiSize = 64;
+      const emojiOffset = 8; // Отступ от края текста
+      // Вычисляем абсолютные координаты (текст центрирован, поэтому используем вычисленные значения)
+      const textRightEdge = 360 + Math.floor(estimatedTextWidth / 2); // 360 = w/2 = 720/2
+      const textBottomEdge = 640 + Math.floor(estimatedTextHeight / 2); // 640 = h/2 = 1280/2
+      const emojiX = textRightEdge - emojiSize - emojiOffset;
+      const emojiY = textBottomEdge - emojiSize - emojiOffset;
       
       console.log("Text file path:", textFilePath);
       console.log("Escaped text file path:", escapedTextFilePath);
       console.log("Emoji exists:", emojiExists);
+      console.log("Emoji position - X:", emojiX, "Y:", emojiY);
       
       let filterComplex: string;
       if (emojiExists) {
@@ -201,11 +211,21 @@ export async function renderFinalVideo(
         // Экранируем путь к шрифту
         const escapedFontPath = emojiFontPath.replace(/:/g, '\\:').replace(/'/g, "'\\''");
         
+        // Используем вычисленные координаты для позиционирования эмодзи
+        // В drawtext можно использовать text_w и text_h из предыдущего фильтра, но для надежности
+        // используем вычисленные значения, аналогично overlay
+        const emojiFontSize = 56;
+        // Для drawtext размер эмодзи 56px (вместо 64px для изображения)
+        // Корректируем позицию: добавляем разницу в размерах (64-56=8px)
+        const emojiXDrawtext = emojiX + (emojiSize - emojiFontSize); // Корректировка для размера шрифта
+        const emojiYDrawtext = emojiY + (emojiSize - emojiFontSize); // Корректировка для размера шрифта
+        
         filterComplex = [
           // Обрабатываем фоновое видео: масштабируем, добавляем padding, накладываем текст и эмодзи
-          `scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=22:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=24:line_spacing=10,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=56:x=${emojiX}:y=${emojiY}`
+          `scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=22:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=24:line_spacing=10,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiFontSize}:x=${emojiXDrawtext}:y=${emojiYDrawtext}`
         ].join(",");
         console.log("Using simple video filter with drawtext");
+        console.log("Emoji position (drawtext) - X:", emojiXDrawtext, "Y:", emojiYDrawtext);
         console.log("Filter:", filterComplex);
       }
 
