@@ -50,31 +50,16 @@ export default function JokeCard({ joke }: JokeCardProps) {
 
   return (
     <Link href={`/jokes/${joke._id}`}>
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600">{sourceLabel}</span>
-          {joke.category && (
-            <span className="text-xs text-gray-500">• {joke.category}</span>
-          )}
-        </div>
-        <span
-          className={`text-xs font-medium px-2 py-1 rounded-full ${statusColors[status] ?? statusColors.pending}`}
-        >
-          {statusLabels[status] ?? status}
-        </span>
-      </div>
-
-      {joke.title && (
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">{joke.title}</h3>
-      )}
-
-      <div className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-4">
-        {joke.text}
-      </div>
-
-        <div className="mt-4 text-xs text-blue-600 font-medium">
-          Нажмите, чтобы открыть →
+      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-base font-medium text-gray-900 flex-1">
+            {joke.title || joke.text.substring(0, 100) + (joke.text.length > 100 ? "..." : "")}
+          </h3>
+          <span
+            className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${statusColors[status] ?? statusColors.pending}`}
+          >
+            {statusLabels[status] ?? status}
+          </span>
         </div>
       </div>
     </Link>
