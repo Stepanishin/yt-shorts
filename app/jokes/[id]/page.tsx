@@ -42,6 +42,8 @@ export default function JokeDetailPage() {
   const [randomEmoji, setRandomEmoji] = useState("");
   const [rendering, setRendering] = useState(false);
   const [generatingAudio, setGeneratingAudio] = useState(false);
+  const [uploadingToYouTube, setUploadingToYouTube] = useState(false);
+  const [youtubeVideoUrl, setYoutubeVideoUrl] = useState<string | null>(null);
 
   // Выбираем случайную эмодзи при монтировании и при изменении текста
   useEffect(() => {
@@ -373,7 +375,7 @@ export default function JokeDetailPage() {
     let intervalId: NodeJS.Timeout | null = null;
     let attempts = 0;
     const maxAttempts = 150; // 5 минут (150 * 2 секунды)
-    
+
     const poll = async () => {
       try {
         attempts++;
@@ -418,6 +420,66 @@ export default function JokeDetailPage() {
       }
       setGeneratingAudio(false);
     }, 5 * 60 * 1000);
+  };
+
+  const handleAuthorizeYouTube = () => {
+    // Открываем страницу авторизации YouTube в новом окне
+    window.open("/api/youtube/auth", "_blank");
+  };
+
+  const handleUploadToYouTube = async () => {
+    if (!videoJob?.finalVideoUrl || !joke) return;
+
+    setUploadingToYouTube(true);
+    setError(null);
+    try {
+      const title = joke.title
+        ? `${joke.title} 😂`
+        : `Анекдот дня 😂`;
+      const description = `${editedText || joke.text}\n\n#shorts #comedy #funny #humor`;
+
+      const response = await fetch("/api/youtube/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          videoUrl: videoJob.finalVideoUrl,
+          title,
+          description,
+          tags: ["shorts", "comedy", "funny", "humor", "jokes"],
+          privacyStatus: "public",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+
+        // Если ошибка авторизации, предлагаем авторизоваться
+        if (response.status === 401) {
+          const shouldAuth = confirm(
+            "Необходима авторизация YouTube. Открыть страницу авторизации?"
+          );
+          if (shouldAuth) {
+            handleAuthorizeYouTube();
+          }
+          throw new Error("Необходима авторизация YouTube");
+        }
+
+        throw new Error(errorData.error || "Не удалось загрузить видео на YouTube");
+      }
+
+      const result = await response.json();
+      setYoutubeVideoUrl(result.videoUrl);
+
+      // Показываем успешное сообщение
+      alert(`Видео успешно загружено на YouTube!\n${result.videoUrl}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to upload to YouTube:", err);
+    } finally {
+      setUploadingToYouTube(false);
+    }
   };
 
   if (loading) {
@@ -625,9 +687,47 @@ export default function JokeDetailPage() {
                       </button>
                     </>
                   )}
+                  {/* Кнопка публикации на YouTube */}
+                  {videoJob.finalVideoUrl && videoJob.renderingStatus === "completed" && (
+                    <button
+                      onClick={handleUploadToYouTube}
+                      disabled={uploadingToYouTube}
+                      className="px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium flex items-center gap-2"
+                    >
+                      {uploadingToYouTube ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                          Загрузка на YouTube...
+                        </>
+                      ) : youtubeVideoUrl ? (
+                        "✅ Загружено на YouTube"
+                      ) : (
+                        <>
+                          📤 Опубликовать на YouTube
+                        </>
+                      )}
+                    </button>
+                  )}
                 </>
               )}
             </div>
+
+            {/* Показываем ссылку на YouTube видео если оно загружено */}
+            {youtubeVideoUrl && (
+              <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
+                <div className="font-medium mb-2 text-green-800">
+                  ✅ Видео успешно опубликовано на YouTube!
+                </div>
+                <a
+                  href={youtubeVideoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:text-blue-700 underline inline-block"
+                >
+                  Открыть видео на YouTube →
+                </a>
+              </div>
+            )}
 
             {/* Статус генерации */}
             {videoJob && (
