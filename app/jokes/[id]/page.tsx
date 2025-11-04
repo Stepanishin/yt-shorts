@@ -44,6 +44,7 @@ export default function JokeDetailPage() {
   const [generatingAudio, setGeneratingAudio] = useState(false);
   const [uploadingToYouTube, setUploadingToYouTube] = useState(false);
   const [youtubeVideoUrl, setYoutubeVideoUrl] = useState<string | null>(null);
+  const [useAITitle, setUseAITitle] = useState(true); // По умолчанию включено
 
   // Выбираем случайную эмодзи при монтировании и при изменении текста
   useEffect(() => {
@@ -433,10 +434,75 @@ export default function JokeDetailPage() {
     setUploadingToYouTube(true);
     setError(null);
     try {
-      const title = joke.title
-        ? `${joke.title} 😂`
-        : `Анекдот дня 😂`;
-      const description = `${editedText || joke.text}\n\n#shorts #comedy #funny #humor`;
+      const jokeText = editedText || joke.text;
+      let title: string;
+      let description: string;
+
+      // Используем AI для генерации названия и описания, если включено
+      if (useAITitle) {
+        try {
+          const aiResponse = await fetch("/api/youtube/generate-title", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              jokeText,
+              jokeTitle: joke.title,
+            }),
+          });
+
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            title = aiData.title;
+            description = aiData.description;
+          } else {
+            throw new Error("AI generation failed");
+          }
+        } catch (aiError) {
+          console.warn("AI title generation failed, using fallback:", aiError);
+          // Fallback к простому названию
+          const baseTitle = joke.title || "Chiste del día";
+          title = `#Shorts ${baseTitle} 😂🤣`;
+          description = `${jokeText}
+
+🎭 Chistes en Español | Humor Latino
+😂 Síguenos para más risas diarias
+
+#Shorts #Chistes #Humor #Comedia #Risas`;
+        }
+      } else {
+        // Используем простое название без AI
+        const baseTitle = joke.title || "Chiste del día";
+        title = `#Shorts ${baseTitle} 😂🤣`;
+        description = `${jokeText}
+
+🎭 Chistes en Español | Humor Latino
+😂 Síguenos para más risas diarias
+
+#Shorts #Chistes #Humor #Comedia #Risas
+#ChistesCortos #HumorLatino #ChistesEspañol
+#Funny #Comedy #Viral #Trending
+
+© Generated with AI`;
+      }
+
+      // Оптимизированные теги для испанского контента
+      const tags = [
+        "shorts",
+        "chistes",
+        "humor",
+        "comedia",
+        "risas",
+        "chistes cortos",
+        "humor latino",
+        "chistes español",
+        "funny",
+        "comedy",
+        "jokes",
+        "spanish jokes",
+        "humor en español"
+      ];
 
       const response = await fetch("/api/youtube/upload", {
         method: "POST",
@@ -447,8 +513,9 @@ export default function JokeDetailPage() {
           videoUrl: videoJob.finalVideoUrl,
           title,
           description,
-          tags: ["shorts", "comedy", "funny", "humor", "jokes"],
+          tags,
           privacyStatus: "public",
+          jokeId: joke._id, // Передаем ID анекдота для обновления статуса
         }),
       });
 
@@ -472,8 +539,16 @@ export default function JokeDetailPage() {
       const result = await response.json();
       setYoutubeVideoUrl(result.videoUrl);
 
+      // Обновляем статус анекдота на клиенте
+      if (joke) {
+        setJoke({
+          ...joke,
+          status: "used",
+        });
+      }
+
       // Показываем успешное сообщение
-      alert(`Видео успешно загружено на YouTube!\n${result.videoUrl}`);
+      alert(`Видео успешно загружено на YouTube!\n${result.videoUrl}\n\nАнекдот помечен как "Использован" и больше не будет отображаться в списке.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Произошла ошибка");
       console.error("Failed to upload to YouTube:", err);
@@ -689,24 +764,37 @@ export default function JokeDetailPage() {
                   )}
                   {/* Кнопка публикации на YouTube */}
                   {videoJob.finalVideoUrl && videoJob.renderingStatus === "completed" && (
-                    <button
-                      onClick={handleUploadToYouTube}
-                      disabled={uploadingToYouTube}
-                      className="px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium flex items-center gap-2"
-                    >
-                      {uploadingToYouTube ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                          Загрузка на YouTube...
-                        </>
-                      ) : youtubeVideoUrl ? (
-                        "✅ Загружено на YouTube"
-                      ) : (
-                        <>
-                          📤 Опубликовать на YouTube
-                        </>
-                      )}
-                    </button>
+                    <div className="flex flex-col gap-3 w-full">
+                      {/* Опция AI-генерации названия */}
+                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={useAITitle}
+                          onChange={(e) => setUseAITitle(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span>🤖 Использовать AI для генерации привлекательного названия и описания</span>
+                      </label>
+
+                      <button
+                        onClick={handleUploadToYouTube}
+                        disabled={uploadingToYouTube}
+                        className="px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium flex items-center gap-2 justify-center"
+                      >
+                        {uploadingToYouTube ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                            Загрузка на YouTube...
+                          </>
+                        ) : youtubeVideoUrl ? (
+                          "✅ Загружено на YouTube"
+                        ) : (
+                          <>
+                            📤 Опубликовать на YouTube
+                          </>
+                        )}
+                      </button>
+                    </div>
                   )}
                 </>
               )}

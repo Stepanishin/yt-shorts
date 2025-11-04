@@ -172,13 +172,13 @@ export async function renderFinalVideo(
 
     // 2. Подготавливаем текст для наложения
     // Разбиваем текст на строки для компактного отображения (как в preview)
-    // Для вертикального видео 720px: ~18 символов на строку создаст узкий контейнер как в preview
-    const maxCharsPerLine = 40;
+    // Для вертикального видео 720px: уменьшаем символов на строку для безопасных отступов
+    const maxCharsPerLine = 35; // Уменьшено с 40 до 35 для безопасности
     const wrapText = (text: string): string => {
       const words = text.split(' ');
       const lines: string[] = [];
       let currentLine = '';
-      
+
       for (const word of words) {
         const testLine = currentLine ? `${currentLine} ${word}` : word;
         if (testLine.length <= maxCharsPerLine) {
@@ -195,7 +195,7 @@ export async function renderFinalVideo(
         }
       }
       if (currentLine) lines.push(currentLine);
-      
+
       return lines.join('\n');
     };
 
@@ -203,18 +203,38 @@ export async function renderFinalVideo(
     if (jokeTitle) {
       textToRender = `${jokeTitle}\n\n${editedText}`;
     }
-    
+
     const wrappedText = wrapText(textToRender);
-    
+
     // Вычисляем параметры текста для позиционирования эмодзи
     const fontSize = 36; // Увеличенный размер шрифта
     const lineSpacing = 15; // Увеличенный межстрочный интервал
     const lineCount = wrappedText.split('\n').length;
     const lineHeight = fontSize + lineSpacing;
     const textBoxPadding = 30; // boxborderw
-    const estimatedTextHeight = lineCount * lineHeight + textBoxPadding * 2;
-    // Примерная ширина текста: ~85% от ширины видео (720px)
-    const estimatedTextWidth = Math.floor(720 * 0.85);
+
+    // Размеры видео
+    const videoWidth = 720;
+    const videoHeight = 1280;
+
+    // Безопасные отступы от краев видео
+    const safeMarginHorizontal = 60; // Минимум 30px с каждой стороны
+    const safeMarginVertical = 100; // Минимум 50px сверху и снизу
+
+    // Максимальные размеры контейнера с учетом отступов
+    const maxTextWidth = videoWidth - safeMarginHorizontal * 2; // 600px максимум
+    const maxTextHeight = videoHeight - safeMarginVertical * 2; // 1080px максимум
+
+    // Ширина текста: ~75% от ширины видео, но не больше maxTextWidth
+    const estimatedTextWidth = Math.min(Math.floor(videoWidth * 0.75), maxTextWidth);
+
+    // Высота текста: вычисляем по количеству строк, но не больше maxTextHeight
+    let estimatedTextHeight = lineCount * lineHeight + textBoxPadding * 2;
+    estimatedTextHeight = Math.min(estimatedTextHeight, maxTextHeight);
+
+    console.log(`Text container dimensions: ${estimatedTextWidth}x${estimatedTextHeight} (${lineCount} lines)`);
+    console.log(`Video dimensions: ${videoWidth}x${videoHeight}`);
+    console.log(`Safe margins: horizontal=${safeMarginHorizontal}, vertical=${safeMarginVertical}`);
     
     // Создаем временный файл для текста, чтобы избежать проблем с экранированием
     const textFilePath = path.join(videosDir, `text_${jobId}.txt`);

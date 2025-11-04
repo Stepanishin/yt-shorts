@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createOAuth2Client, uploadVideoToYouTube } from "@/lib/youtube/youtube-client";
 import { cookies } from "next/headers";
 import * as path from "path";
+import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 
 /**
  * POST /api/youtube/upload
@@ -29,11 +30,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { videoUrl, title, description, tags, privacyStatus = "public" } = body;
+    const { videoUrl, title, description, tags, privacyStatus = "public", jokeId } = body;
 
     if (!videoUrl || !title) {
       return NextResponse.json(
         { error: "videoUrl and title are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!jokeId) {
+      return NextResponse.json(
+        { error: "jokeId is required" },
         { status: 400 }
       );
     }
@@ -63,6 +71,20 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`Video uploaded successfully: ${result.videoUrl}`);
+
+    // Обновляем статус анекдота на "used" после успешной публикации
+    try {
+      await markJokeCandidateAsPublished({
+        id: jokeId,
+        youtubeVideoUrl: result.videoUrl,
+        youtubeVideoId: result.videoId,
+      });
+
+      console.log(`Joke ${jokeId} marked as used and published`);
+    } catch (dbError) {
+      console.error("Failed to update joke status:", dbError);
+      // Не прерываем выполнение, так как видео уже загружено
+    }
 
     return NextResponse.json({
       success: true,

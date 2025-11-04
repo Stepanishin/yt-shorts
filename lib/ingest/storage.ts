@@ -13,6 +13,9 @@ export interface StoredJokeCandidate extends JokeCandidate {
   reservedAt?: Date;
   usedAt?: Date;
   notes?: string;
+  youtubeVideoUrl?: string;
+  youtubeVideoId?: string;
+  publishedAt?: Date;
 }
 
 export const getJokeCandidateCollection = async (): Promise<
@@ -51,7 +54,13 @@ export const findRecentJokeCandidates = async ({
   limit?: number;
 }) => {
   const collection = await getJokeCandidateCollection();
-  const cursor = collection.find({}, { sort: { createdAt: -1 }, limit });
+  // Фильтруем анекдоты - показываем только pending и reserved, исключаем used и rejected
+  const cursor = collection.find(
+    {
+      status: { $in: ["pending", "reserved", undefined] }
+    },
+    { sort: { createdAt: -1 }, limit }
+  );
   return cursor.toArray();
 };
 
@@ -125,6 +134,29 @@ export const markJokeCandidateStatus = async ({
   if (status === "reserved") {
     update.reservedAt = new Date();
   }
+
+  const objectId: ObjectId | unknown = ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : id;
+  await collection.updateOne({ _id: objectId as ObjectId }, { $set: update });
+};
+
+export const markJokeCandidateAsPublished = async ({
+  id,
+  youtubeVideoUrl,
+  youtubeVideoId,
+}: {
+  id: unknown;
+  youtubeVideoUrl: string;
+  youtubeVideoId: string;
+}) => {
+  const collection = await getJokeCandidateCollection();
+
+  const update = {
+    status: "used" as const,
+    usedAt: new Date(),
+    publishedAt: new Date(),
+    youtubeVideoUrl,
+    youtubeVideoId,
+  };
 
   const objectId: ObjectId | unknown = ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : id;
   await collection.updateOne({ _id: objectId as ObjectId }, { $set: update });
