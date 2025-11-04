@@ -289,19 +289,19 @@ export async function renderFinalVideo(
       // Формат: textfile='path' где одинарные кавычки внутри path экранируются как '\''
       const escapedTextFilePath = textFilePath.replace(/'/g, "'\\''");
       
-      // Позиционируем эмодзи в правом нижнем углу текста
+      // Позиционируем эмодзи ВНЕ контейнера текста - справа снизу от белого бокса
       // Текст находится по центру экрана (720x1280)
       // Правый край текста: центр + половина ширины текста = 720/2 + estimatedTextWidth/2
       // Нижний край текста: центр + половина высоты текста = 1280/2 + estimatedTextHeight/2
-      // Размер эмодзи: 64x64, добавляем небольшой отступ (8px) от края текста
-      // Overlay позиционирует левый верхний угол, поэтому вычитаем размер эмодзи
       const emojiSize = 64;
-      const emojiOffset = 8; // Отступ от края текста
+      const emojiOffsetFromBox = 10; // Отступ от края белого бокса
       // Вычисляем абсолютные координаты (текст центрирован, поэтому используем вычисленные значения)
       const textRightEdge = 360 + Math.floor(estimatedTextWidth / 2); // 360 = w/2 = 720/2
       const textBottomEdge = 640 + Math.floor(estimatedTextHeight / 2); // 640 = h/2 = 1280/2
-      const baseEmojiX = textRightEdge - emojiSize - emojiOffset;
-      const baseEmojiY = textBottomEdge - emojiSize - emojiOffset;
+
+      // Эмодзи СНАРУЖИ контейнера: справа и ниже белого бокса
+      const baseEmojiX = textRightEdge - emojiSize - emojiOffsetFromBox;
+      const baseEmojiY = textBottomEdge + emojiOffsetFromBox; // +50 пикселей ниже контейнера
       
       // Применяем анимацию к координатам
       const animatedEmojiX = createEmojiAnimationExpression(emojiAnimation, baseEmojiX, "x");
@@ -381,56 +381,48 @@ export async function renderFinalVideo(
         
         // Экранируем путь к шрифту
         const escapedFontPath = emojiFontPath.replace(/:/g, '\\:').replace(/'/g, "'\\''");
-        
-        // Используем вычисленные координаты для позиционирования эмодзи
-        // В drawtext можно использовать text_w и text_h из предыдущего фильтра, но для надежности
-        // используем вычисленные значения, аналогично overlay
+
+        // Позиционируем эмодзи ВНЕ контейнера текста - справа снизу от белого бокса
+        // Используем estimatedTextHeight и estimatedTextWidth
         const emojiFontSize = 56;
-        // Для drawtext размер эмодзи 56px (вместо 64px для изображения)
-        // Корректируем позицию: добавляем разницу в размерах (64-56=8px)
-        const baseEmojiXDrawtext = baseEmojiX + (emojiSize - emojiFontSize);
-        const baseEmojiYDrawtext = baseEmojiY + (emojiSize - emojiFontSize);
-        
-        // Применяем анимацию к координатам (drawtext поддерживает выражения)
-        // Для pulse в drawtext можно использовать динамический fontsize
+        const emojiOffsetFromBox = 10; // Отступ от края белого бокса
+
+        // Вычисляем позицию эмодзи ЗА пределами контейнера
+        // Контейнер текста центрирован: x=(w-textWidth)/2, y=(h-textHeight)/2
+        // Правый нижний угол контейнера: x=360+textWidth/2, y=640+textHeight/2
+        const textRightEdge = 360 + Math.floor(estimatedTextWidth / 2); // 360 = 720/2
+        const textBottomEdge = 640 + Math.floor(estimatedTextHeight / 2); // 640 = 1280/2
+
+        // Эмодзи СНАРУЖИ контейнера: добавляем отступ вместо вычитания
+        const baseEmojiXDrawtext = textRightEdge - emojiFontSize - emojiOffsetFromBox;
+        const baseEmojiYDrawtext = textBottomEdge + emojiOffsetFromBox; // +50 пикселей ниже
+
+        // Применяем анимацию к координатам и размеру
         let emojiSizeExpression = emojiFontSize.toString();
+        let emojiXExpression = baseEmojiXDrawtext.toString();
+        let emojiYExpression = baseEmojiYDrawtext.toString();
+
         if (emojiAnimation === "pulse") {
           // Пульсация размера шрифта
           emojiSizeExpression = `${emojiFontSize}*(0.9+0.1*sin(2*PI*t/1.5))`;
+        } else if (emojiAnimation === "rotate") {
+          // Вращение с небольшим смещением координат
+          const offset = 10;
+          emojiXExpression = `${baseEmojiXDrawtext}+${offset}*sin(2*PI*t/2)`;
+          emojiYExpression = `${baseEmojiYDrawtext}+${offset}*cos(2*PI*t/2)`;
+        } else if (emojiAnimation === "bounce") {
+          // Подпрыгивание: вертикальное движение
+          const bounceHeight = 15;
+          emojiYExpression = `${baseEmojiYDrawtext}-${bounceHeight}*abs(sin(2*PI*t/1.2))`;
         }
-        
-        // Создаем анимированные координаты
-        const animatedEmojiXDrawtext = createEmojiAnimationExpression(
-          emojiAnimation,
-          baseEmojiXDrawtext,
-          "x"
-        );
-        const animatedEmojiYDrawtext = createEmojiAnimationExpression(
-          emojiAnimation,
-          baseEmojiYDrawtext,
-          "y"
-        );
-        
-        // Оборачиваем выражения в кавычки если они содержат функции
-        const needsQuotesDrawtext = emojiAnimation !== "none" && (
-          animatedEmojiXDrawtext.includes("sin") || 
-          animatedEmojiXDrawtext.includes("cos") || 
-          animatedEmojiYDrawtext.includes("sin") || 
-          animatedEmojiYDrawtext.includes("cos") ||
-          emojiSizeExpression.includes("sin") ||
-          emojiSizeExpression.includes("cos")
-        );
-        const emojiXDrawtextExpr = needsQuotesDrawtext ? `'${animatedEmojiXDrawtext}'` : animatedEmojiXDrawtext;
-        const emojiYDrawtextExpr = needsQuotesDrawtext ? `'${animatedEmojiYDrawtext}'` : animatedEmojiYDrawtext;
-        const emojiSizeDrawtextExpr = needsQuotesDrawtext && emojiSizeExpression.includes("sin") ? `'${emojiSizeExpression}'` : emojiSizeExpression;
         
         filterComplex = [
           // Обрабатываем фоновое видео: зацикливаем, масштабируем, добавляем padding, накладываем текст и эмодзи
-          `loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=2:bordercolor=black,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiSizeDrawtextExpr}:x=${emojiXDrawtextExpr}:y=${emojiYDrawtextExpr}`
+          `loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=2:bordercolor=black,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiSizeExpression}:x=${emojiXExpression}:y=${emojiYExpression}`
         ].join(",");
         console.log("Using simple video filter with drawtext and animation");
         console.log("Emoji animation:", emojiAnimation);
-        console.log("Emoji position (drawtext) - X:", animatedEmojiXDrawtext, "Y:", animatedEmojiYDrawtext);
+        console.log("Emoji position (drawtext) - X:", emojiXExpression, "Y:", emojiYExpression);
         console.log("Filter:", filterComplex);
       }
 
