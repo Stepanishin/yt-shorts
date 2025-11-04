@@ -313,7 +313,7 @@ export async function renderFinalVideo(
       // Текст находится по центру экрана (720x1280)
       // Правый край текста: центр + половина ширины текста = 720/2 + estimatedTextWidth/2
       // Нижний край текста: центр + половина высоты текста = 1280/2 + estimatedTextHeight/2
-      const emojiSize = 64;
+      const emojiSize = 100; // Увеличено на 20% (было 64)
       const emojiOffsetFromBox = 10; // Отступ от края белого бокса
       // Вычисляем абсолютные координаты (текст центрирован, поэтому используем вычисленные значения)
       const textRightEdge = 360 + Math.floor(estimatedTextWidth / 2); // 360 = w/2 = 720/2
@@ -404,7 +404,7 @@ export async function renderFinalVideo(
 
         // Позиционируем эмодзи ВНЕ контейнера текста - справа снизу от белого бокса
         // Используем estimatedTextHeight и estimatedTextWidth
-        const emojiFontSize = 56;
+        const emojiFontSize = 67; // Увеличено на 20% (было 56)
         const emojiOffsetFromBox = 10; // Отступ от края белого бокса
 
         // Вычисляем позицию эмодзи ЗА пределами контейнера
