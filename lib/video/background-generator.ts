@@ -45,9 +45,10 @@ export async function generateBackground(
       task_type: "video_generation",
       input: {
         prompt: prompt,
-        model_name: "ray-v2", // ray-v2 для лучшего качества (можно использовать ray-v1)
-        duration: 10, // 10 секунд для txt2video (можно использовать 5)
+        model_name: "ray-v1", // ray-v2 для лучшего качества (можно использовать ray-v1)
+        duration: 5, // 10 секунд для txt2video (можно использовать 5)
         aspect_ratio: "9:16", // Вертикальный формат для YouTube Shorts
+        resolution: 540, // 768 (поддерживается 6s/10s; 1080p+10s нельзя)
       },
       config: {
         webhook_config: {

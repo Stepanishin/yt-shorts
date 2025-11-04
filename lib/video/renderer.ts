@@ -207,9 +207,11 @@ export async function renderFinalVideo(
     const wrappedText = wrapText(textToRender);
     
     // Вычисляем параметры текста для позиционирования эмодзи
+    const fontSize = 36; // Увеличенный размер шрифта
+    const lineSpacing = 15; // Увеличенный межстрочный интервал
     const lineCount = wrappedText.split('\n').length;
-    const lineHeight = 22 + 10; // fontsize + line_spacing
-    const textBoxPadding = 24; // boxborderw
+    const lineHeight = fontSize + lineSpacing;
+    const textBoxPadding = 30; // boxborderw
     const estimatedTextHeight = lineCount * lineHeight + textBoxPadding * 2;
     // Примерная ширина текста: ~85% от ширины видео (720px)
     const estimatedTextWidth = Math.floor(720 * 0.85);
@@ -250,22 +252,30 @@ export async function renderFinalVideo(
     // 3. Проверяем существование аудио файла (если был скачан)
     const hasAudioFile = tempAudioPath ? await fs.stat(tempAudioPath).then(() => true).catch(() => false) : false;
     
-    // 3.5. Получаем длительность видео-фона (должно быть 10 секунд)
+    // 3.5. Получаем длительность видео-фона и аудио
     let videoDuration = 0;
     let audioDuration = 0;
     try {
       videoDuration = await getVideoDuration(tempVideoPath);
       console.log(`Background video duration: ${videoDuration} seconds`);
-      
+
       if (hasAudioFile && tempAudioPath) {
         audioDuration = await getVideoDuration(tempAudioPath); // ffprobe работает и с аудио
         console.log(`Audio duration: ${audioDuration} seconds`);
       }
     } catch (error) {
       console.warn("Failed to get video duration:", error);
-      // Используем дефолтную длительность 10 секунд если не удалось получить
-      videoDuration = 10;
+      // Используем дефолтную длительность 5 секунд если не удалось получить
+      videoDuration = 5;
     }
+
+    // Зацикливаем видео для получения ровно 10 секунд
+    const targetDuration = 10; // Всегда 10 секунд
+    console.log(`Target video duration: ${targetDuration} seconds (video will be looped)`);
+
+    // Количество циклов видео (округление вверх)
+    const videoLoops = Math.ceil(targetDuration / videoDuration) - 1; // -1 потому что loop=0 означает 1 воспроизведение
+    console.log(`Video will loop ${videoLoops} time(s) to reach ${targetDuration} seconds`);
     
     // 4. Создаем команду FFmpeg для наложения текста и эмодзи
     // Используем сложный фильтр для лучшего контроля
@@ -350,8 +360,8 @@ export async function renderFinalVideo(
         }
         
         filterComplex = [
-          // Обрабатываем фоновое видео: масштабируем, добавляем padding, накладываем текст
-          `[0:v]scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=22:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=24:line_spacing=10[v0]`,
+          // Обрабатываем фоновое видео: зацикливаем, масштабируем, добавляем padding, накладываем текст
+          `[0:v]loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=1:bordercolor=black[v0]`,
           // Применяем анимацию к эмодзи
           emojiFilter,
           // Накладываем эмодзи поверх видео с текстом с анимированными координатами
@@ -415,8 +425,8 @@ export async function renderFinalVideo(
         const emojiSizeDrawtextExpr = needsQuotesDrawtext && emojiSizeExpression.includes("sin") ? `'${emojiSizeExpression}'` : emojiSizeExpression;
         
         filterComplex = [
-          // Обрабатываем фоновое видео: масштабируем, добавляем padding, накладываем текст и эмодзи
-          `scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=22:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=24:line_spacing=10,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiSizeDrawtextExpr}:x=${emojiXDrawtextExpr}:y=${emojiYDrawtextExpr}`
+          // Обрабатываем фоновое видео: зацикливаем, масштабируем, добавляем padding, накладываем текст и эмодзи
+          `loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=2:bordercolor=black,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiSizeDrawtextExpr}:x=${emojiXDrawtextExpr}:y=${emojiYDrawtextExpr}`
         ].join(",");
         console.log("Using simple video filter with drawtext and animation");
         console.log("Emoji animation:", emojiAnimation);
@@ -459,11 +469,11 @@ export async function renderFinalVideo(
         "-b:a 128k",
       ];
       
-      // Явно обрезаем до длительности видео-фона (обычно 10 секунд)
-      // Это гарантирует что финальное видео будет той же длины что и фон
-      if (videoDuration > 0) {
-        outputOpts.push("-t", videoDuration.toString());
-        console.log(`Output will be trimmed to ${videoDuration} seconds`);
+      // Явно обрезаем до целевой длительности (зацикленное видео)
+      // Это гарантирует что финальное видео будет нужной длины
+      if (targetDuration > 0) {
+        outputOpts.push("-t", targetDuration.toString());
+        console.log(`Output will be trimmed to ${targetDuration} seconds`);
       } else {
         // Fallback: используем -shortest если не удалось получить длительность
         outputOpts.push("-shortest");
@@ -478,18 +488,18 @@ export async function renderFinalVideo(
         if (hasAudioFile) {
           let audioFilter: string;
           // Если видео длиннее аудио, зацикливаем аудио
-          if (videoDuration > 0 && audioDuration > 0 && videoDuration > audioDuration) {
+          if (targetDuration > 0 && audioDuration > 0 && targetDuration > audioDuration) {
             // Вычисляем количество циклов (округление вверх)
-            const loops = Math.ceil(videoDuration / audioDuration);
-            console.log(`Audio needs ${loops} loops to match video duration (${videoDuration}s)`);
+            const loops = Math.ceil(targetDuration / audioDuration);
+            console.log(`Audio needs ${loops} loops to match video duration (${targetDuration}s)`);
             // Используем loop с конкретным количеством циклов
             audioFilter = `[${audioInputIndex}:a]aloop=loop=${loops}:size=2e+09,asetpts=N/SR/TB[audio]`;
           } else {
             // Если аудио длиннее видео, обрезаем аудио до длительности видео
             // Это гарантирует что аудио будет точно соответствовать видео
-            if (videoDuration > 0) {
-              audioFilter = `[${audioInputIndex}:a]atrim=0:${videoDuration},asetpts=PTS-STARTPTS[audio]`;
-              console.log(`Audio will be trimmed to ${videoDuration} seconds`);
+            if (targetDuration > 0) {
+              audioFilter = `[${audioInputIndex}:a]atrim=0:${targetDuration},asetpts=PTS-STARTPTS[audio]`;
+              console.log(`Audio will be trimmed to ${targetDuration} seconds`);
             } else {
               audioFilter = `[${audioInputIndex}:a]asetpts=N/SR/TB[audio]`;
             }
@@ -514,15 +524,15 @@ export async function renderFinalVideo(
           // Добавляем обработку аудио через complex filter
           let audioFilter: string;
           // Если видео длиннее аудио, зацикливаем аудио
-          if (videoDuration > 0 && audioDuration > 0 && videoDuration > audioDuration) {
-            const loops = Math.ceil(videoDuration / audioDuration);
-            console.log(`Audio needs ${loops} loops to match video duration (${videoDuration}s)`);
+          if (targetDuration > 0 && audioDuration > 0 && targetDuration > audioDuration) {
+            const loops = Math.ceil(targetDuration / audioDuration);
+            console.log(`Audio needs ${loops} loops to match video duration (${targetDuration}s)`);
             audioFilter = `[${audioInputIndex}:a]aloop=loop=${loops}:size=2e+09,asetpts=N/SR/TB[audio]`;
           } else {
             // Если аудио длиннее видео, обрезаем аудио до длительности видео
-            if (videoDuration > 0) {
-              audioFilter = `[${audioInputIndex}:a]atrim=0:${videoDuration},asetpts=PTS-STARTPTS[audio]`;
-              console.log(`Audio will be trimmed to ${videoDuration} seconds`);
+            if (targetDuration > 0) {
+              audioFilter = `[${audioInputIndex}:a]atrim=0:${targetDuration},asetpts=PTS-STARTPTS[audio]`;
+              console.log(`Audio will be trimmed to ${targetDuration} seconds`);
             } else {
               audioFilter = `[${audioInputIndex}:a]asetpts=N/SR/TB[audio]`;
             }
