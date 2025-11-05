@@ -146,6 +146,13 @@ export default function JokeDetailPage() {
     loadVideoJob();
   }, [id]);
 
+  // Инициализируем editedText из joke.editedText или joke.text
+  useEffect(() => {
+    if (joke && !editedText) {
+      setEditedText(joke.editedText || joke.text);
+    }
+  }, [joke]);
+
   const generateVideo = async () => {
     if (!joke?._id) return;
 
@@ -215,12 +222,13 @@ export default function JokeDetailPage() {
   };
 
   const handleSaveText = async () => {
-    if (!videoJob?._id) return;
+    if (!joke?._id) return;
 
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch(`/api/videos/${videoJob._id}`, {
+      // Сохраняем editedText в анекдот (joke_candidates)
+      const response = await fetch(`/api/jokes/${joke._id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -236,8 +244,30 @@ export default function JokeDetailPage() {
       }
 
       const result = await response.json();
-      setVideoJob(result.job);
+
+      // Обновляем joke с новым editedText
+      setJoke(result.joke);
+
+      // Также обновляем videoJob если он существует
+      if (videoJob?._id) {
+        const videoResponse = await fetch(`/api/videos/${videoJob._id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            editedText: editedText,
+          }),
+        });
+
+        if (videoResponse.ok) {
+          const videoResult = await videoResponse.json();
+          setVideoJob(videoResult.job);
+        }
+      }
+
       setIsEditing(false);
+      console.log("Text saved successfully");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Произошла ошибка");
       console.error("Failed to save text:", err);
@@ -692,14 +722,13 @@ export default function JokeDetailPage() {
           <div className="mb-8">
             <div className="flex items-start justify-between mb-3">
               <h3 className="text-lg font-medium text-gray-900">Текст анекдота</h3>
-              {videoJob && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"
-                >
-                  {isEditing ? "Отмена редактирования" : "Редактировать текст"}
-                </button>
-              )}
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                disabled={joke.status === "deleted"}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {isEditing ? "Отмена редактирования" : "Редактировать текст"}
+              </button>
             </div>
             {isEditing ? (
               <div className="space-y-4">
@@ -725,7 +754,8 @@ export default function JokeDetailPage() {
                   <button
                     onClick={() => {
                       setIsEditing(false);
-                      setEditedText(videoJob?.editedText || joke?.text || "");
+                      // Возвращаем текст к исходному значению
+                      setEditedText(joke?.editedText || joke?.text || "");
                     }}
                     disabled={saving}
                     className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
@@ -736,7 +766,7 @@ export default function JokeDetailPage() {
               </div>
             ) : (
               <div className="text-lg text-gray-700 whitespace-pre-wrap leading-relaxed bg-gray-50 p-4 rounded-md border border-gray-200">
-                {editedText || joke.text}
+                {joke.editedText || joke.text}
               </div>
             )}
           </div>

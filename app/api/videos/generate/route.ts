@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       jokeText: candidate.text,
       jokeTitle: candidate.title,
       jokeMeta: candidate.meta,
+      editedText: candidate.editedText, // Используем editedText из анекдота, если он есть
       status: "pending",
     });
 

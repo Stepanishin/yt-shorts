@@ -203,3 +203,21 @@ export const deleteJokeCandidate = async (id: unknown) => {
   console.log(`Joke candidate ${id} marked as deleted`);
 };
 
+export const updateJokeCandidateText = async ({
+  id,
+  editedText,
+}: {
+  id: unknown;
+  editedText: string;
+}) => {
+  const collection = await getJokeCandidateCollection();
+  const objectId: ObjectId | unknown = ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : id;
+
+  await collection.updateOne(
+    { _id: objectId as ObjectId },
+    { $set: { editedText } }
+  );
+
+  console.log(`Updated editedText for joke ${id}`);
+};
+
