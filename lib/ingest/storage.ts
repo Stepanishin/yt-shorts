@@ -9,10 +9,12 @@ const COLLECTION_NAME = "joke_candidates";
 export interface StoredJokeCandidate extends JokeCandidate {
   _id?: unknown;
   createdAt: Date;
-  status?: "pending" | "reserved" | "used" | "rejected";
+  status?: "pending" | "reserved" | "used" | "rejected" | "deleted";
   reservedAt?: Date;
   usedAt?: Date;
+  deletedAt?: Date;
   notes?: string;
+  editedText?: string; // Отредактированный текст пользователем
   youtubeVideoUrl?: string;
   youtubeVideoId?: string;
   publishedAt?: Date;
@@ -38,7 +40,36 @@ export const insertJokeCandidates = async (jokes: JokeCandidate[]) => {
   }
 
   const collection = await getJokeCandidateCollection();
-  const documents = jokes.map<Omit<StoredJokeCandidate, "_id">>((joke) => ({
+
+  // Проверяем существующие анекдоты по source + externalId
+  // Важно: проверяем ВСЕ статусы, включая "deleted", чтобы не добавлять дубликаты
+  const existingJokes = await collection
+    .find({
+      $or: jokes.map((joke) => ({
+        source: joke.source,
+        externalId: joke.externalId,
+      })),
+    })
+    .toArray();
+
+  const existingKeys = new Set(
+    existingJokes.map((joke) => `${joke.source}:${joke.externalId}`)
+  );
+
+  console.log(`Found ${existingKeys.size} existing jokes (including deleted)`);
+
+  // Фильтруем только новые анекдоты
+  const newJokes = jokes.filter(
+    (joke) => !existingKeys.has(`${joke.source}:${joke.externalId}`)
+  );
+
+  console.log(`Inserting ${newJokes.length} new jokes out of ${jokes.length} total`);
+
+  if (newJokes.length === 0) {
+    return { inserted: 0 };
+  }
+
+  const documents = newJokes.map<Omit<StoredJokeCandidate, "_id">>((joke) => ({
     ...joke,
     createdAt: new Date(),
     status: "pending" as const,
@@ -54,7 +85,7 @@ export const findRecentJokeCandidates = async ({
   limit?: number;
 }) => {
   const collection = await getJokeCandidateCollection();
-  // Фильтруем анекдоты - показываем только pending и reserved, исключаем used и rejected
+  // Фильтруем анекдоты - показываем только pending и reserved, исключаем used, rejected и deleted
   const cursor = collection.find(
     {
       status: { $in: ["pending", "reserved", undefined] }
@@ -112,7 +143,7 @@ export const markJokeCandidateStatus = async ({
   notes,
 }: {
   id: unknown;
-  status: "used" | "rejected" | "pending" | "reserved";
+  status: "used" | "rejected" | "pending" | "reserved" | "deleted";
   notes?: string;
 }) => {
   const collection = await getJokeCandidateCollection();
@@ -133,6 +164,10 @@ export const markJokeCandidateStatus = async ({
 
   if (status === "reserved") {
     update.reservedAt = new Date();
+  }
+
+  if (status === "deleted") {
+    update.deletedAt = new Date();
   }
 
   const objectId: ObjectId | unknown = ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : id;
@@ -160,5 +195,11 @@ export const markJokeCandidateAsPublished = async ({
 
   const objectId: ObjectId | unknown = ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : id;
   await collection.updateOne({ _id: objectId as ObjectId }, { $set: update });
+};
+
+export const deleteJokeCandidate = async (id: unknown) => {
+  console.log(`Deleting joke candidate ${id}`);
+  await markJokeCandidateStatus({ id, status: "deleted", notes: "Deleted by user" });
+  console.log(`Joke candidate ${id} marked as deleted`);
 };
 

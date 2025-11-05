@@ -9,8 +9,9 @@ interface JokeData {
   source: string;
   title?: string;
   text: string;
+  editedText?: string;
   category?: string;
-  status?: "pending" | "reserved" | "used" | "rejected";
+  status?: "pending" | "reserved" | "used" | "rejected" | "deleted";
   ratingPercent?: number;
   votesTotal?: number;
   createdAt?: string;
@@ -45,6 +46,7 @@ export default function JokeDetailPage() {
   const [uploadingToYouTube, setUploadingToYouTube] = useState(false);
   const [youtubeVideoUrl, setYoutubeVideoUrl] = useState<string | null>(null);
   const [useAITitle, setUseAITitle] = useState(true); // По умолчанию включено
+  const [deleting, setDeleting] = useState(false);
 
   // Выбираем случайную эмодзи при монтировании и при изменении текста
   useEffect(() => {
@@ -557,6 +559,38 @@ export default function JokeDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!joke?._id) return;
+
+    const confirmed = confirm("Вы уверены, что хотите удалить этот анекдот? Он будет помечен как удаленный и не будет отображаться в списке.");
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/jokes/${joke._id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Не удалось удалить анекдот");
+      }
+
+      console.log("Joke deleted successfully");
+      alert("Анекдот успешно удален и больше не будет отображаться в списке.");
+
+      // Перенаправляем на главную страницу
+      window.location.href = "/";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to delete joke:", err);
+      alert(`Ошибка удаления: ${err instanceof Error ? err.message : "Произошла ошибка"}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -599,6 +633,7 @@ export default function JokeDetailPage() {
     reserved: "Зарезервирован",
     used: "Использован",
     rejected: "Отклонен",
+    deleted: "Удален",
   };
 
   const statusColors: Record<string, string> = {
@@ -606,17 +641,27 @@ export default function JokeDetailPage() {
     reserved: "bg-blue-100 text-blue-800",
     used: "bg-green-100 text-green-800",
     rejected: "bg-red-100 text-red-800",
+    deleted: "bg-gray-200 text-gray-600",
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Link
-          href="/"
-          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6"
-        >
-          ← Вернуться к списку
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center text-blue-600 hover:text-blue-700"
+          >
+            ← Вернуться к списку
+          </Link>
+          <button
+            onClick={handleDelete}
+            disabled={deleting || joke.status === "deleted"}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-sm"
+          >
+            {deleting ? "Удаление..." : joke.status === "deleted" ? "Удалено" : "🗑️ Удалить анекдот"}
+          </button>
+        </div>
 
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
           {/* Заголовок и метаданные */}

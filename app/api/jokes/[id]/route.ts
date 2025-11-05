@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { findJokeCandidateById } from "@/lib/ingest/storage";
+import { findJokeCandidateById, deleteJokeCandidate } from "@/lib/ingest/storage";
 
 export async function GET(
   request: Request,
@@ -33,3 +33,32 @@ export async function GET(
   }
 }
 
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    if (!id) {
+      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    }
+
+    console.log(`DELETE request for joke ${id}`);
+
+    // Проверяем что анекдот существует
+    const joke = await findJokeCandidateById(id);
+    if (!joke) {
+      return NextResponse.json({ error: "Joke not found" }, { status: 404 });
+    }
+
+    // Помечаем анекдот как удаленный
+    await deleteJokeCandidate(id);
+
+    console.log(`Joke ${id} deleted successfully`);
+
+    return NextResponse.json({ success: true, message: "Joke deleted successfully" });
+  } catch (error) {
+    console.error("Failed to delete joke", error);
+    return NextResponse.json({ error: "Failed to delete joke" }, { status: 500 });
+  }
+}
