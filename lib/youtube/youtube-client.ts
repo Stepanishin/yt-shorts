@@ -92,9 +92,14 @@ export async function uploadVideoToYouTube(options: UploadVideoOptions) {
       },
     });
 
+    const videoId = response.data.id;
+    if (!videoId) {
+      throw new Error("YouTube API did not return a video ID");
+    }
+
     return {
-      videoId: response.data.id,
-      videoUrl: `https://www.youtube.com/watch?v=${response.data.id}`,
+      videoId,
+      videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
       title: response.data.snippet?.title,
     };
   } catch (error) {

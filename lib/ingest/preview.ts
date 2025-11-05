@@ -1,6 +1,7 @@
 import { fetchChistesRandomJoke } from "@/lib/sources/chistes";
 import { fetchTodoChistesPosts } from "@/lib/sources/todochistes";
 import { fetchYavendrasCategory } from "@/lib/sources/yavendras";
+import { cleanJokeHtml } from "@/lib/utils/text-cleaner";
 
 import {
   JokeCandidate,
@@ -100,8 +101,8 @@ export async function collectJokePreview(
       jokes.push(
         ...result.posts.map<JokeCandidate>((post) => ({
           source: "todochistes",
-          title: stripHtml(post.title),
-          text: stripHtml(post.content),
+          title: cleanJokeHtml(post.title),
+          text: cleanJokeHtml(post.content),
           rawHtml: post.content,
           url: post.link,
           externalId: String(post.id),
@@ -135,17 +136,5 @@ export async function collectJokePreview(
   return { jokes, meta };
 }
 
-const stripHtml = (value: string): string =>
-  value
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<br\s*\/?>(\s*)/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .trim();
+// Функция stripHtml удалена - теперь используем cleanJokeHtml из utils/text-cleaner
 

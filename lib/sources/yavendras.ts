@@ -1,4 +1,5 @@
 import { load } from "cheerio";
+import { cleanJokeHtml } from "@/lib/utils/text-cleaner";
 
 const BASE_URL = "https://chistes.yavendras.com";
 const DEFAULT_TIMEOUT_MS = 10000;
@@ -166,10 +167,9 @@ const parseJokesFromHtml = (html: string, baseUrl: string): YavendrasJokeSummary
     const title = titleNode.text().trim();
     const href = titleNode.attr("href")?.trim();
     const rawHtml = descriptionNode.html();
-    const textRaw = (rawHtml ?? descriptionNode.text() ?? "")
-      .replace(/<br\s*\/?>(\s*)/gi, "\n")
-      .replace(/<[^>]+>/g, "")
-      .trim();
+
+    // Очистка HTML с удалением мусора (эмоции, голосования, etc.)
+    const textRaw = cleanJokeHtml(rawHtml ?? descriptionNode.text() ?? "");
 
     if (!title || !href || !textRaw) {
       return;
