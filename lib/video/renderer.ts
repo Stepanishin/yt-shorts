@@ -173,7 +173,7 @@ export async function renderFinalVideo(
     // 2. Подготавливаем текст для наложения
     // Разбиваем текст на строки для компактного отображения (как в preview)
     // Для вертикального видео 720px: уменьшаем символов на строку для безопасных отступов
-    const maxCharsPerLine = 35; // Уменьшено с 40 до 35 для безопасности
+    const maxCharsPerLine = 30; // Уменьшено с 40 до 35 для безопасности
     const wrapText = (text: string): string => {
       const words = text.split(' ');
       const lines: string[] = [];

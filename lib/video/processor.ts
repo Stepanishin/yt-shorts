@@ -24,6 +24,8 @@ export async function processVideoJob(jobId: unknown): Promise<void> {
 
     // 1. Генерируем видео фон через OpenAI Sora
     console.log("Generating background video for video job:", jobId);
+
+    // Используем только природный стиль с разными вариантами
     const backgroundResult = await generateBackground({
       jokeText: job.jokeText,
       jokeTitle: job.jokeTitle,

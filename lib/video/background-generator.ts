@@ -212,18 +212,66 @@ function createBackgroundPrompt(options: {
   const { jokeTitle, style } = options;
   // jokeText не используется напрямую в промпте для избежания проблем с модерацией
 
-  // Базовый промпт для природного фона
-  const basePrompt = style === "nature"
-    ? "Beautiful animated nature background, vibrant colors, happy and cheerful atmosphere, perfect for humorous content"
-    : style === "abstract"
-      ? "Colorful abstract background, modern design, energetic and joyful mood, suitable for comedy content"
-      : "Clean minimalist background, soft colors, elegant design, positive and light mood";
+  // Разнообразные варианты фонов для каждого стиля
+  const natureVariants = [
+    "Beautiful mountain landscape with flowing waterfall, sunrise lighting, peaceful atmosphere",
+    "Tropical beach with palm trees swaying in wind, crystal clear water, golden hour lighting",
+    "Forest path with sunlight filtering through trees, autumn colors, gentle breeze",
+    "Ocean waves crashing on rocks, dramatic sky with clouds, sunset colors",
+    "Flower field with butterflies, bright spring day, vibrant colors blooming",
+    "Desert landscape with sand dunes, starry night sky, peaceful ambiance",
+    "River flowing through green valley, birds flying, morning mist",
+    "Snow-capped mountains with pine forest, clear blue sky, fresh winter day",
+    "Rolling hills with green meadows, rainbow after rain, cheerful mood",
+    "Lake reflection with mountains, dawn colors, serene atmosphere",
+  ];
 
-  // Добавляем контекст из анекдота (без прямого упоминания текста, чтобы избежать проблем с модерацией)
-  const context = jokeTitle
-    ? `, related to the theme: ${jokeTitle}`
+  const abstractVariants = [
+    "Colorful geometric shapes flowing and morphing, modern design, energetic vibes",
+    "Liquid paint swirling in vibrant colors, abstract art style, dynamic movement",
+    "Neon lights patterns dancing, futuristic aesthetic, bright glowing colors",
+    "Floating particles creating patterns, minimalist modern design, soft movements",
+    "Gradient waves flowing smoothly, contemporary style, calming yet vibrant",
+    "Bokeh light effects with colorful orbs, elegant abstract design, dreamy atmosphere",
+    "Ink drops spreading in water, artistic style, mesmerizing color blends",
+    "Digital glitch art with color shifts, modern tech aesthetic, dynamic energy",
+    "Kaleidoscope patterns rotating, psychedelic colors, hypnotic movements",
+    "Paper cutout layers moving, flat design style, playful colorful scene",
+  ];
+
+  const minimalistVariants = [
+    "Clean gradient background with soft pastel colors, elegant simplicity, peaceful mood",
+    "Subtle geometric patterns, monochromatic palette, sophisticated design",
+    "Soft clouds floating in clear sky, minimal elements, tranquil atmosphere",
+    "Simple curved lines animation, modern minimal style, soothing motion",
+    "Smooth color transitions, warm tones, calming visual experience",
+    "Minimal particle effects, white and gold accents, luxury feel",
+    "Zen garden elements, natural stones and sand, meditative simplicity",
+    "Soft light rays through window, minimal interior, warm comfortable setting",
+    "Abstract water ripples, clear and pure, minimal distraction",
+    "Gentle fabric waves, soft textures, elegant and clean aesthetic",
+  ];
+
+  // Выбираем случайный вариант в зависимости от стиля
+  let variants: string[];
+  if (style === "abstract") {
+    variants = abstractVariants;
+  } else if (style === "minimalist") {
+    variants = minimalistVariants;
+  } else {
+    variants = natureVariants;
+  }
+
+  // Используем детерминированную "случайность" на основе текущего времени
+  // чтобы каждый раз получать разные результаты
+  const randomIndex = Math.floor(Math.random() * variants.length);
+  const basePrompt = variants[randomIndex];
+
+  // Добавляем общие параметры
+  const suffix = jokeTitle
+    ? `, theme inspired by: ${jokeTitle}`
     : ", suitable for Spanish humor content";
 
-  return `${basePrompt}${context}. Vertical format 9:16 ratio, high quality, vibrant colors, no text, no people, landscape or nature scene`;
+  return `${basePrompt}${suffix}. Vertical format 9:16 ratio, high quality, cinematic, no text overlays, no people`;
 }
 
