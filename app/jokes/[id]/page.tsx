@@ -495,7 +495,7 @@ export default function JokeDetailPage() {
           console.warn("AI title generation failed, using fallback:", aiError);
           // Fallback к простому названию
           const baseTitle = joke.title || "Chiste del día";
-          title = `#Shorts ${baseTitle} 😂🤣`;
+          title = `${baseTitle} 😂🤣`;
           description = `${jokeText}
 
 🎭 Chistes en Español | Humor Latino
@@ -506,7 +506,7 @@ export default function JokeDetailPage() {
       } else {
         // Используем простое название без AI
         const baseTitle = joke.title || "Chiste del día";
-        title = `#Shorts ${baseTitle} 😂🤣`;
+        title = `${baseTitle} 😂🤣`;
         description = `${jokeText}
 
 🎭 Chistes en Español | Humor Latino
