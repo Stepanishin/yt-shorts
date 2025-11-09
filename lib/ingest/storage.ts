@@ -34,6 +34,9 @@ const ensureIndexes = async (collection: Collection<StoredJokeCandidate>) => {
   await collection.createIndex({ createdAt: -1 });
 };
 
+// Максимальная длина текста анекдота для видео (основана на тестовом анекдоте)
+const MAX_JOKE_TEXT_LENGTH = 257;
+
 export const insertJokeCandidates = async (jokes: JokeCandidate[]) => {
   if (!jokes.length) {
     return { inserted: 0 };
@@ -69,13 +72,46 @@ export const insertJokeCandidates = async (jokes: JokeCandidate[]) => {
     return { inserted: 0 };
   }
 
-  const documents = newJokes.map<Omit<StoredJokeCandidate, "_id">>((joke) => ({
+  // Разделяем анекдоты на подходящие по длине и слишком длинные
+  const validJokes: JokeCandidate[] = [];
+  const tooLongJokes: JokeCandidate[] = [];
+
+  for (const joke of newJokes) {
+    if (joke.text.length > MAX_JOKE_TEXT_LENGTH) {
+      tooLongJokes.push(joke);
+    } else {
+      validJokes.push(joke);
+    }
+  }
+
+  console.log(`Valid jokes: ${validJokes.length}, Too long jokes: ${tooLongJokes.length}`);
+
+  // Создаем документы для вставки
+  const validDocuments = validJokes.map<Omit<StoredJokeCandidate, "_id">>((joke) => ({
     ...joke,
     createdAt: new Date(),
     status: "pending" as const,
   }));
 
-  const result = await collection.insertMany(documents, { ordered: false });
+  // Создаем документы для слишком длинных анекдотов (помечаем как deleted)
+  const deletedDocuments = tooLongJokes.map<Omit<StoredJokeCandidate, "_id">>((joke) => ({
+    ...joke,
+    createdAt: new Date(),
+    status: "deleted" as const,
+    deletedAt: new Date(),
+    notes: `Text too long: ${joke.text.length} chars (max ${MAX_JOKE_TEXT_LENGTH})`,
+  }));
+
+  // Объединяем все документы для вставки
+  const allDocuments = [...validDocuments, ...deletedDocuments];
+
+  if (allDocuments.length === 0) {
+    return { inserted: 0 };
+  }
+
+  const result = await collection.insertMany(allDocuments, { ordered: false });
+  console.log(`Inserted ${validDocuments.length} valid jokes and ${deletedDocuments.length} deleted (too long) jokes`);
+
   return { inserted: result.insertedCount };
 };
 
