@@ -19,10 +19,42 @@ import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const accessToken = cookieStore.get("youtube_access_token")?.value;
+    let accessToken = cookieStore.get("youtube_access_token")?.value;
     const refreshToken = cookieStore.get("youtube_refresh_token")?.value;
 
+    console.log("YouTube upload - tokens status:", {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+    });
+
+    // Если нет access token, но есть refresh token - попробуем обновить
+    if (!accessToken && refreshToken) {
+      console.log("Access token missing, attempting to refresh...");
+      try {
+        const oauth2Client = createOAuth2Client();
+        oauth2Client.setCredentials({
+          refresh_token: refreshToken,
+        });
+
+        const { credentials } = await oauth2Client.refreshAccessToken();
+        if (credentials.access_token) {
+          accessToken = credentials.access_token;
+          // Сохраняем новый access token
+          cookieStore.set("youtube_access_token", credentials.access_token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 60 * 60, // 1 час
+          });
+          console.log("Access token refreshed successfully");
+        }
+      } catch (refreshError) {
+        console.error("Failed to refresh access token:", refreshError);
+      }
+    }
+
     if (!accessToken) {
+      console.log("No access token available, returning 401");
       return NextResponse.json(
         { error: "Not authorized. Please authorize with YouTube first." },
         { status: 401 }

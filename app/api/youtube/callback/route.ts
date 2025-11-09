@@ -29,14 +29,26 @@ export async function GET(request: NextRequest) {
     const oauth2Client = createOAuth2Client();
     const tokens = await getTokensFromCode(oauth2Client, code);
 
+    console.log("YouTube tokens received:", {
+      hasAccessToken: !!tokens.access_token,
+      hasRefreshToken: !!tokens.refresh_token,
+      expiryDate: tokens.expiry_date,
+    });
+
     // Сохраняем токены в cookies (в production лучше использовать database)
     const cookieStore = await cookies();
-    cookieStore.set("youtube_access_token", tokens.access_token || "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60, // 1 час
-    });
+
+    if (tokens.access_token) {
+      cookieStore.set("youtube_access_token", tokens.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60, // 1 час
+      });
+      console.log("Access token saved to cookies");
+    } else {
+      console.warn("No access token received from Google");
+    }
 
     if (tokens.refresh_token) {
       cookieStore.set("youtube_refresh_token", tokens.refresh_token, {
@@ -45,6 +57,9 @@ export async function GET(request: NextRequest) {
         sameSite: "lax",
         maxAge: 60 * 60 * 24 * 30, // 30 дней
       });
+      console.log("Refresh token saved to cookies");
+    } else {
+      console.log("No refresh token received (might already exist)");
     }
 
     // Редирект обратно на главную страницу с сообщением об успехе
