@@ -15,7 +15,7 @@ export interface VideoJob {
   status: VideoJobStatus;
   backgroundVideoUrl?: string;
   backgroundPrompt?: string;
-  audioUrl?: string; // URL сгенерированного аудио через DiffRhythm
+  audioUrl?: string; // URL сгенерированной музыки через Udio API (хранится 7 дней на PiAPI)
   finalVideoUrl?: string; // URL финального видео с текстом и эмодзи
   renderingStatus?: "pending" | "running" | "completed" | "failed"; // Статус рендеринга финального видео
   createdAt: Date;

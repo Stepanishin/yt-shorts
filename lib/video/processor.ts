@@ -42,13 +42,14 @@ export async function processVideoJob(jobId: unknown): Promise<void> {
 
     console.log("Background video generated successfully:", backgroundResult.videoUrl);
 
-    // 2. Генерируем аудио через DiffRhythm
+    // 2. Генерируем аудио через Udio API
     console.log("Generating audio for video job:", jobId);
     try {
       const audioResult = await generateAudio({
         jokeText: job.jokeText,
         jokeTitle: job.jokeTitle,
-        taskType: "txt2audio-base", // Используем high-quality версию (1'35")
+        taskType: "generate_music", // Используем стандартную генерацию Udio
+        lyricsType: "instrumental", // Инструментальная музыка (без слов)
       });
 
       // Сохраняем URL аудио в джобу

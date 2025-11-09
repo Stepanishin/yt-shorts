@@ -1,7 +1,9 @@
 export interface GenerateAudioOptions {
   jokeText: string;
   jokeTitle?: string;
-  taskType?: "txt2audio-base" | "txt2audio-full"; // 1'35" high quality или 4'45" lower quality
+  taskType?: "generate_music" | "generate_music_custom"; // Udio API task types
+  lyricsType?: "generate" | "user" | "instrumental"; // How to generate the music
+  lyrics?: string; // Optional lyrics (used when lyricsType is "user")
 }
 
 export interface GenerateAudioResult {
@@ -11,92 +13,129 @@ export interface GenerateAudioResult {
 }
 
 /**
- * Генерирует музыку для YouTube Shorts через PiAPI/DiffRhythm
- * Создает AI-музыку с синхронизированными вокалом и инструментами
+ * Генерирует музыку для YouTube Shorts через PiAPI/Udio API
+ * Создает AI-музыку используя передовые возможности Udio
  */
 export async function generateAudio(
   options: GenerateAudioOptions
 ): Promise<GenerateAudioResult> {
-  const { jokeText, jokeTitle, taskType = "txt2audio-base" } = options;
+  const {
+    jokeText,
+    jokeTitle,
+    taskType = "generate_music",
+    lyricsType = "instrumental", // По умолчанию инструментальная музыка
+    lyrics
+  } = options;
 
   // Создаем промпт для генерации музыки
-  const prompt = createAudioPrompt({
+  const gptDescriptionPrompt = createAudioPrompt({
     jokeText,
     jokeTitle,
   });
 
-  const apiKey = process.env.PIAPI_X_API_KEY || "bf691bd4c7a534dc2c2c24f19c950d7a5c57eee25ed636c46185ad5e0b09b147";
+  const apiKey = process.env.PIAPI_X_API_KEY;
 
   if (!apiKey) {
     throw new Error("PIAPI_X_API_KEY environment variable is not set");
   }
 
-  // Генерируем аудио через PiAPI/DiffRhythm
+  // Генерируем аудио через PiAPI/Udio API
   // Согласно документации: POST https://api.piapi.ai/api/v1/task
+  const requestBody: {
+    model: string;
+    task_type: string;
+    input: {
+      gpt_description_prompt?: string;
+      prompt?: string;
+      lyrics_type: string;
+      lyrics?: string;
+      title?: string;
+    };
+    config: {
+      webhook_config: {
+        endpoint: string;
+        secret: string;
+      };
+      service_mode: string;
+    };
+  } = {
+    model: "music-u",
+    task_type: taskType,
+    input: {
+      lyrics_type: lyricsType,
+    },
+    config: {
+      webhook_config: {
+        endpoint: "",
+        secret: "",
+      },
+      service_mode: "public", // PAYG mode ($0.05 per generation)
+    },
+  };
+
+  // Добавляем промпт в зависимости от lyrics_type
+  if (lyricsType === "generate" || lyricsType === "instrumental") {
+    // Используем gpt_description_prompt для автогенерации
+    requestBody.input.gpt_description_prompt = gptDescriptionPrompt;
+  } else if (lyricsType === "user" && lyrics) {
+    // Используем точный промпт и тексты от пользователя
+    requestBody.input.prompt = gptDescriptionPrompt;
+    requestBody.input.lyrics = lyrics;
+  }
+
+  // Добавляем title если есть
+  if (jokeTitle) {
+    requestBody.input.title = jokeTitle;
+  }
+
   const response = await fetch("https://api.piapi.ai/api/v1/task", {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: "Qubico/diffrhythm",
-      task_type: taskType,
-      input: {
-        prompt: prompt,
-        // DiffRhythm поддерживает английский и китайский, но можем попробовать испанский
-        // Для лучших результатов лучше переводить на английский
-      },
-      config: {
-        webhook_config: {
-          endpoint: "",
-          secret: "",
-        },
-        service_mode: "public", // PAYG mode
-      },
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("PiAPI/DiffRhythm error:", response.status, errorText);
-    throw new Error(`PiAPI/DiffRhythm request failed: ${response.status} ${errorText}`);
+    console.error("PiAPI/Udio (music-u) error:", response.status, errorText);
+    throw new Error(`PiAPI/Udio music generation request failed: ${response.status} ${errorText}`);
   }
 
   const responseData = await response.json();
-  
+
   // API возвращает ответ в формате { code, data, message }
   // task_id находится в data.task_id
   const taskId = responseData.data?.task_id || responseData.task_id;
   const status = responseData.data?.status || responseData.status;
-  
+
   if (!taskId) {
-    console.error("Unexpected PiAPI/DiffRhythm response format:", JSON.stringify(responseData, null, 2));
-    throw new Error(`Unexpected PiAPI/DiffRhythm response format: ${JSON.stringify(responseData)}`);
+    console.error("Unexpected PiAPI/Udio response format:", JSON.stringify(responseData, null, 2));
+    throw new Error(`Unexpected PiAPI/Udio response format: ${JSON.stringify(responseData)}`);
   }
 
   // Асинхронная генерация - нужно ждать завершения
-  console.log(`Audio generation task created. Task ID: ${taskId}, Status: ${status}`);
-  const audioUrl = await pollForDiffRhythmCompletion(apiKey, taskId, taskType);
-  
+  console.log(`Udio music generation task created. Task ID: ${taskId}, Status: ${status}`);
+  const result = await pollForUdioCompletion(apiKey, taskId);
+
   return {
-    audioUrl,
+    audioUrl: result.audioUrl,
     generationId: taskId,
-    duration: taskType === "txt2audio-base" ? 95 : 285, // 1'35" или 4'45"
+    duration: result.duration, // Фактическая длительность из Udio API
   };
 }
 
 /**
- * Ожидает завершения генерации аудио через DiffRhythm
+ * Ожидает завершения генерации музыки через Udio API
  * Проверяет статус задачи через GET /api/v1/task/{task_id}
- * Таймаут: 5 минут для base, 10 минут для full
+ * Музыка хранится на сервере PiAPI 7 дней
  */
-async function pollForDiffRhythmCompletion(
-  apiKey: string, 
-  taskId: string, 
-  taskType: "txt2audio-base" | "txt2audio-full",
-  maxAttempts = 200
-): Promise<string> {
+async function pollForUdioCompletion(
+  apiKey: string,
+  taskId: string,
+  maxAttempts = 150 // ~5 минут с интервалом 2 секунды
+): Promise<{ audioUrl: string; duration: number }> {
   // Согласно документации: GET https://api.piapi.ai/api/v1/task/{task_id}
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
@@ -121,56 +160,78 @@ async function pollForDiffRhythmCompletion(
       
       // Успешное завершение
       if (status === "completed" || status === "Completed") {
-        // Извлекаем URL аудио из ответа
-        const extractAudioUrl = (audio: unknown): string | null => {
-          if (!audio) return null;
-          // Если это строка - возвращаем как есть
-          if (typeof audio === "string") {
-            return audio;
-          }
-          // Если это объект - извлекаем url
-          if (typeof audio === "object" && audio !== null && "url" in audio) {
-            const audioObj = audio as { url: string };
-            return audioObj.url;
-          }
-          return null;
-        };
+        // Udio API возвращает массив songs в output.songs[]
+        // Каждая песня имеет song_path с URL музыкального файла
+        let audioUrl: string | null = null;
 
-        const audioUrl = 
-          extractAudioUrl(data.output?.audio) ||
-          extractAudioUrl(data.output?.audio_file) ||
-          data.output?.audio_url ||
-          data.output?.url ||
-          extractAudioUrl(data.result?.audio) ||
-          data.result?.audio_url ||
-          data.audio_url ||
-          data.url;
+        // Проверяем новый формат Udio API (output.songs[])
+        if (data.output?.songs && Array.isArray(data.output.songs) && data.output.songs.length > 0) {
+          // Берем первую песню из массива
+          const firstSong = data.output.songs[0];
+          audioUrl = firstSong.song_path;
+          const duration = Math.round(firstSong.duration || 131); // Округляем до секунд
+
+          // Логируем информацию о сгенерированных треках
+          console.log(`Udio generated ${data.output.songs.length} songs:`);
+          data.output.songs.forEach((song: any, index: number) => {
+            console.log(`  ${index + 1}. "${song.title}" (${Math.round(song.duration)}s) - ${song.song_path}`);
+          });
+          console.log(`Using first song: "${firstSong.title}" (${duration}s)`);
+
+          if (audioUrl) {
+            console.log("Udio music generated successfully:", audioUrl);
+            console.log("⚠️  Музыка хранится на сервере PiAPI 7 дней. Сохраните на Cloudflare R2 для постоянного хранения.");
+            return { audioUrl, duration };
+          }
+        } else {
+          // Fallback: проверяем старые форматы (на случай если API изменится)
+          const extractAudioUrl = (audio: unknown): string | null => {
+            if (!audio) return null;
+            if (typeof audio === "string") return audio;
+            if (typeof audio === "object" && audio !== null && "url" in audio) {
+              return (audio as { url: string }).url;
+            }
+            return null;
+          };
+
+          audioUrl =
+            extractAudioUrl(data.output?.audio) ||
+            extractAudioUrl(data.output?.audio_file) ||
+            data.output?.audio_url ||
+            data.output?.url ||
+            extractAudioUrl(data.result?.audio) ||
+            data.result?.audio_url ||
+            data.audio_url ||
+            data.url;
+        }
 
         if (audioUrl) {
-          console.log("Audio generated successfully:", audioUrl);
-          return audioUrl;
+          console.log("Udio music generated successfully (fallback format):", audioUrl);
+          console.log("⚠️  Музыка хранится на сервере PiAPI 7 дней. Сохраните на Cloudflare R2 для постоянного хранения.");
+          return { audioUrl, duration: 131 }; // Дефолтная длительность для fallback
         }
-        
+
         // Логируем полный ответ для отладки
         console.error("Task completed but no audio URL found. Full response:", JSON.stringify(responseData, null, 2));
-        throw new Error(`Audio generation completed but no URL found. Response: ${JSON.stringify(responseData)}`);
+        throw new Error(`Udio music generation completed but no URL found. Response: ${JSON.stringify(responseData)}`);
       }
 
       // Ошибка генерации
       if (status === "failed" || status === "Failed") {
         const errorData = data.error || responseData.error || {};
         const errorMsg = errorData.message || errorData.raw_message || responseData.message || "Unknown error";
-        
+
         // Более понятные сообщения на русском для частых ошибок
         if (errorMsg.includes("insufficient credits") || errorMsg.includes("credit")) {
           throw new Error(
-            `Недостаточно кредитов на аккаунте PiAPI для генерации аудио. ` +
-            `Пожалуйста, пополните баланс на https://piapi.ai или проверьте статус аккаунта. ` +
+            `Недостаточно кредитов на аккаунте PiAPI для генерации музыки через Udio. ` +
+            `Стоимость: $0.05 за генерацию (PAYG mode). ` +
+            `Пожалуйста, пополните баланс на https://piapi.ai. ` +
             `(Error: ${errorMsg})`
           );
         }
-        
-        throw new Error(`DiffRhythm audio generation failed: ${errorMsg}`);
+
+        throw new Error(`Udio music generation failed: ${errorMsg}`);
       }
 
       // Если статус еще обрабатывается, ждем
@@ -199,31 +260,31 @@ async function pollForDiffRhythmCompletion(
     }
   }
 
-  throw new Error(`DiffRhythm audio generation timed out after ${maxAttempts * 2} seconds`);
+  throw new Error(`Udio music generation timed out after ${maxAttempts * 2} seconds`);
 }
 
 /**
- * Создает промпт для генерации музыки на основе анекдота
- * DiffRhythm поддерживает английский и китайский, поэтому переводим на английский
+ * Создает промпт для генерации музыки через Udio на основе анекдота
+ * Udio использует продвинутые AI модели для создания высококачественной музыки
  */
 function createAudioPrompt(options: {
   jokeText: string;
   jokeTitle?: string;
 }): string {
   const { jokeText, jokeTitle } = options;
-  
-  // Для лучших результатов лучше использовать английский промпт
-  // Можно упростить и использовать основную тему анекдота
-  
+
+  // Udio создает более качественную музыку с учетом контекста
+  // Можно использовать детальные описания стиля
+
   // Базовый промпт для веселой фоновой музыки
-  const basePrompt = "upbeat, cheerful, light background music, happy and energetic mood, suitable for comedy and humor content";
-  
+  const basePrompt = "upbeat cheerful background music, light and energetic, comedy vibe, fun and playful";
+
   // Добавляем контекст из темы анекдота (если есть title)
-  const context = jokeTitle 
-    ? `, theme: ${jokeTitle}`
+  const context = jokeTitle
+    ? `, ${jokeTitle} theme`
     : ", Spanish humor style";
-  
-  // Для txt2audio можно использовать более описательный промпт
-  return `${basePrompt}${context}, instrumental with subtle melodies, modern production, perfect for short video format`;
+
+  // Udio поддерживает детальные описания стиля, жанра и настроения
+  return `${basePrompt}${context}, instrumental, modern production, catchy melody, perfect for YouTube Shorts, 30-45 seconds`;
 }
 

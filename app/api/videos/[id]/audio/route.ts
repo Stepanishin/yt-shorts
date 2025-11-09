@@ -5,8 +5,8 @@ import { generateAudio } from "@/lib/video/audio-generator";
 /**
  * API endpoint для генерации аудио для видео
  * POST /api/videos/[id]/audio
- * 
- * Генерирует аудио через DiffRhythm для существующего video job
+ *
+ * Генерирует музыку через Udio API для существующего video job
  */
 export async function POST(
   request: Request,
@@ -19,7 +19,8 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
-    const taskType = body.taskType || "txt2audio-base"; // По умолчанию высокое качество
+    const taskType = body.taskType || "generate_music"; // По умолчанию стандартная генерация Udio
+    const lyricsType = body.lyricsType || "instrumental"; // По умолчанию инструментальная музыка
 
     const job = await findVideoJobById(id);
     if (!job) {
@@ -27,7 +28,7 @@ export async function POST(
     }
 
     // Запускаем генерацию аудио в фоне
-    generateAudioInBackground(job, taskType).catch((error) => {
+    generateAudioInBackground(job, taskType, lyricsType).catch((error) => {
       console.error("Failed to generate audio in background", error);
       updateVideoJobStatus({
         id,
@@ -50,22 +51,25 @@ export async function POST(
 }
 
 /**
- * Асинхронная функция для генерации аудио
+ * Асинхронная функция для генерации музыки через Udio
  */
 async function generateAudioInBackground(
-  job: any,
-  taskType: "txt2audio-base" | "txt2audio-full"
+  job: { _id: string; jokeText: string; jokeTitle?: string; status: string },
+  taskType: "generate_music" | "generate_music_custom",
+  lyricsType: "generate" | "user" | "instrumental"
 ): Promise<void> {
   try {
-    console.log("Starting audio generation for job:", job._id);
+    console.log("Starting Udio music generation for job:", job._id);
     console.log("Joke text:", job.jokeText);
     console.log("Joke title:", job.jokeTitle);
-    
-    // Генерируем аудио через DiffRhythm
+    console.log("Task type:", taskType, "Lyrics type:", lyricsType);
+
+    // Генерируем музыку через Udio API
     const audioResult = await generateAudio({
       jokeText: job.jokeText,
       jokeTitle: job.jokeTitle,
       taskType,
+      lyricsType,
     });
 
     // Сохраняем URL аудио в job
@@ -75,7 +79,8 @@ async function generateAudioInBackground(
       audioUrl: audioResult.audioUrl,
     });
 
-    console.log("Audio generated successfully:", audioResult.audioUrl);
+    console.log("Udio music generated successfully:", audioResult.audioUrl);
+    console.log("⚠️  Музыка хранится на PiAPI сервере 7 дней");
   } catch (error) {
     console.error("Audio generation failed", error);
     throw error;

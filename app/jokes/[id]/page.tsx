@@ -386,7 +386,8 @@ export default function JokeDetailPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          taskType: "txt2audio-base", // Можно сделать выбор качества
+          taskType: "generate_music", // Можно сделать выбор: generate_music или generate_music_custom
+          lyricsType: "instrumental", // Инструментальная музыка без слов
         }),
       });
 
