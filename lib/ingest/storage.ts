@@ -31,6 +31,7 @@ export const getJokeCandidateCollection = async (): Promise<
 
 const ensureIndexes = async (collection: Collection<StoredJokeCandidate>) => {
   await collection.createIndex({ source: 1, externalId: 1 }, { unique: false });
+  await collection.createIndex({ source: 1, url: 1 }, { unique: false });
   await collection.createIndex({ createdAt: -1 });
 };
 
@@ -44,29 +45,64 @@ export const insertJokeCandidates = async (jokes: JokeCandidate[]) => {
 
   const collection = await getJokeCandidateCollection();
 
-  // Проверяем существующие анекдоты по source + externalId
+  // Улучшенная проверка дубликатов: используем externalId или URL как fallback
   // Важно: проверяем ВСЕ статусы, включая "deleted", чтобы не добавлять дубликаты
   const existingJokes = await collection
     .find({
-      $or: jokes.map((joke) => ({
-        source: joke.source,
-        externalId: joke.externalId,
-      })),
+      $or: jokes.map((joke) => {
+        // Если есть externalId, используем source + externalId
+        if (joke.externalId) {
+          return {
+            source: joke.source,
+            externalId: joke.externalId,
+          };
+        }
+        // Если нет externalId, но есть URL, используем source + url
+        if (joke.url) {
+          return {
+            source: joke.source,
+            url: joke.url,
+          };
+        }
+        // Fallback: используем только source + text (менее надежно)
+        return {
+          source: joke.source,
+          text: joke.text,
+        };
+      }),
     })
     .toArray();
 
   const existingKeys = new Set(
-    existingJokes.map((joke) => `${joke.source}:${joke.externalId}`)
+    existingJokes.map((joke) => {
+      if (joke.externalId) {
+        return `${joke.source}:${joke.externalId}`;
+      }
+      if (joke.url) {
+        return `${joke.source}:url:${joke.url}`;
+      }
+      return `${joke.source}:text:${joke.text}`;
+    })
   );
 
   console.log(`Found ${existingKeys.size} existing jokes (including deleted)`);
+  console.log(`Jokes with externalId: ${jokes.filter(j => j.externalId).length}, with URL: ${jokes.filter(j => j.url).length}, without both: ${jokes.filter(j => !j.externalId && !j.url).length}`);
 
   // Фильтруем только новые анекдоты
-  const newJokes = jokes.filter(
-    (joke) => !existingKeys.has(`${joke.source}:${joke.externalId}`)
-  );
+  const newJokes = jokes.filter((joke) => {
+    if (joke.externalId) {
+      return !existingKeys.has(`${joke.source}:${joke.externalId}`);
+    }
+    if (joke.url) {
+      return !existingKeys.has(`${joke.source}:url:${joke.url}`);
+    }
+    return !existingKeys.has(`${joke.source}:text:${joke.text}`);
+  });
 
   console.log(`Inserting ${newJokes.length} new jokes out of ${jokes.length} total`);
+  if (newJokes.length < jokes.length) {
+    console.log(`Filtered out ${jokes.length - newJokes.length} duplicate jokes`);
+  }
 
   if (newJokes.length === 0) {
     return { inserted: 0 };

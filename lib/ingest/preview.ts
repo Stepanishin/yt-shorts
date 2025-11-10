@@ -54,21 +54,39 @@ export async function collectJokePreview(
 
     if (result.ok) {
       jokes.push(
-        ...result.jokes.map<JokeCandidate>((joke) => ({
-          source: "yavendras",
-          title: joke.title,
-          text: joke.text,
-          url: joke.url,
-          language: "es",
-          ratingPercent: joke.ratingPercent,
-          votesTotal: joke.votesTotal,
-          votesPositive: joke.votesPositive,
-          votesNegative: joke.votesNegative,
-          meta: {
-            slug: request.yavendras?.slug,
-            page: request.yavendras?.page ?? 1,
-          },
-        }))
+        ...result.jokes.map<JokeCandidate>((joke) => {
+          // Извлекаем ID из URL или используем URL как externalId
+          // URL обычно выглядит как: https://chistes.yavendras.com/chiste.php?id=12345
+          // или https://chistes.yavendras.com/chistes/pepito/12345
+          let externalId: string | undefined;
+          if (joke.url) {
+            // Пытаемся извлечь ID из URL
+            const urlMatch = joke.url.match(/[?&]id=(\d+)/) || joke.url.match(/\/(\d+)\.php/);
+            if (urlMatch && urlMatch[1]) {
+              externalId = urlMatch[1];
+            } else {
+              // Если ID не найден, используем URL как externalId
+              externalId = joke.url;
+            }
+          }
+
+          return {
+            source: "yavendras",
+            title: joke.title,
+            text: joke.text,
+            url: joke.url,
+            externalId, // Добавляем externalId
+            language: "es",
+            ratingPercent: joke.ratingPercent,
+            votesTotal: joke.votesTotal,
+            votesPositive: joke.votesPositive,
+            votesNegative: joke.votesNegative,
+            meta: {
+              slug: request.yavendras?.slug,
+              page: request.yavendras?.page ?? 1,
+            },
+          };
+        })
       );
 
       meta.yavendras = {
