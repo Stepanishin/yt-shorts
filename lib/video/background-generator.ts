@@ -13,79 +13,107 @@ export interface GenerateBackgroundResult {
 /**
  * Генерирует видео фон для YouTube Shorts через PiAPI/Luma Dream Machine
  * Создает вертикальное видео (9:16) в природном стиле
+ * При ошибке повторяет попытку после задержки
  */
 export async function generateBackground(
-  options: GenerateBackgroundOptions
+  options: GenerateBackgroundOptions,
+  maxRetries = 3,
+  retryDelayMs = 60000
 ): Promise<GenerateBackgroundResult> {
   const { jokeText, jokeTitle, style = "nature" } = options;
 
-  // Создаем промпт для генерации видео фона
-  const prompt = createBackgroundPrompt({
-    jokeText,
-    jokeTitle,
-    style,
-  });
+  let lastError: Error | null = null;
 
-  const apiKey = process.env.PIAPI_X_API_KEY || "bf691bd4c7a534dc2c2c24f19c950d7a5c57eee25ed636c46185ad5e0b09b147";
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Background generation attempt ${attempt}/${maxRetries}`);
 
-  if (!apiKey) {
-    throw new Error("PIAPI_X_API_KEY environment variable is not set");
-  }
+      // Создаем промпт для генерации видео фона
+      const prompt = createBackgroundPrompt({
+        jokeText,
+        jokeTitle,
+        style,
+      });
 
-  // Генерируем видео через PiAPI/Luma Dream Machine
-  // Согласно документации: POST https://api.piapi.ai/api/v1/task
-  const response = await fetch("https://api.piapi.ai/api/v1/task", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "luma",
-      task_type: "video_generation",
-      input: {
-        prompt: prompt,
-        model_name: "ray-v1", // ray-v2 для лучшего качества (можно использовать ray-v1)
-        duration: 5, // 10 секунд для txt2video (можно использовать 5)
-        aspect_ratio: "9:16", // Вертикальный формат для YouTube Shorts
-        resolution: 540, // 768 (поддерживается 6s/10s; 1080p+10s нельзя)
-      },
-      config: {
-        webhook_config: {
-          endpoint: "",
-          secret: "",
+      const apiKey = process.env.PIAPI_X_API_KEY || "bf691bd4c7a534dc2c2c24f19c950d7a5c57eee25ed636c46185ad5e0b09b147";
+
+      if (!apiKey) {
+        throw new Error("PIAPI_X_API_KEY environment variable is not set");
+      }
+
+      // Генерируем видео через PiAPI/Luma Dream Machine
+      // Согласно документации: POST https://api.piapi.ai/api/v1/task
+      const response = await fetch("https://api.piapi.ai/api/v1/task", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
         },
-        service_mode: "public", // PAYG mode
-      },
-    }),
-  });
+        body: JSON.stringify({
+          model: "luma",
+          task_type: "video_generation",
+          input: {
+            prompt: prompt,
+            model_name: "ray-v1", // ray-v2 для лучшего качества (можно использовать ray-v1)
+            duration: 5, // 10 секунд для txt2video (можно использовать 5)
+            aspect_ratio: "9:16", // Вертикальный формат для YouTube Shorts
+            resolution: 540, // 768 (поддерживается 6s/10s; 1080p+10s нельзя)
+          },
+          config: {
+            webhook_config: {
+              endpoint: "",
+              secret: "",
+            },
+            service_mode: "public", // PAYG mode
+          },
+        }),
+      });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("PiAPI/Luma error:", response.status, errorText);
-    throw new Error(`PiAPI/Luma request failed: ${response.status} ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("PiAPI/Luma error:", response.status, errorText);
+        throw new Error(`PiAPI/Luma request failed: ${response.status} ${errorText}`);
+      }
+
+      const responseData = await response.json();
+
+      // API возвращает ответ в формате { code, data, message }
+      // task_id находится в data.task_id
+      const taskId = responseData.data?.task_id || responseData.task_id;
+      const status = responseData.data?.status || responseData.status;
+
+      if (!taskId) {
+        console.error("Unexpected PiAPI/Luma response format:", JSON.stringify(responseData, null, 2));
+        throw new Error(`Unexpected PiAPI/Luma response format: ${JSON.stringify(responseData)}`);
+      }
+
+      // Асинхронная генерация - нужно ждать завершения
+      console.log(`Video generation task created. Task ID: ${taskId}, Status: ${status}`);
+      const videoUrl = await pollForLumaCompletion(apiKey, taskId);
+
+      // Успех! Возвращаем результат
+      console.log(`Background generation successful on attempt ${attempt}`);
+      return {
+        videoUrl,
+        revisedPrompt: prompt,
+        generationId: taskId,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`Background generation attempt ${attempt}/${maxRetries} failed:`, lastError.message);
+
+      // Если это не последняя попытка, ждем перед повторной попыткой
+      if (attempt < maxRetries) {
+        console.log(`Waiting ${retryDelayMs / 1000} seconds before retry...`);
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
   }
 
-  const responseData = await response.json();
-  
-  // API возвращает ответ в формате { code, data, message }
-  // task_id находится в data.task_id
-  const taskId = responseData.data?.task_id || responseData.task_id;
-  const status = responseData.data?.status || responseData.status;
-  
-  if (!taskId) {
-    console.error("Unexpected PiAPI/Luma response format:", JSON.stringify(responseData, null, 2));
-    throw new Error(`Unexpected PiAPI/Luma response format: ${JSON.stringify(responseData)}`);
-  }
-
-  // Асинхронная генерация - нужно ждать завершения
-  console.log(`Video generation task created. Task ID: ${taskId}, Status: ${status}`);
-  const videoUrl = await pollForLumaCompletion(apiKey, taskId);
-  return {
-    videoUrl,
-    revisedPrompt: prompt,
-    generationId: taskId,
-  };
+  // Все попытки исчерпаны
+  throw new Error(
+    `Failed to generate background after ${maxRetries} attempts. Last error: ${lastError?.message || 'Unknown error'}`
+  );
 }
 
 

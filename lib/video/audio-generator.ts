@@ -15,9 +15,12 @@ export interface GenerateAudioResult {
 /**
  * Генерирует музыку для YouTube Shorts через PiAPI/Udio API
  * Создает AI-музыку используя передовые возможности Udio
+ * При ошибке повторяет попытку после задержки
  */
 export async function generateAudio(
-  options: GenerateAudioOptions
+  options: GenerateAudioOptions,
+  maxRetries = 3,
+  retryDelayMs = 60000
 ): Promise<GenerateAudioResult> {
   const {
     jokeText,
@@ -27,103 +30,127 @@ export async function generateAudio(
     lyrics
   } = options;
 
-  // Создаем промпт для генерации музыки
-  const gptDescriptionPrompt = createAudioPrompt({
-    jokeText,
-    jokeTitle,
-  });
+  let lastError: Error | null = null;
 
-  const apiKey = process.env.PIAPI_X_API_KEY;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Audio generation attempt ${attempt}/${maxRetries}`);
 
-  if (!apiKey) {
-    throw new Error("PIAPI_X_API_KEY environment variable is not set");
-  }
+      // Создаем промпт для генерации музыки
+      const gptDescriptionPrompt = createAudioPrompt({
+        jokeText,
+        jokeTitle,
+      });
 
-  // Генерируем аудио через PiAPI/Udio API
-  // Согласно документации: POST https://api.piapi.ai/api/v1/task
-  const requestBody: {
-    model: string;
-    task_type: string;
-    input: {
-      gpt_description_prompt?: string;
-      prompt?: string;
-      lyrics_type: string;
-      lyrics?: string;
-      title?: string;
-    };
-    config: {
-      webhook_config: {
-        endpoint: string;
-        secret: string;
+      const apiKey = process.env.PIAPI_X_API_KEY;
+
+      if (!apiKey) {
+        throw new Error("PIAPI_X_API_KEY environment variable is not set");
+      }
+
+      // Генерируем аудио через PiAPI/Udio API
+      // Согласно документации: POST https://api.piapi.ai/api/v1/task
+      const requestBody: {
+        model: string;
+        task_type: string;
+        input: {
+          gpt_description_prompt?: string;
+          prompt?: string;
+          lyrics_type: string;
+          lyrics?: string;
+          title?: string;
+        };
+        config: {
+          webhook_config: {
+            endpoint: string;
+            secret: string;
+          };
+          service_mode: string;
+        };
+      } = {
+        model: "music-u",
+        task_type: taskType,
+        input: {
+          lyrics_type: lyricsType,
+        },
+        config: {
+          webhook_config: {
+            endpoint: "",
+            secret: "",
+          },
+          service_mode: "public", // PAYG mode ($0.05 per generation)
+        },
       };
-      service_mode: string;
-    };
-  } = {
-    model: "music-u",
-    task_type: taskType,
-    input: {
-      lyrics_type: lyricsType,
-    },
-    config: {
-      webhook_config: {
-        endpoint: "",
-        secret: "",
-      },
-      service_mode: "public", // PAYG mode ($0.05 per generation)
-    },
-  };
 
-  // Добавляем промпт в зависимости от lyrics_type
-  if (lyricsType === "generate" || lyricsType === "instrumental") {
-    // Используем gpt_description_prompt для автогенерации
-    requestBody.input.gpt_description_prompt = gptDescriptionPrompt;
-  } else if (lyricsType === "user" && lyrics) {
-    // Используем точный промпт и тексты от пользователя
-    requestBody.input.prompt = gptDescriptionPrompt;
-    requestBody.input.lyrics = lyrics;
+      // Добавляем промпт в зависимости от lyrics_type
+      if (lyricsType === "generate" || lyricsType === "instrumental") {
+        // Используем gpt_description_prompt для автогенерации
+        requestBody.input.gpt_description_prompt = gptDescriptionPrompt;
+      } else if (lyricsType === "user" && lyrics) {
+        // Используем точный промпт и тексты от пользователя
+        requestBody.input.prompt = gptDescriptionPrompt;
+        requestBody.input.lyrics = lyrics;
+      }
+
+      // Добавляем title если есть
+      if (jokeTitle) {
+        requestBody.input.title = jokeTitle;
+      }
+
+      const response = await fetch("https://api.piapi.ai/api/v1/task", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("PiAPI/Udio (music-u) error:", response.status, errorText);
+        throw new Error(`PiAPI/Udio music generation request failed: ${response.status} ${errorText}`);
+      }
+
+      const responseData = await response.json();
+
+      // API возвращает ответ в формате { code, data, message }
+      // task_id находится в data.task_id
+      const taskId = responseData.data?.task_id || responseData.task_id;
+      const status = responseData.data?.status || responseData.status;
+
+      if (!taskId) {
+        console.error("Unexpected PiAPI/Udio response format:", JSON.stringify(responseData, null, 2));
+        throw new Error(`Unexpected PiAPI/Udio response format: ${JSON.stringify(responseData)}`);
+      }
+
+      // Асинхронная генерация - нужно ждать завершения
+      console.log(`Udio music generation task created. Task ID: ${taskId}, Status: ${status}`);
+      const result = await pollForUdioCompletion(apiKey, taskId);
+
+      // Успех! Возвращаем результат
+      console.log(`Audio generation successful on attempt ${attempt}`);
+      return {
+        audioUrl: result.audioUrl,
+        generationId: taskId,
+        duration: result.duration, // Фактическая длительность из Udio API
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`Audio generation attempt ${attempt}/${maxRetries} failed:`, lastError.message);
+
+      // Если это не последняя попытка, ждем перед повторной попыткой
+      if (attempt < maxRetries) {
+        console.log(`Waiting ${retryDelayMs / 1000} seconds before retry...`);
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
   }
 
-  // Добавляем title если есть
-  if (jokeTitle) {
-    requestBody.input.title = jokeTitle;
-  }
-
-  const response = await fetch("https://api.piapi.ai/api/v1/task", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("PiAPI/Udio (music-u) error:", response.status, errorText);
-    throw new Error(`PiAPI/Udio music generation request failed: ${response.status} ${errorText}`);
-  }
-
-  const responseData = await response.json();
-
-  // API возвращает ответ в формате { code, data, message }
-  // task_id находится в data.task_id
-  const taskId = responseData.data?.task_id || responseData.task_id;
-  const status = responseData.data?.status || responseData.status;
-
-  if (!taskId) {
-    console.error("Unexpected PiAPI/Udio response format:", JSON.stringify(responseData, null, 2));
-    throw new Error(`Unexpected PiAPI/Udio response format: ${JSON.stringify(responseData)}`);
-  }
-
-  // Асинхронная генерация - нужно ждать завершения
-  console.log(`Udio music generation task created. Task ID: ${taskId}, Status: ${status}`);
-  const result = await pollForUdioCompletion(apiKey, taskId);
-
-  return {
-    audioUrl: result.audioUrl,
-    generationId: taskId,
-    duration: result.duration, // Фактическая длительность из Udio API
-  };
+  // Все попытки исчерпаны
+  throw new Error(
+    `Failed to generate audio after ${maxRetries} attempts. Last error: ${lastError?.message || 'Unknown error'}`
+  );
 }
 
 /**
