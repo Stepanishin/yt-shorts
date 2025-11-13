@@ -2,9 +2,10 @@ import { Collection, Document, ObjectId } from "mongodb";
 
 import { getMongoDatabase } from "@/lib/db/mongodb";
 
-import { JokeCandidate } from "./types";
+import { JokeCandidate, JokeSource } from "./types";
 
 const COLLECTION_NAME = "joke_candidates";
+const INGEST_STATE_COLLECTION = "ingest_state";
 
 export interface StoredJokeCandidate extends JokeCandidate {
   _id?: unknown;
@@ -291,5 +292,65 @@ export const updateJokeCandidateText = async ({
   );
 
   console.log(`Updated editedText for joke ${id}`);
+};
+
+// ============ Ingest State Management ============
+
+export interface IngestSourceState {
+  source: JokeSource;
+  sourceKey: string; // например "yavendras:chistes" или "todochistes:abogados"
+  lastPage: number;
+  lastFetchedAt: Date;
+  totalFetched: number;
+}
+
+const getIngestStateCollection = async (): Promise<Collection<IngestSourceState & Document>> => {
+  const db = await getMongoDatabase();
+  const collection = db.collection<IngestSourceState>(INGEST_STATE_COLLECTION);
+  await collection.createIndex({ source: 1, sourceKey: 1 }, { unique: true });
+  return collection;
+};
+
+export const getNextPageForSource = async (
+  source: JokeSource,
+  sourceKey: string
+): Promise<number> => {
+  const collection = await getIngestStateCollection();
+  const state = await collection.findOne({ source, sourceKey });
+
+  if (!state) {
+    return 1; // Первая страница
+  }
+
+  return state.lastPage + 1;
+};
+
+export const updateSourceState = async (
+  source: JokeSource,
+  sourceKey: string,
+  page: number,
+  fetchedCount: number
+) => {
+  const collection = await getIngestStateCollection();
+
+  await collection.updateOne(
+    { source, sourceKey },
+    {
+      $set: {
+        lastPage: page,
+        lastFetchedAt: new Date(),
+      },
+      $inc: {
+        totalFetched: fetchedCount,
+      },
+      $setOnInsert: {
+        source,
+        sourceKey,
+      },
+    },
+    { upsert: true }
+  );
+
+  console.log(`Updated state for ${source}:${sourceKey} - page ${page}, fetched ${fetchedCount}`);
 };
 

@@ -1,6 +1,6 @@
 import { getDefaultIngestConfig } from "./config";
 import { collectJokePreview } from "./preview";
-import { insertJokeCandidates } from "./storage";
+import { insertJokeCandidates, getNextPageForSource, updateSourceState } from "./storage";
 import { JokeCandidate } from "./types";
 
 export interface RunIngestOptions {
@@ -36,11 +36,14 @@ export const runIngest = async (): Promise<RunIngestResult> => {
     const yavMeta: Record<string, unknown>[] = [];
 
     for (const source of config.yavendras.sources) {
+      const sourceKey = `yavendras:${source.slug}`;
+      const nextPage = await getNextPageForSource("yavendras", sourceKey);
+
       const preview = await collectJokePreview({
         yavendras: {
           enabled: true,
           slug: source.slug,
-          page: source.page,
+          page: nextPage,
           baseUrl: source.baseUrl,
           timeoutMs: source.timeoutMs,
         },
@@ -49,6 +52,9 @@ export const runIngest = async (): Promise<RunIngestResult> => {
       if (preview.meta.yavendras && typeof preview.meta.yavendras === "object") {
         yavMeta.push(preview.meta.yavendras as Record<string, unknown>);
       }
+
+      // Обновляем состояние источника
+      await updateSourceState("yavendras", sourceKey, nextPage, preview.jokes.length);
     }
 
     collected.push(...jokes);
@@ -60,12 +66,15 @@ export const runIngest = async (): Promise<RunIngestResult> => {
     const todoMeta: Record<string, unknown>[] = [];
 
     for (const source of config.todochistes.sources) {
+      const sourceKey = `todochistes:${source.categorySlug || source.categoryId}`;
+      const nextPage = await getNextPageForSource("todochistes", sourceKey);
+
       const preview = await collectJokePreview({
         todochistes: {
           enabled: true,
           categoryId: source.categoryId,
           categorySlug: source.categorySlug,
-          page: source.page,
+          page: nextPage,
           perPage: source.perPage,
           baseUrl: source.baseUrl,
           timeoutMs: source.timeoutMs,
@@ -75,6 +84,9 @@ export const runIngest = async (): Promise<RunIngestResult> => {
       if (preview.meta.todochistes && typeof preview.meta.todochistes === "object") {
         todoMeta.push(preview.meta.todochistes as Record<string, unknown>);
       }
+
+      // Обновляем состояние источника
+      await updateSourceState("todochistes", sourceKey, nextPage, preview.jokes.length);
     }
 
     collected.push(...jokes);

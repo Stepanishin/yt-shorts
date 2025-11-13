@@ -56,6 +56,9 @@ export const cleanText = (
     // Удаляем паттерны вида "0 %" или "0%" без контекста
     cleaned = cleaned.replace(/\s+\d+\s+%/g, "");
     cleaned = cleaned.replace(/\s+\d+\s*%/g, "");
+
+    // Удаляем строки состоящие только из одиночных цифр и пробелов
+    cleaned = cleaned.replace(/^[\d\s]+$/gm, "");
   }
 
   if (stripHtml) {
@@ -67,7 +70,7 @@ export const cleanText = (
   }
 
   if (decodeEntities) {
-    // Декодируем HTML-сущности
+    // Декодируем HTML-сущности (именованные)
     cleaned = cleaned.replace(/&nbsp;/g, " ");
     cleaned = cleaned.replace(/&amp;/g, "&");
     cleaned = cleaned.replace(/&quot;/g, '"');
@@ -75,6 +78,21 @@ export const cleanText = (
     cleaned = cleaned.replace(/&apos;/g, "'");
     cleaned = cleaned.replace(/&lt;/g, "<");
     cleaned = cleaned.replace(/&gt;/g, ">");
+    cleaned = cleaned.replace(/&mdash;/g, "—");
+    cleaned = cleaned.replace(/&ndash;/g, "–");
+    cleaned = cleaned.replace(/&hellip;/g, "…");
+    cleaned = cleaned.replace(/&laquo;/g, "«");
+    cleaned = cleaned.replace(/&raquo;/g, "»");
+
+    // Декодируем числовые HTML-сущности (&#8211; -> –, &#8230; -> …, etc.)
+    cleaned = cleaned.replace(/&#(\d+);/g, (match, dec) => {
+      return String.fromCharCode(parseInt(dec, 10));
+    });
+
+    // Декодируем hex HTML-сущности (&#x2013; -> –, etc.)
+    cleaned = cleaned.replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
+      return String.fromCharCode(parseInt(hex, 16));
+    });
   }
 
   if (normalizeWhitespace) {
@@ -82,9 +100,16 @@ export const cleanText = (
     cleaned = cleaned.replace(/[ \t]+/g, " ");
 
     // Удаляем пробелы в начале и конце каждой строки
+    // И удаляем строки, которые содержат только цифры, пробелы и знаки процента
     cleaned = cleaned
       .split("\n")
       .map((line) => line.trim())
+      .filter((line) => {
+        // Удаляем пустые строки И строки состоящие только из цифр/пробелов
+        if (line === "") return true; // Сохраняем пустые строки для форматирования
+        // Удаляем строки вида "0", "0 %", "0 0 %", etc.
+        return !/^[\d\s%]+$/.test(line);
+      })
       .join("\n");
 
     // Удаляем множественные пустые строки, оставляя максимум одну пустую строку
