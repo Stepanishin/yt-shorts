@@ -218,7 +218,14 @@ async function pollForLumaCompletion(apiKey: string, taskId: string, maxAttempts
       // Неизвестный статус - ждем и пробуем снова
       await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (error) {
-      // Если это не последняя попытка, продолжаем
+      // Если ошибка содержит "generation failed", это означает что задача провалилась
+      // Нужно выбросить ошибку, чтобы верхний уровень мог сделать retry
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("generation failed") || errorMessage.includes("insufficient credits")) {
+        throw error; // Прокидываем ошибку наверх для retry
+      }
+
+      // Если это сетевая ошибка или другая временная проблема, продолжаем попытки
       if (attempt < maxAttempts - 1) {
         console.error(`Error checking task status (attempt ${attempt + 1}):`, error);
         await new Promise((resolve) => setTimeout(resolve, 3000));
