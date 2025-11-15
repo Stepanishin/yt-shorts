@@ -35,7 +35,7 @@ export async function generateBackground(
         style,
       });
 
-      const apiKey = process.env.PIAPI_X_API_KEY || "bf691bd4c7a534dc2c2c24f19c950d7a5c57eee25ed636c46185ad5e0b09b147";
+      const apiKey = process.env.PIAPI_X_API_KEY;
 
       if (!apiKey) {
         throw new Error("PIAPI_X_API_KEY environment variable is not set");
