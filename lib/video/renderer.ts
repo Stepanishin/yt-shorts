@@ -173,7 +173,7 @@ export async function renderFinalVideo(
     // 2. Подготавливаем текст для наложения
     // Разбиваем текст на строки для компактного отображения (как в preview)
     // Для вертикального видео 720px: уменьшаем символов на строку для безопасных отступов
-    const maxCharsPerLine = 30; // Уменьшено с 40 до 35 для безопасности
+    const maxCharsPerLine = 35; // Уменьшено с 40 до 35 для безопасности
     const wrapText = (text: string): string => {
       const words = text.split(' ');
       const lines: string[] = [];
@@ -207,11 +207,11 @@ export async function renderFinalVideo(
     const wrappedText = wrapText(textToRender);
 
     // Вычисляем параметры текста для позиционирования эмодзи
-    const fontSize = 36; // Увеличенный размер шрифта
-    const lineSpacing = 15; // Увеличенный межстрочный интервал
+    const fontSize = 32; // Увеличенный размер шрифта
+    const lineSpacing = 12; // Увеличенный межстрочный интервал
     const lineCount = wrappedText.split('\n').length;
     const lineHeight = fontSize + lineSpacing;
-    const textBoxPadding = 30; // boxborderw
+    const textBoxPadding = 15; // boxborderw
 
     // Размеры видео
     const videoWidth = 720;
@@ -244,6 +244,7 @@ export async function renderFinalVideo(
     const textFileStats = await fs.stat(textFilePath);
     const textFileContent = await fs.readFile(textFilePath, 'utf-8');
     console.log(`Text file created: ${textFilePath}, size: ${textFileStats.size} bytes, content length: ${textFileContent.length}`);
+    console.log(`Text file content: "${textFileContent}"`);
     if (textFileStats.size === 0 || textFileContent.length === 0) {
       throw new Error("Text file is empty!");
     }
@@ -304,14 +305,25 @@ export async function renderFinalVideo(
       // Используем complex filter для обработки видео и наложения эмодзи
       // [0:v] - первое видео (background)
       // [1:v] - второе изображение (emoji)
-      // Экранируем путь к файлу текста для FFmpeg
-      // Для textfile в drawtext нужно экранировать одинарные кавычки внутри пути
-      // Формат: textfile='path' где одинарные кавычки внутри path экранируются как '\''
-      const escapedTextFilePath = textFilePath.replace(/'/g, "'\\''");
+      // Экранируем текст для FFmpeg drawtext
+      // FFmpeg drawtext требует особого экранирования:
+      // 1. Обратные слеши: \ -> \\
+      // 2. Одинарные кавычки: ' -> '\''
+      // 3. Двоеточия: : -> \:
+      // 4. Переносы строк остаются как \n
+      const escapedText = wrappedText
+        .replace(/\\/g, '\\\\')    // Экранируем обратные слеши
+        .replace(/'/g, "'\\''")     // Экранируем одинарные кавычки
+        .replace(/:/g, '\\:');      // Экранируем двоеточия
+
+      console.log(`Original text: "${wrappedText}"`);
+      console.log(`Escaped text: "${escapedText}"`);
       
       // Позиционируем эмодзи справа под текстовым блоком
-      // Текст центрирован по вертикали
-      const textCenterY = (videoHeight - estimatedTextHeight) / 2; // Центральная позиция текста
+      // Текст центрирован по вертикали, но поднимается вверх пропорционально длине
+      // Чем больше текст, тем выше он поднимается (от 0 для коротких до ~150px для длинных)
+      const verticalOffset = Math.min((lineCount - 1) * 15, 150); // 15px за каждую дополнительную строку, макс 150px
+      const textCenterY = (videoHeight - estimatedTextHeight) / 2 - verticalOffset;
       // Правый край текста: центр + половина ширины текста = 720/2 + estimatedTextWidth/2
       // Нижний край текста: textCenterY + высота текста
       const emojiSize = 100; // Увеличено на 20% (было 64)
@@ -327,9 +339,9 @@ export async function renderFinalVideo(
       // Применяем анимацию к координатам
       const animatedEmojiX = createEmojiAnimationExpression(emojiAnimation, baseEmojiX, "x");
       const animatedEmojiY = createEmojiAnimationExpression(emojiAnimation, baseEmojiY, "y");
-      
-      console.log("Text file path:", textFilePath);
-      console.log("Escaped text file path:", escapedTextFilePath);
+
+      console.log("Text file path (backup):", textFilePath);
+      console.log("Using direct text in drawtext filter (not textfile)");
       console.log("Emoji exists:", emojiExists);
       console.log("Emoji animation:", emojiAnimation);
       console.log("Emoji position - X:", animatedEmojiX, "Y:", animatedEmojiY);
@@ -382,7 +394,7 @@ export async function renderFinalVideo(
         
         filterComplex = [
           // Обрабатываем фоновое видео: зацикливаем, масштабируем, добавляем padding, накладываем текст
-          `[0:v]loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=1:bordercolor=black[v0]`,
+          `[0:v]loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=text='${escapedText}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2-${verticalOffset}:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=1:bordercolor=black[v0]`,
           // Применяем анимацию к эмодзи
           emojiFilter,
           // Накладываем эмодзи поверх видео с текстом с анимированными координатами
@@ -404,12 +416,13 @@ export async function renderFinalVideo(
         const escapedFontPath = emojiFontPath.replace(/:/g, '\\:').replace(/'/g, "'\\''");
 
         // Позиционируем эмодзи справа под текстовым блоком
-        // Текст центрирован по вертикали
+        // Текст центрирован по вертикали, но поднимается вверх пропорционально длине
         const emojiFontSize = 67; // Увеличено на 20% (было 56)
         const emojiOffsetFromBox = 10; // Отступ от края белого бокса
 
         // Вычисляем позицию эмодзи справа под текстовым блоком
-        const textCenterYDrawtext = (videoHeight - estimatedTextHeight) / 2; // Центральная позиция текста
+        // Используем тот же verticalOffset что и для основного текста
+        const textCenterYDrawtext = (videoHeight - estimatedTextHeight) / 2 - verticalOffset;
         const textRightEdge = 360 + Math.floor(estimatedTextWidth / 2); // 360 = 720/2
         const textBottomEdge = textCenterYDrawtext + estimatedTextHeight; // Нижний край = центр + высота текста
 
@@ -438,7 +451,7 @@ export async function renderFinalVideo(
         
         filterComplex = [
           // Обрабатываем фоновое видео: зацикливаем, масштабируем, добавляем padding, накладываем текст и эмодзи
-          `loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=textfile='${escapedTextFilePath}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=2:bordercolor=black,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiSizeExpression}:x=${emojiXExpression}:y=${emojiYExpression}`
+          `loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=text='${escapedText}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2-${verticalOffset}:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=2:bordercolor=black,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiSizeExpression}:x=${emojiXExpression}:y=${emojiYExpression}`
         ].join(",");
         console.log("Using simple video filter with drawtext and animation");
         console.log("Emoji animation:", emojiAnimation);
