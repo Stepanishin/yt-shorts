@@ -60,8 +60,14 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* Кнопка авторизации YouTube */}
+          {/* Навигация и кнопка авторизации YouTube */}
           <div className="flex items-center gap-4">
+            <Link
+              href="/video-constructor"
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              Конструктор видео
+            </Link>
             {checking ? (
               <div className="text-sm text-gray-500">Проверка...</div>
             ) : isAuthorized ? (

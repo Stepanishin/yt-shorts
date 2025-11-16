@@ -71,13 +71,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!jokeId) {
-      return NextResponse.json(
-        { error: "jokeId is required" },
-        { status: 400 }
-      );
-    }
-
     // Преобразуем URL в локальный путь к файлу
     // videoUrl выглядит как /videos/final_xxx.mp4
     const videoPath = path.join(process.cwd(), "public", videoUrl);
@@ -104,18 +97,20 @@ export async function POST(request: NextRequest) {
 
     console.log(`Video uploaded successfully: ${result.videoUrl}`);
 
-    // Обновляем статус анекдота на "used" после успешной публикации
-    try {
-      await markJokeCandidateAsPublished({
-        id: jokeId,
-        youtubeVideoUrl: result.videoUrl,
-        youtubeVideoId: result.videoId,
-      });
+    // Обновляем статус анекдота на "used" после успешной публикации (только если это анекдот)
+    if (jokeId && !jokeId.startsWith("constructor-")) {
+      try {
+        await markJokeCandidateAsPublished({
+          id: jokeId,
+          youtubeVideoUrl: result.videoUrl,
+          youtubeVideoId: result.videoId,
+        });
 
-      console.log(`Joke ${jokeId} marked as used and published`);
-    } catch (dbError) {
-      console.error("Failed to update joke status:", dbError);
-      // Не прерываем выполнение, так как видео уже загружено
+        console.log(`Joke ${jokeId} marked as used and published`);
+      } catch (dbError) {
+        console.error("Failed to update joke status:", dbError);
+        // Не прерываем выполнение, так как видео уже загружено
+      }
     }
 
     return NextResponse.json({

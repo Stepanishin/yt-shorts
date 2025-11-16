@@ -60,13 +60,13 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
 
   const content = (
     <div
-      className={`rounded-lg border bg-white p-4 shadow-sm transition-all cursor-pointer ${
+      className={`rounded-lg border bg-white p-4 shadow-sm transition-all ${
         selectable
           ? selected
             ? 'border-purple-500 border-2 bg-purple-50 shadow-md'
             : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
           : 'border-gray-200 hover:shadow-md'
-      }`}
+      } ${!selectable ? 'cursor-pointer' : ''}`}
       onClick={handleClick}
     >
       <div className="flex items-center gap-3">
@@ -83,24 +83,36 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
           <h3 className="text-base font-medium text-gray-900 flex-1">
             {joke.title || joke.text.substring(0, 100) + (joke.text.length > 100 ? "..." : "")}
           </h3>
-          <span
-            className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${statusColors[status] ?? statusColors.pending}`}
-          >
-            {statusLabels[status] ?? status}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${statusColors[status] ?? statusColors.pending}`}
+            >
+              {statusLabels[status] ?? status}
+            </span>
+            {!selectable && (
+              <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                <Link
+                  href={`/jokes/${joke._id}`}
+                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 whitespace-nowrap"
+                  title="Старый редактор"
+                >
+                  📝 Редактор
+                </Link>
+                <Link
+                  href={`/video-constructor?jokeId=${joke._id}`}
+                  className="px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600 whitespace-nowrap"
+                  title="Конструктор видео"
+                >
+                  🎬 Конструктор
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 
-  if (selectable) {
-    return content;
-  }
-
-  return (
-    <Link href={`/jokes/${joke._id}`}>
-      {content}
-    </Link>
-  );
+  return content;
 }
 
