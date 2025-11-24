@@ -1,6 +1,6 @@
 ffmpeg
 libvpx7
-libpulse0
+pulseaudio
 libsdl2-2.0-0
 libva2
 libva-drm2
