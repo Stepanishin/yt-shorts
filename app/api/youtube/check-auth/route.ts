@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { auth } from "@/lib/auth";
+import { getUserByGoogleId } from "@/lib/db/users";
 
 /**
  * GET /api/youtube/check-auth
@@ -7,19 +8,26 @@ import { cookies } from "next/headers";
  */
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get("youtube_access_token")?.value;
-    const refreshToken = cookieStore.get("youtube_refresh_token")?.value;
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ authorized: false, hasAccessToken: false });
+    }
 
-    const authorized = !!(accessToken || refreshToken);
+    const user = await getUserByGoogleId(session.user.id);
+    if (!user) {
+      return NextResponse.json({ authorized: false, hasAccessToken: false });
+    }
+
+    const hasAccessToken = !!user.youtubeSettings?.accessToken;
+    const hasRefreshToken = !!user.youtubeSettings?.refreshToken;
 
     return NextResponse.json({
-      authorized,
-      hasAccessToken: !!accessToken,
-      hasRefreshToken: !!refreshToken,
+      authorized: hasAccessToken || hasRefreshToken,
+      hasAccessToken,
+      hasRefreshToken,
     });
   } catch (error) {
     console.error("Failed to check YouTube auth:", error);
-    return NextResponse.json({ authorized: false }, { status: 500 });
+    return NextResponse.json({ authorized: false, hasAccessToken: false }, { status: 500 });
   }
 }

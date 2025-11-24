@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import VideoConstructor from "../components/VideoConstructor";
 
-export default function VideoConstructorPage() {
+function VideoConstructorContent() {
   const searchParams = useSearchParams();
   const jokeId = searchParams.get("jokeId");
 
@@ -23,5 +24,13 @@ export default function VideoConstructorPage() {
         <VideoConstructor jokeId={jokeId || undefined} />
       </main>
     </div>
+  );
+}
+
+export default function VideoConstructorPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <VideoConstructorContent />
+    </Suspense>
   );
 }

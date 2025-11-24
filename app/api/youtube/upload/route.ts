@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createOAuth2Client, uploadVideoToYouTube } from "@/lib/youtube/youtube-client";
-import { cookies } from "next/headers";
+import { uploadVideoToYouTube } from "@/lib/youtube/youtube-client";
+import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
+import { auth } from "@/lib/auth";
 import * as path from "path";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 
@@ -18,51 +19,16 @@ import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
  */
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    let accessToken = cookieStore.get("youtube_access_token")?.value;
-    const refreshToken = cookieStore.get("youtube_refresh_token")?.value;
-
-    console.log("YouTube upload - tokens status:", {
-      hasAccessToken: !!accessToken,
-      hasRefreshToken: !!refreshToken,
-    });
-
-    // Если нет access token, но есть refresh token - попробуем обновить
-    if (!accessToken && refreshToken) {
-      console.log("Access token missing, attempting to refresh...");
-      try {
-        const oauth2Client = createOAuth2Client();
-        oauth2Client.setCredentials({
-          refresh_token: refreshToken,
-        });
-
-        const { credentials } = await oauth2Client.refreshAccessToken();
-        if (credentials.access_token) {
-          accessToken = credentials.access_token;
-          // Сохраняем новый access token
-          cookieStore.set("youtube_access_token", credentials.access_token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60, // 1 час
-          });
-          console.log("Access token refreshed successfully");
-        }
-      } catch (refreshError) {
-        console.error("Failed to refresh access token:", refreshError);
-      }
-    }
-
-    if (!accessToken) {
-      console.log("No access token available, returning 401");
+    const session = await auth();
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: "Not authorized. Please authorize with YouTube first." },
+        { error: "Unauthorized. Please sign in." },
         { status: 401 }
       );
     }
 
     const body = await request.json();
-    const { videoUrl, title, description, tags, privacyStatus = "public", jokeId } = body;
+    const { videoUrl, title, description, tags, privacyStatus, jokeId } = body;
 
     if (!videoUrl || !title) {
       return NextResponse.json(
@@ -71,19 +37,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get authenticated YouTube client for the user (with automatic token refresh)
+    const { oauth2Client, user } = await getUserYouTubeClient(session.user.id);
+
+    // Use user's default settings if not specified
+    const finalPrivacyStatus = privacyStatus || user.youtubeSettings?.defaultPrivacyStatus || "public";
+    const finalTags = tags || user.youtubeSettings?.defaultTags || ["shorts", "comedy", "funny"];
+
     // Преобразуем URL в локальный путь к файлу
     // videoUrl выглядит как /videos/final_xxx.mp4
     const videoPath = path.join(process.cwd(), "public", videoUrl);
 
-    // Создаем OAuth2 клиент и устанавливаем токены
-    const oauth2Client = createOAuth2Client();
-    oauth2Client.setCredentials({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-
     console.log(`Uploading video to YouTube: ${title}`);
     console.log(`Video path: ${videoPath}`);
+    console.log(`User: ${user.email}`);
 
     // Загружаем видео
     const result = await uploadVideoToYouTube({
@@ -91,8 +58,8 @@ export async function POST(request: NextRequest) {
       videoPath,
       title,
       description: description || `${title}\n\nGenerated with AI`,
-      tags: tags || ["shorts", "comedy", "funny"],
-      privacyStatus,
+      tags: finalTags,
+      privacyStatus: finalPrivacyStatus,
     });
 
     console.log(`Video uploaded successfully: ${result.videoUrl}`);

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOAuth2Client, getTokensFromCode } from "@/lib/youtube/youtube-client";
-import { cookies } from "next/headers";
+import { auth } from "@/lib/auth";
+import { getUserByGoogleId, updateUser } from "@/lib/db/users";
+import { encrypt } from "@/lib/encryption";
 
 /**
  * GET /api/youtube/callback
@@ -8,6 +10,13 @@ import { cookies } from "next/headers";
  */
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.redirect(
+        new URL("/?youtube_error=unauthorized", request.url)
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get("code");
     const error = searchParams.get("error");
@@ -15,7 +24,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("YouTube OAuth error:", error);
       return NextResponse.redirect(
-        new URL(`/?youtube_error=${encodeURIComponent(error)}`, request.url)
+        new URL(`/dashboard/settings?youtube_error=${encodeURIComponent(error)}`, request.url)
       );
     }
 
@@ -26,7 +35,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const oauth2Client = createOAuth2Client();
+    const user = await getUserByGoogleId(session.user.id);
+    if (!user || !user.youtubeSettings) {
+      return NextResponse.redirect(
+        new URL("/dashboard/settings?youtube_error=settings_not_found", request.url)
+      );
+    }
+
+    const oauth2Client = createOAuth2Client(user.youtubeSettings);
     const tokens = await getTokensFromCode(oauth2Client, code);
 
     console.log("YouTube tokens received:", {
@@ -35,41 +51,31 @@ export async function GET(request: NextRequest) {
       expiryDate: tokens.expiry_date,
     });
 
-    // Сохраняем токены в cookies (в production лучше использовать database)
-    const cookieStore = await cookies();
+    // Calculate token expiry date
+    const expiresAt = tokens.expiry_date
+      ? new Date(tokens.expiry_date)
+      : new Date(Date.now() + 3600 * 1000); // Default: 1 hour from now
 
-    if (tokens.access_token) {
-      cookieStore.set("youtube_access_token", tokens.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60, // 1 час
-      });
-      console.log("Access token saved to cookies");
-    } else {
-      console.warn("No access token received from Google");
-    }
+    // Update user's YouTube settings with encrypted tokens
+    const updatedSettings = {
+      ...user.youtubeSettings,
+      accessToken: tokens.access_token ? encrypt(tokens.access_token) : user.youtubeSettings.accessToken,
+      refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : user.youtubeSettings.refreshToken,
+      tokenExpiresAt: expiresAt,
+    };
 
-    if (tokens.refresh_token) {
-      cookieStore.set("youtube_refresh_token", tokens.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 30, // 30 дней
-      });
-      console.log("Refresh token saved to cookies");
-    } else {
-      console.log("No refresh token received (might already exist)");
-    }
+    await updateUser(user._id!.toString(), { youtubeSettings: updatedSettings });
 
-    // Редирект обратно на главную страницу с сообщением об успехе
+    console.log("Tokens saved to database for user:", session.user.id);
+
+    // Redirect to settings page with success message
     return NextResponse.redirect(
-      new URL("/?youtube_auth=success", request.url)
+      new URL("/dashboard/settings?youtube_auth=success", request.url)
     );
   } catch (error) {
     console.error("YouTube callback error:", error);
     return NextResponse.redirect(
-      new URL("/?youtube_error=callback_failed", request.url)
+      new URL("/dashboard/settings?youtube_error=callback_failed", request.url)
     );
   }
 }

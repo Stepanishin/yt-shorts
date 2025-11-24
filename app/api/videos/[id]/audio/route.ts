@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { findVideoJobById, updateVideoJobStatus } from "@/lib/video/storage";
+import { findVideoJobById, updateVideoJobStatus, VideoJobStatus } from "@/lib/video/storage";
 import { generateAudio } from "@/lib/video/audio-generator";
 
 /**
@@ -27,8 +27,16 @@ export async function POST(
       return NextResponse.json({ error: "Video job not found" }, { status: 404 });
     }
 
+    // Конвертируем job в формат для фоновой генерации
+    const jobData = {
+      _id: job._id.toString(),
+      jokeText: job.jokeText,
+      jokeTitle: job.jokeTitle,
+      status: job.status,
+    };
+
     // Запускаем генерацию аудио в фоне
-    generateAudioInBackground(job, taskType, lyricsType).catch((error) => {
+    generateAudioInBackground(jobData, taskType, lyricsType).catch((error) => {
       console.error("Failed to generate audio in background", error);
       updateVideoJobStatus({
         id,
@@ -54,7 +62,7 @@ export async function POST(
  * Асинхронная функция для генерации музыки через Udio
  */
 async function generateAudioInBackground(
-  job: { _id: string; jokeText: string; jokeTitle?: string; status: string },
+  job: { _id: string; jokeText: string; jokeTitle?: string; status: VideoJobStatus },
   taskType: "generate_music" | "generate_music_custom",
   lyricsType: "generate" | "user" | "instrumental"
 ): Promise<void> {

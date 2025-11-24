@@ -11,6 +11,7 @@ interface TextElement {
   color: string;
   backgroundColor?: string;
   boxPadding?: number;
+  fontWeight?: "normal" | "bold";
   isDragging?: boolean;
 }
 
@@ -51,15 +52,100 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [videoDescription, setVideoDescription] = useState("");
   const [generatingBackground, setGeneratingBackground] = useState(false);
   const [generatingAudio, setGeneratingAudio] = useState(false);
+  const [backgroundModel, setBackgroundModel] = useState<"ray-v1">("ray-v1");
+  const [audioModel, setAudioModel] = useState<"llm">("llm");
+  const [backgroundPrompt, setBackgroundPrompt] = useState<string>("");
+  const [audioPrompt, setAudioPrompt] = useState<string>("");
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragStartPos = useRef<{ x: number; y: number } | null>(null);
+  const hasLoadedFromStorage = useRef(false);
+
+  // Загрузить сохраненное состояние из localStorage при монтировании
+  useEffect(() => {
+    const savedState = localStorage.getItem("videoConstructorState");
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        setTextElements(state.textElements || []);
+        setEmojiElements(state.emojiElements || []);
+        setBackgroundUrl(state.backgroundUrl || "");
+        setBackgroundType(state.backgroundType || "video");
+        setAudioUrl(state.audioUrl || "");
+        setVideoDuration(state.videoDuration || 10);
+        setVideoTitle(state.videoTitle || "");
+        setVideoDescription(state.videoDescription || "");
+        setUseAITitle(state.useAITitle ?? true);
+        setBackgroundPrompt(state.backgroundPrompt || "");
+        setAudioPrompt(state.audioPrompt || "");
+      } catch (error) {
+        console.error("Failed to load saved state:", error);
+      }
+    }
+    // После загрузки помечаем что данные загружены
+    // Используем setTimeout чтобы дать React время обновить все state
+    setTimeout(() => {
+      hasLoadedFromStorage.current = true;
+    }, 100);
+  }, []);
+
+  // Сохранять состояние в localStorage при изменениях (но не при загрузке)
+  useEffect(() => {
+    // Пропускаем сохранение пока не загрузили данные
+    if (!hasLoadedFromStorage.current) {
+      return;
+    }
+
+    const state = {
+      textElements,
+      emojiElements,
+      backgroundUrl,
+      backgroundType,
+      audioUrl,
+      videoDuration,
+      videoTitle,
+      videoDescription,
+      useAITitle,
+      backgroundPrompt,
+      audioPrompt,
+    };
+
+    console.log("Saving to localStorage:", state);
+    localStorage.setItem("videoConstructorState", JSON.stringify(state));
+  }, [
+    textElements,
+    emojiElements,
+    backgroundUrl,
+    backgroundType,
+    audioUrl,
+    videoDuration,
+    videoTitle,
+    videoDescription,
+    useAITitle,
+    backgroundPrompt,
+    audioPrompt,
+  ]);
 
   // Загрузить анекдот если передан jokeId
   useEffect(() => {
     if (!jokeId) return;
 
     const loadJoke = async () => {
+      // Проверяем есть ли уже сохраненные данные в localStorage
+      const savedState = localStorage.getItem("videoConstructorState");
+      if (savedState) {
+        try {
+          const state = JSON.parse(savedState);
+          // Если есть текстовые элементы или эмодзи - не загружаем анекдот заново
+          if (state.textElements?.length > 0 || state.emojiElements?.length > 0) {
+            console.log("Skipping joke load - using saved state");
+            return;
+          }
+        } catch (error) {
+          console.error("Error checking saved state:", error);
+        }
+      }
+
       try {
         const response = await fetch(`/api/jokes/${jokeId}`);
         if (!response.ok) {
@@ -272,6 +358,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             color: el.color,
             backgroundColor: el.backgroundColor,
             boxPadding: el.boxPadding,
+            fontWeight: el.fontWeight || "normal",
           })),
           emojiElements: emojiElements.map((el) => ({
             emoji: el.emoji,
@@ -303,10 +390,21 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
   // Генерация фона через AI
   const handleGenerateBackground = async () => {
+    // Определяем стоимость на основе модели
+    const modelCosts: Record<string, number> = {
+      "ray-v1": 35,
+    };
+    const requiredCredits = modelCosts[backgroundModel];
+    const confirmMessage = `Генерация фона (${backgroundModel}) стоит ${requiredCredits} кредитов (€${(requiredCredits / 100).toFixed(2)}). Продолжить?`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
     setGeneratingBackground(true);
     try {
-      // Собираем весь текст для контекста
-      const allText = textElements.map(el => el.text).join(" ");
+      // Используем пользовательский промпт или собираем весь текст для контекста
+      const promptText = backgroundPrompt.trim() || textElements.map(el => el.text).join(" ") || "Beautiful background video";
 
       const response = await fetch("/api/videos/constructor/generate-background", {
         method: "POST",
@@ -314,8 +412,9 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          text: allText || "Beautiful background video",
+          text: promptText,
           style: "nature", // Можно добавить выбор стиля позже
+          modelName: backgroundModel,
         }),
       });
 
@@ -326,7 +425,12 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         setBackgroundType("video");
         alert("Фон успешно сгенерирован!");
       } else {
-        alert(`Ошибка: ${data.error}`);
+        // Проверяем на ошибку недостатка кредитов
+        if (response.status === 402) {
+          alert(`Недостаточно кредитов! Требуется ${data.requiredCredits} кредитов для генерации фона. Пожалуйста, пополните баланс.`);
+        } else {
+          alert(`Ошибка: ${data.error}`);
+        }
       }
     } catch (error) {
       console.error("Generate background error:", error);
@@ -338,10 +442,21 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
   // Генерация аудио через AI
   const handleGenerateAudio = async () => {
+    // Определяем стоимость на основе модели
+    const modelCosts: Record<string, number> = {
+      "llm": 10,
+    };
+    const requiredCredits = modelCosts[audioModel];
+    const confirmMessage = `Генерация аудио (${audioModel}) стоит ${requiredCredits} кредитов (€${(requiredCredits / 100).toFixed(2)}). Продолжить?`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
     setGeneratingAudio(true);
     try {
-      // Собираем весь текст для контекста
-      const allText = textElements.map(el => el.text).join(" ");
+      // Используем пользовательский промпт или собираем весь текст для контекста
+      const promptText = audioPrompt.trim() || textElements.map(el => el.text).join(" ") || "Upbeat cheerful background music";
 
       const response = await fetch("/api/videos/constructor/generate-audio", {
         method: "POST",
@@ -349,8 +464,9 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          text: allText || "Upbeat cheerful background music",
+          text: promptText,
           lyricsType: "instrumental",
+          modelName: audioModel,
         }),
       });
 
@@ -360,7 +476,12 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         setAudioUrl(data.audioUrl);
         alert("Аудио успешно сгенерировано!");
       } else {
-        alert(`Ошибка: ${data.error}`);
+        // Проверяем на ошибку недостатка кредитов
+        if (response.status === 402) {
+          alert(`Недостаточно кредитов! Требуется ${data.requiredCredits} кредитов для генерации аудио. Пожалуйста, пополните баланс.`);
+        } else {
+          alert(`Ошибка: ${data.error}`);
+        }
       }
     } catch (error) {
       console.error("Generate audio error:", error);
@@ -492,9 +613,11 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const selectedEmoji = emojiElements.find((el) => el.id === selectedEmojiId);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Панель управления */}
-      <div className="lg:col-span-1 space-y-6">
+    <div className="space-y-4">
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Панель управления */}
+        <div className="lg:col-span-1 space-y-6">
         {/* Фон */}
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-3">Фон и настройки</h2>
@@ -526,6 +649,28 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">URL фона</label>
+              <div className="flex gap-2 mb-2">
+                <select
+                  value={backgroundModel}
+                  onChange={(e) => setBackgroundModel(e.target.value as "ray-v1")}
+                  className="border rounded px-3 py-2 text-sm"
+                  title="Модель для генерации фона"
+                >
+                  <option value="ray-v1">Luma Ray v1 (35 кредитов)</option>
+                </select>
+              </div>
+
+              {/* Промпт для генерации фона */}
+              <div className="mb-2">
+                <textarea
+                  value={backgroundPrompt}
+                  onChange={(e) => setBackgroundPrompt(e.target.value)}
+                  placeholder="Опционально: описание фона для AI (если пусто, используется текст из элементов)"
+                  className="w-full border rounded px-3 py-2 text-sm resize-none"
+                  rows={2}
+                />
+              </div>
+
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -546,6 +691,28 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">URL аудио (опционально)</label>
+              <div className="flex gap-2 mb-2">
+                <select
+                  value={audioModel}
+                  onChange={(e) => setAudioModel(e.target.value as "llm")}
+                  className="border rounded px-3 py-2 text-sm"
+                  title="Модель для генерации аудио"
+                >
+                  <option value="llm">Udio (10 кредитов)</option>
+                </select>
+              </div>
+
+              {/* Промпт для генерации аудио */}
+              <div className="mb-2">
+                <textarea
+                  value={audioPrompt}
+                  onChange={(e) => setAudioPrompt(e.target.value)}
+                  placeholder="Опционально: описание музыки для AI (если пусто, используется текст из элементов)"
+                  className="w-full border rounded px-3 py-2 text-sm resize-none"
+                  rows={2}
+                />
+              </div>
+
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -572,7 +739,28 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
         {/* Добавить элементы */}
         <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-lg font-semibold mb-3">Добавить элементы</h2>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-semibold">Добавить элементы</h2>
+            <button
+              onClick={() => {
+                if (confirm("Очистить все элементы и начать заново?")) {
+                  setTextElements([]);
+                  setEmojiElements([]);
+                  setBackgroundUrl("");
+                  setAudioUrl("");
+                  setRenderedVideoUrl("");
+                  setVideoTitle("");
+                  setVideoDescription("");
+                  setSelectedTextId(null);
+                  setSelectedEmojiId(null);
+                  localStorage.removeItem("videoConstructorState");
+                }
+              }}
+              className="text-xs text-red-600 hover:text-red-800 underline"
+            >
+              Очистить все
+            </button>
+          </div>
           <div className="space-y-2">
             <button
               onClick={addTextElement}
@@ -634,6 +822,21 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   }
                   className="w-full"
                 />
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={selectedText.fontWeight === "bold"}
+                    onChange={(e) =>
+                      updateTextElement(selectedText.id, {
+                        fontWeight: e.target.checked ? "bold" : "normal",
+                      })
+                    }
+                    className="w-4 h-4"
+                  />
+                  Жирный шрифт
+                </label>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -781,6 +984,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                     left: el.x * PREVIEW_SCALE,
                     top: el.y * PREVIEW_SCALE,
                     fontSize: el.fontSize * PREVIEW_SCALE,
+                    fontWeight: el.fontWeight || "normal",
                     backgroundColor: el.backgroundColor
                       ? `rgba(255, 255, 255, 0.6)`
                       : "transparent",
@@ -915,6 +1119,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             />
           </div>
         )}
+      </div>
       </div>
     </div>
   );

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import HeaderNew from "./components/HeaderNew";
-import { LanguageProvider } from "./contexts/LanguageContext";
-import SessionProvider from "./components/SessionProvider";
+import Header from "./components/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shorts Generator - Create Viral YouTube Shorts",
-  description: "Automatically generate engaging YouTube Shorts with jokes in seconds",
+  title: "Генератор YouTube Shorts",
+  description: "Автоматическая генерация YouTube Shorts с испанскими анекдотами",
 };
 
 export default function RootLayout({
@@ -26,16 +24,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ru">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider>
-          <LanguageProvider>
-            <HeaderNew />
-            {children}
-          </LanguageProvider>
-        </SessionProvider>
+        <Header />
+        {children}
       </body>
     </html>
   );

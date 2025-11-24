@@ -4,6 +4,7 @@ export interface GenerateAudioOptions {
   taskType?: "generate_music" | "generate_music_custom"; // Udio API task types
   lyricsType?: "generate" | "user" | "instrumental"; // How to generate the music
   lyrics?: string; // Optional lyrics (used when lyricsType is "user")
+  modelName?: "llm"; // Пока только одна модель доступна
 }
 
 export interface GenerateAudioResult {
@@ -27,7 +28,8 @@ export async function generateAudio(
     jokeTitle,
     taskType = "generate_music",
     lyricsType = "instrumental", // По умолчанию инструментальная музыка
-    lyrics
+    lyrics,
+    modelName = "llm"
   } = options;
 
   let lastError: Error | null = null;

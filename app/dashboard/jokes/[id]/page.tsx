@@ -611,8 +611,8 @@ export default function JokeDetailPage() {
       console.log("Joke deleted successfully");
       alert("Анекдот успешно удален и больше не будет отображаться в списке.");
 
-      // Перенаправляем на главную страницу
-      window.location.href = "/";
+      // Перенаправляем на страницу со списком анекдотов
+      window.location.href = "/dashboard/jokes";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Произошла ошибка");
       console.error("Failed to delete joke:", err);
@@ -638,7 +638,7 @@ export default function JokeDetailPage() {
             <div className="text-red-800 font-medium mb-2">Ошибка</div>
             <div className="text-red-600 text-sm mb-3">{error}</div>
             <Link
-              href="/"
+              href="/dashboard/jokes"
               className="text-blue-600 hover:text-blue-700 underline"
             >
               Вернуться к списку
@@ -680,7 +680,7 @@ export default function JokeDetailPage() {
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
           <Link
-            href="/jokes"
+            href="/dashboard/jokes"
             className="inline-flex items-center text-blue-600 hover:text-blue-700"
           >
             ← Вернуться к списку

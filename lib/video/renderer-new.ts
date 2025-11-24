@@ -3,6 +3,7 @@ import * as path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
 import ffmpeg from "fluent-ffmpeg";
+import { uploadVideoToSpaces, isSpacesConfigured } from "@/lib/storage/spaces-client";
 
 const execAsync = promisify(exec);
 
@@ -19,6 +20,7 @@ export interface TextElement {
   color: string; // Формат: black@1 или white@0.8
   backgroundColor?: string; // Формат: white@0.6
   boxPadding?: number;
+  fontWeight?: "normal" | "bold"; // Жирность шрифта
   width?: number; // Максимальная ширина текстового блока
 }
 
@@ -180,15 +182,26 @@ export async function renderVideoNew(
     );
   }
 
-  // Создаем директорию для видео
-  const videosDir = path.join(process.cwd(), "public", "videos");
+  // Определяем директорию для видео
+  // В production используем /tmp для временных файлов
+  // В development используем public/videos для удобства разработки
+  const isProduction = process.env.NODE_ENV === 'production';
+  const videosDir = isProduction
+    ? path.join('/tmp', 'videos')
+    : path.join(process.cwd(), "public", "videos");
+
   await fs.mkdir(videosDir, { recursive: true });
 
   // Пути для временных файлов
   const tempBackgroundPath = path.join(videosDir, `temp_bg_${jobId}.mp4`);
   const tempAudioPath = audioUrl ? path.join(videosDir, `temp_audio_${jobId}.mp3`) : null;
   const outputVideoPath = path.join(videosDir, `final_${jobId}.mp4`);
-  const outputVideoUrl = `/videos/final_${jobId}.mp4`;
+
+  // В production видео будет загружено в cloud storage (S3/Spaces)
+  // Пока временно возвращаем локальный путь (потом заменим на S3 URL)
+  const outputVideoUrl = isProduction
+    ? `/videos/final_${jobId}.mp4` // Временно, потом заменим на S3 URL
+    : `/videos/final_${jobId}.mp4`;
 
   // Массив для хранения путей к изображениям эмодзи
   const emojiImagePaths: string[] = [];
@@ -309,6 +322,11 @@ export async function renderVideoNew(
         const textY = te.y + boxPadding;
 
         let drawtextFilter = `drawtext=textfile='${escapedFilePath}':fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
+
+        // Добавляем жирный шрифт если указано
+        if (te.fontWeight === "bold") {
+          drawtextFilter += `:font=Arial-Bold`;
+        }
 
         if (te.backgroundColor) {
           drawtextFilter += `:box=1:boxcolor=${te.backgroundColor}:boxborderw=${boxPadding}`;
@@ -437,6 +455,28 @@ export async function renderVideoNew(
           try {
             const finalDuration = await getMediaDuration(outputVideoPath);
 
+            // Загружаем видео в DigitalOcean Spaces (если настроено)
+            let finalVideoUrl = outputVideoUrl;
+
+            if (isProduction && isSpacesConfigured()) {
+              console.log("📤 Uploading video to DigitalOcean Spaces...");
+              try {
+                finalVideoUrl = await uploadVideoToSpaces({
+                  filePath: outputVideoPath,
+                  fileName: `videos/final_${jobId}.mp4`,
+                  contentType: "video/mp4",
+                  publicRead: true,
+                });
+
+                // После успешной загрузки в Spaces удаляем локальный файл
+                await fs.unlink(outputVideoPath).catch(() => {});
+                console.log("✅ Video uploaded to Spaces and local file removed");
+              } catch (uploadError) {
+                console.error("⚠️ Failed to upload to Spaces, keeping local file:", uploadError);
+                // Если загрузка в Spaces не удалась, оставляем локальный файл
+              }
+            }
+
             // Удаляем временные файлы
             await fs.unlink(tempBackgroundPath).catch(() => {});
             if (tempAudioPath) {
@@ -449,9 +489,9 @@ export async function renderVideoNew(
               await fs.unlink(textPath).catch(() => {});
             }
 
-            console.log("Video rendering completed:", outputVideoUrl);
+            console.log("Video rendering completed:", finalVideoUrl);
             resolve({
-              videoUrl: outputVideoUrl,
+              videoUrl: finalVideoUrl,
               filePath: outputVideoPath,
               duration: finalDuration,
             });

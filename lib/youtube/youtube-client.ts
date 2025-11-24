@@ -1,18 +1,38 @@
 import { google } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
+import { decrypt } from "../encryption";
+import type { YouTubeSettings } from "../db/users";
 
 const youtube = google.youtube("v3");
 
+export interface OAuthCredentials {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+}
+
 /**
- * Создает OAuth2 клиент для YouTube
+ * Создает OAuth2 клиент для YouTube с пользовательскими настройками
  */
-export function createOAuth2Client(): OAuth2Client {
-  const clientId = process.env.YOUTUBE_CLIENT_ID;
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-  const redirectUri = process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`;
+export function createOAuth2Client(userSettings?: YouTubeSettings): OAuth2Client {
+  let clientId: string;
+  let clientSecret: string;
+  let redirectUri: string;
+
+  if (userSettings) {
+    // Use user-specific settings
+    clientId = userSettings.clientId;
+    clientSecret = decrypt(userSettings.clientSecret);
+    redirectUri = userSettings.redirectUri;
+  } else {
+    // Fallback to environment variables for backward compatibility
+    clientId = process.env.YOUTUBE_CLIENT_ID || "";
+    clientSecret = process.env.YOUTUBE_CLIENT_SECRET || "";
+    redirectUri = process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`;
+  }
 
   if (!clientId || !clientSecret) {
-    throw new Error("YouTube credentials not configured. Please set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET");
+    throw new Error("YouTube credentials not configured. Please configure OAuth settings in your account settings.");
   }
 
   return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
@@ -118,4 +138,33 @@ export async function validateTokens(oauth2Client: OAuth2Client): Promise<boolea
   } catch {
     return false;
   }
+}
+
+/**
+ * Refreshes access token using refresh token
+ */
+export async function refreshAccessToken(oauth2Client: OAuth2Client) {
+  try {
+    const { credentials } = await oauth2Client.refreshAccessToken();
+    oauth2Client.setCredentials(credentials);
+    return credentials;
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Sets credentials on OAuth2 client with encrypted tokens
+ */
+export function setEncryptedCredentials(oauth2Client: OAuth2Client, encryptedAccessToken: string, encryptedRefreshToken?: string) {
+  const credentials: any = {
+    access_token: decrypt(encryptedAccessToken),
+  };
+
+  if (encryptedRefreshToken) {
+    credentials.refresh_token = decrypt(encryptedRefreshToken);
+  }
+
+  oauth2Client.setCredentials(credentials);
 }

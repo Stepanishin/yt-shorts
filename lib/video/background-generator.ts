@@ -2,6 +2,7 @@ export interface GenerateBackgroundOptions {
   jokeText: string;
   jokeTitle?: string;
   style?: "nature" | "abstract" | "minimalist";
+  modelName?: "ray-v1"; // Пока только одна модель доступна
 }
 
 export interface GenerateBackgroundResult {
@@ -20,7 +21,7 @@ export async function generateBackground(
   maxRetries = 3,
   retryDelayMs = 60000
 ): Promise<GenerateBackgroundResult> {
-  const { jokeText, jokeTitle, style = "nature" } = options;
+  const { jokeText, jokeTitle, style = "nature", modelName = "ray-v1" } = options;
 
   let lastError: Error | null = null;
 
@@ -54,7 +55,7 @@ export async function generateBackground(
           task_type: "video_generation",
           input: {
             prompt: prompt,
-            model_name: "ray-v1", // ray-v2 для лучшего качества (можно использовать ray-v1)
+            model_name: modelName,
             duration: 5, // 10 секунд для txt2video (можно использовать 5)
             aspect_ratio: "9:16", // Вертикальный формат для YouTube Shorts
             resolution: 540, // 768 (поддерживается 6s/10s; 1080p+10s нельзя)

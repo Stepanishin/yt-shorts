@@ -92,7 +92,7 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
             {!selectable && (
               <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                 <Link
-                  href={`/jokes/${joke._id}`}
+                  href={`/dashboard/jokes/${joke._id}`}
                   className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 whitespace-nowrap"
                   title="Старый редактор"
                 >
