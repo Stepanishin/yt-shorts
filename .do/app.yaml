@@ -1,0 +1,15 @@
+name: shorts-app
+services:
+  - name: yt-shorts
+    github:
+      repo: Stepanishin/yt-shorts
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build
+    run_command: npm start
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb-fixed
+    buildpacks:
+      - url: https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git
+      - url: https://github.com/heroku/heroku-buildpack-nodejs.git
