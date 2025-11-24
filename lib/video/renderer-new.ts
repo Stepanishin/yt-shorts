@@ -102,10 +102,20 @@ function createEmojiAnimationExpression(
  */
 async function checkFFmpegAvailable(): Promise<boolean> {
   try {
-    await execAsync("ffmpeg -version");
+    const { stdout, stderr } = await execAsync("ffmpeg -version");
+    console.log("✅ FFmpeg found:", stdout.split('\n')[0]);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    console.error("❌ FFmpeg not found:", error);
+    // Пробуем альтернативный путь (для production)
+    try {
+      const { stdout } = await execAsync("which ffmpeg");
+      console.log("✅ FFmpeg found at:", stdout.trim());
+      return true;
+    } catch (e) {
+      console.error("❌ FFmpeg not in PATH:", e);
+      return false;
+    }
   }
 }
 
