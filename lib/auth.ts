@@ -19,6 +19,7 @@ export const authConfig: NextAuthConfig = {
   pages: {
     signIn: "/",
   },
+  trustHost: true, // Разрешаем любой хост в production (DigitalOcean, Vercel, etc.)
   callbacks: {
     async signIn({ user, account, profile }) {
       if (account?.provider === "google" && profile?.sub) {
