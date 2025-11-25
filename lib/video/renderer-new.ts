@@ -98,88 +98,30 @@ function createEmojiAnimationExpression(
 }
 
 /**
- * Проверяет наличие FFmpeg в системе
- * 
- * ВАЖНО: Локально обычно установлена полная версия FFmpeg (через brew/apt),
- * которая поддерживает все фильтры включая 'loop'. На DigitalOcean используется
- * статическая сборка от johnvansickle.com, которая может не включать некоторые
- * опциональные фильтры. Поэтому мы используем -stream_loop вместо фильтра loop.
+ * Проверяет наличие FFmpeg в системе (неблокирующая проверка)
+ * Просто логирует информацию, но не прерывает выполнение
  */
 async function checkFFmpegAvailable(): Promise<boolean> {
-  // Проверяем переменную окружения PATH
-  const currentPath = process.env.PATH || '';
-  console.log("🔍 Current PATH:", currentPath);
-  
-  // Список возможных путей к FFmpeg (в порядке приоритета)
-  const ffmpegPaths = [
-    "ffmpeg", // Стандартный путь (если в PATH)
-    "/app/.apt/usr/bin/ffmpeg", // APT buildpack путь (build time)
-    process.env.HOME ? `${process.env.HOME}/.apt/usr/bin/ffmpeg` : null, // APT buildpack путь (runtime)
-    "/workspace/.apt/usr/bin/ffmpeg", // Альтернативный путь APT buildpack
-    "/app/vendor/.apt/usr/bin/ffmpeg", // Еще один вариант APT buildpack
-    "/usr/bin/ffmpeg", // Системный путь
-    "/usr/local/bin/ffmpeg", // Локальная установка
-    "/bin/ffmpeg", // Еще один системный путь
-  ].filter((path): path is string => path !== null);
-
-  console.log("🔍 Checking FFmpeg in the following locations:", ffmpegPaths);
-
-  for (const ffmpegPath of ffmpegPaths) {
-    try {
-      // Проверяем существование файла (если это абсолютный путь)
-      if (ffmpegPath.startsWith('/')) {
-        try {
-          await fs.access(ffmpegPath);
-        } catch {
-          // Файл не существует, пропускаем
-          continue;
-        }
-      }
-
-      const { stdout, stderr } = await execAsync(`${ffmpegPath} -version`);
-      const versionLine = stdout.split('\n')[0];
-      console.log(`✅ FFmpeg found at ${ffmpegPath}:`, versionLine);
-      
-      // Проверяем, является ли это статической сборкой
-      if (versionLine.includes('static') || versionLine.includes('johnvansickle')) {
-        console.log("⚠️  Static FFmpeg build detected - some filters may not be available");
-      } else {
-        // Проверяем поддержку drawtext (признак полной версии)
-        try {
-          const { stdout: filters } = await execAsync(`${ffmpegPath} -filters 2>/dev/null | grep drawtext || echo ""`);
-          if (filters.includes('drawtext')) {
-            console.log("✅ Full FFmpeg version detected (supports drawtext filter)");
-          }
-        } catch (e) {
-          // Игнорируем ошибки проверки фильтров
-        }
-      }
-      
-      return true;
-    } catch (error) {
-      // Пробуем следующий путь
-      continue;
-    }
-  }
-
-  // Пробуем найти через which/whereis
+  // Просто пытаемся выполнить ffmpeg -version для логирования
+  // Если не получится, ошибка будет видна в логах FFmpeg при выполнении команды
   try {
-    const { stdout: whichPath } = await execAsync("which ffmpeg 2>/dev/null || whereis -b ffmpeg | awk '{print $2}' | head -1");
-    const foundPath = whichPath.trim();
-    if (foundPath && foundPath !== 'ffmpeg:' && foundPath !== '') {
-      console.log(`🔍 Trying to use FFmpeg found via which/whereis: ${foundPath}`);
-      const { stdout } = await execAsync(`${foundPath} -version`);
-      const versionLine = stdout.split('\n')[0];
-      console.log(`✅ FFmpeg found at ${foundPath}:`, versionLine);
-      return true;
+    const { stdout } = await execAsync("ffmpeg -version 2>&1");
+    const versionLine = stdout.split('\n')[0];
+    console.log("✅ FFmpeg found:", versionLine);
+    
+    // Проверяем, является ли это статической сборкой
+    if (versionLine.includes('static') || versionLine.includes('johnvansickle')) {
+      console.log("⚠️  Static FFmpeg build detected - some filters may not be available");
+    } else {
+      console.log("✅ Full FFmpeg version detected");
     }
-  } catch (e) {
-    // Игнорируем ошибки
+    
+    return true;
+  } catch (error) {
+    // Не блокируем выполнение - ошибка будет видна при выполнении команды FFmpeg
+    console.log("⚠️  FFmpeg check failed, but continuing anyway. Error will be visible in FFmpeg command logs.");
+    return true; // Возвращаем true, чтобы не блокировать выполнение
   }
-
-  console.error("❌ FFmpeg not found in any of the expected locations");
-  console.error("💡 Make sure PATH environment variable includes /app/.apt/usr/bin or similar");
-  return false;
 }
 
 /**
@@ -389,7 +331,7 @@ export async function renderVideoNew(
         // Статическая сборка FFmpeg не поддерживает textfile, используем text
         // Для многострочного текста заменяем переносы строк на пробелы
         // или используем line_spacing для визуального разделения строк
-        let processedText = te.text
+        const processedText = te.text
           .replace(/\r\n/g, ' ')  // Windows переносы строк -> пробел
           .replace(/\n/g, ' ')    // Unix переносы строк -> пробел
           .replace(/\r/g, ' ');   // Старые Mac переносы -> пробел
