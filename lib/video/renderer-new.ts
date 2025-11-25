@@ -99,11 +99,23 @@ function createEmojiAnimationExpression(
 
 /**
  * Проверяет наличие FFmpeg в системе
+ * 
+ * ВАЖНО: Локально обычно установлена полная версия FFmpeg (через brew/apt),
+ * которая поддерживает все фильтры включая 'loop'. На DigitalOcean используется
+ * статическая сборка от johnvansickle.com, которая может не включать некоторые
+ * опциональные фильтры. Поэтому мы используем -stream_loop вместо фильтра loop.
  */
 async function checkFFmpegAvailable(): Promise<boolean> {
   try {
     const { stdout, stderr } = await execAsync("ffmpeg -version");
-    console.log("✅ FFmpeg found:", stdout.split('\n')[0]);
+    const versionLine = stdout.split('\n')[0];
+    console.log("✅ FFmpeg found:", versionLine);
+    
+    // Проверяем, является ли это статической сборкой
+    if (versionLine.includes('static') || versionLine.includes('johnvansickle')) {
+      console.log("⚠️  Static FFmpeg build detected - some filters may not be available");
+    }
+    
     return true;
   } catch (error) {
     console.error("❌ FFmpeg not found:", error);
@@ -302,11 +314,11 @@ export async function renderVideoNew(
 
       // Обработка фона
       if (isVideoBackground) {
-        // Зацикливаем видео
-        filterChain.push(`[0:v]loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black[base]`);
+        // Для видео используем scale и pad без фильтра loop (зацикливание через -stream_loop)
+        filterChain.push(`[0:v]scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black[base]`);
       } else {
-        // Для изображения создаем видео нужной длительности
-        filterChain.push(`[0:v]loop=-1:size=1,fps=25,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black[base]`);
+        // Для изображения создаем видео нужной длительности без фильтра loop
+        filterChain.push(`[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black[base]`);
       }
 
       let currentLayer = "[base]";
@@ -328,8 +340,16 @@ export async function renderVideoNew(
         const textX = te.x + boxPadding;
         const textY = te.y + boxPadding;
 
-        // Экранируем только путь к файлу, заменяя : и \
-        const escapedPath = textFilePath.replace(/\\/g, '\\\\').replace(/:/g, '\\\\:');
+        // Экранируем путь к файлу для FFmpeg filter_complex
+        // В filter_complex нужно экранировать : и \ специальным образом
+        // Используем двойное экранирование для Windows путей и одинарное для :
+        const escapedPath = textFilePath
+          .replace(/\\/g, '\\\\\\\\')  // \ -> \\\\ (для Windows путей в filter_complex)
+          .replace(/:/g, '\\\\:')       // : -> \: (экранирование двоеточия)
+          .replace(/,/g, '\\\\,')       // , -> \, (экранирование запятой)
+          .replace(/\[/g, '\\\\[')      // [ -> \[ (экранирование квадратной скобки)
+          .replace(/\]/g, '\\\\]')      // ] -> \] (экранирование квадратной скобки)
+          .replace(/;/g, '\\\\;');      // ; -> \; (экранирование точки с запятой)
 
         // Используем textfile с правильным экранированием пути
         let drawtextFilter = `drawtext=textfile=${escapedPath}:fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
@@ -402,6 +422,15 @@ export async function renderVideoNew(
 
       // Создаем FFmpeg команду
       let command = ffmpeg(tempBackgroundPath);
+
+      // Для видео используем -stream_loop для зацикливания вместо фильтра loop
+      // Используем -1 для бесконечного зацикливания, потом обрежем через trim
+      if (isVideoBackground) {
+        command = command.inputOptions(["-stream_loop", "-1"]);
+      } else {
+        // Для изображения используем -loop 1 для создания видео из статического изображения
+        command = command.inputOptions(["-loop", "1"]);
+      }
 
       // Добавляем входы для эмодзи
       for (const emojiPath of emojiImagePaths) {
