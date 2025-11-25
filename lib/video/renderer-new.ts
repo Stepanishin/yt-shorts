@@ -15,28 +15,47 @@ const execAsync = promisify(exec);
 async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; stderr: string }> {
   // Пути к библиотекам FFmpeg в DigitalOcean APT buildpack
   // Добавляем все возможные пути, где могут быть библиотеки
-  const libraryPaths = [
-    "/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu",
-    "/layers/digitalocean_apt/apt/usr/lib",
-    "/layers/digitalocean_apt/apt/lib/x86_64-linux-gnu",
-    "/layers/digitalocean_apt/apt/lib",
-    "/app/.apt/usr/lib/x86_64-linux-gnu",
-    "/app/.apt/usr/lib",
-    "/app/.apt/lib/x86_64-linux-gnu",
-    "/app/.apt/lib",
-  ].filter((p) => {
-    try {
-      // Проверяем существование директории (синхронно для простоты)
-      return fsSync.existsSync(p);
-    } catch {
-      return false;
+  const basePaths = [
+    "/layers/digitalocean_apt/apt",
+    "/app/.apt",
+  ];
+  
+  const libraryPaths: string[] = [];
+  
+  for (const basePath of basePaths) {
+    // Стандартные пути к библиотекам
+    const paths = [
+      `${basePath}/usr/lib/x86_64-linux-gnu`,
+      `${basePath}/usr/lib`,
+      `${basePath}/lib/x86_64-linux-gnu`,
+      `${basePath}/lib`,
+      // PulseAudio может быть в поддиректории
+      `${basePath}/usr/lib/x86_64-linux-gnu/pulseaudio`,
+      `${basePath}/usr/lib/pulseaudio`,
+      `${basePath}/lib/x86_64-linux-gnu/pulseaudio`,
+      `${basePath}/lib/pulseaudio`,
+    ];
+    
+    for (const p of paths) {
+      try {
+        if (fsSync.existsSync(p)) {
+          libraryPaths.push(p);
+        }
+      } catch {
+        // Игнорируем ошибки
+      }
     }
-  });
+  }
+  
+  // Убираем дубликаты
+  const uniquePaths = [...new Set(libraryPaths)];
 
   const currentLdLibraryPath = process.env.LD_LIBRARY_PATH || "";
-  const newLdLibraryPath = [...libraryPaths, currentLdLibraryPath]
+  const newLdLibraryPath = [...uniquePaths, currentLdLibraryPath]
     .filter(Boolean)
     .join(":");
+  
+  console.log("🔍 LD_LIBRARY_PATH configured:", newLdLibraryPath);
 
   const env = {
     ...process.env,
@@ -478,27 +497,43 @@ export async function renderVideoNew(
       }
 
       // Настраиваем переменные окружения для fluent-ffmpeg
-      const libraryPaths = [
-        "/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu",
-        "/layers/digitalocean_apt/apt/usr/lib",
-        "/layers/digitalocean_apt/apt/lib/x86_64-linux-gnu",
-        "/layers/digitalocean_apt/apt/lib",
-        "/app/.apt/usr/lib/x86_64-linux-gnu",
-        "/app/.apt/usr/lib",
-        "/app/.apt/lib/x86_64-linux-gnu",
-        "/app/.apt/lib",
-      ].filter((p) => {
-        try {
-          return fsSync.existsSync(p);
-        } catch {
-          return false;
+      const basePaths = [
+        "/layers/digitalocean_apt/apt",
+        "/app/.apt",
+      ];
+      
+      const libraryPaths: string[] = [];
+      
+      for (const basePath of basePaths) {
+        const paths = [
+          `${basePath}/usr/lib/x86_64-linux-gnu`,
+          `${basePath}/usr/lib`,
+          `${basePath}/lib/x86_64-linux-gnu`,
+          `${basePath}/lib`,
+          `${basePath}/usr/lib/x86_64-linux-gnu/pulseaudio`,
+          `${basePath}/usr/lib/pulseaudio`,
+          `${basePath}/lib/x86_64-linux-gnu/pulseaudio`,
+          `${basePath}/lib/pulseaudio`,
+        ];
+        
+        for (const p of paths) {
+          try {
+            if (fsSync.existsSync(p)) {
+              libraryPaths.push(p);
+            }
+          } catch {
+            // Игнорируем ошибки
+          }
         }
-      });
-
+      }
+      
+      const uniquePaths = [...new Set(libraryPaths)];
       const currentLdLibraryPath = process.env.LD_LIBRARY_PATH || "";
-      const newLdLibraryPath = [...libraryPaths, currentLdLibraryPath]
+      const newLdLibraryPath = [...uniquePaths, currentLdLibraryPath]
         .filter(Boolean)
         .join(":");
+      
+      console.log("🔍 LD_LIBRARY_PATH for FFmpeg:", newLdLibraryPath);
 
       // Создаем FFmpeg команду
       let command = ffmpeg(tempBackgroundPath);
