@@ -335,20 +335,25 @@ export async function renderVideoNew(
         const textX = te.x + boxPadding;
         const textY = te.y + boxPadding;
 
-        // Экранируем текст для использования в параметре text фильтра drawtext
-        // Нужно экранировать: ' -> \', : -> \:, \ -> \\, [ -> \[, ] -> \]
-        const escapedText = te.text
-          .replace(/\\/g, '\\\\')   // \ -> \\
-          .replace(/'/g, "\\'")     // ' -> \'
-          .replace(/:/g, '\\:')     // : -> \:
-          .replace(/\[/g, '\\[')    // [ -> \[
-          .replace(/\]/g, '\\]')    // ] -> \]
-          .replace(/,/g, '\\,')     // , -> \,
-          .replace(/;/g, '\\;');    // ; -> \;
+        // Для многострочного текста лучше использовать textfile, так как text с переносами строк
+        // может вызывать проблемы в filter_complex. Создаем временный файл для текста.
+        const textFilePath = path.join(videosDir, `text_${jobId}_${i}.txt`);
+        textFilePaths.push(textFilePath);
+        
+        // Сохраняем текст в файл (сохраняем переносы строк как есть)
+        await fs.writeFile(textFilePath, te.text, 'utf-8');
 
-        // Используем text вместо textfile - это более надежно работает в статических сборках FFmpeg
-        // Текст оборачиваем в одинарные кавычки для защиты от специальных символов
-        let drawtextFilter = `drawtext=text='${escapedText}':fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
+        // Экранируем путь к файлу для использования в filter_complex
+        // В filter_complex нужно экранировать только двоеточие и обратный слэш
+        // Используем более простой подход - экранируем только необходимые символы
+        const escapedPath = textFilePath
+          .replace(/\\/g, '\\\\')   // \ -> \\
+          .replace(/:/g, '\\:');     // : -> \:
+
+        // Используем textfile - это более надежно для многострочного текста
+        // Путь не оборачиваем в кавычки, так как это может вызывать проблемы
+        // Вместо этого правильно экранируем специальные символы
+        let drawtextFilter = `drawtext=textfile=${escapedPath}:fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
 
         // Добавляем жирный шрифт если указано
         if (te.fontWeight === "bold") {
