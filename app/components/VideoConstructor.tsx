@@ -62,7 +62,17 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const hasLoadedFromStorage = useRef(false);
 
   // Загрузить сохраненное состояние из localStorage при монтировании
+  // НО только если НЕ передан jokeId (иначе загрузим анекдот из библиотеки)
   useEffect(() => {
+    // Если передан jokeId - не загружаем из localStorage, ждем загрузки анекдота
+    if (jokeId) {
+      console.log("Skipping localStorage load - jokeId provided");
+      setTimeout(() => {
+        hasLoadedFromStorage.current = true;
+      }, 100);
+      return;
+    }
+
     const savedState = localStorage.getItem("videoConstructorState");
     if (savedState) {
       try {
@@ -78,6 +88,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         setUseAITitle(state.useAITitle ?? true);
         setBackgroundPrompt(state.backgroundPrompt || "");
         setAudioPrompt(state.audioPrompt || "");
+        console.log("Loaded state from localStorage");
       } catch (error) {
         console.error("Failed to load saved state:", error);
       }
@@ -87,7 +98,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     setTimeout(() => {
       hasLoadedFromStorage.current = true;
     }, 100);
-  }, []);
+  }, [jokeId]);
 
   // Сохранять состояние в localStorage при изменениях (но не при загрузке)
   useEffect(() => {
@@ -131,22 +142,25 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     if (!jokeId) return;
 
     const loadJoke = async () => {
-      // Проверяем есть ли уже сохраненные данные в localStorage
-      const savedState = localStorage.getItem("videoConstructorState");
-      if (savedState) {
-        try {
-          const state = JSON.parse(savedState);
-          // Если есть текстовые элементы или эмодзи - не загружаем анекдот заново
-          if (state.textElements?.length > 0 || state.emojiElements?.length > 0) {
-            console.log("Skipping joke load - using saved state");
-            return;
-          }
-        } catch (error) {
-          console.error("Error checking saved state:", error);
-        }
-      }
-
       try {
+        // ВСЕГДА очищаем localStorage и state когда заходим через jokeId
+        console.log("Loading joke from library, clearing all state...");
+        localStorage.removeItem("videoConstructorState");
+
+        // Очищаем весь state перед загрузкой новой шутки
+        setTextElements([]);
+        setEmojiElements([]);
+        setBackgroundUrl("");
+        setBackgroundType("video");
+        setAudioUrl("");
+        setVideoDuration(10);
+        setVideoTitle("");
+        setVideoDescription("");
+        setBackgroundPrompt("");
+        setAudioPrompt("");
+        setRenderedVideoUrl("");
+        setYoutubeVideoUrl(null);
+
         const response = await fetch(`/api/jokes/${jokeId}`);
         if (!response.ok) {
           alert("Не удалось загрузить анекдот");
@@ -189,6 +203,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         if (joke.title) {
           setVideoTitle(joke.title);
         }
+
+        console.log("Joke loaded successfully:", joke.title || jokeText.substring(0, 50));
       } catch (error) {
         console.error("Failed to load joke:", error);
         alert("Произошла ошибка при загрузке анекдота");
