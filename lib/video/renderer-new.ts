@@ -853,5 +853,6 @@ export async function renderVideoNew(
       }
     } catch {}
     throw error;
+    
   }
 }
