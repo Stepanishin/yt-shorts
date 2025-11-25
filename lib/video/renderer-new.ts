@@ -463,18 +463,60 @@ export async function renderVideoNew(
         const textX = te.x + boxPadding;
         const textY = te.y + boxPadding;
 
-        // Статическая сборка FFmpeg не поддерживает textfile, используем text
-        // Для многострочного текста заменяем переносы строк на пробелы
-        // или используем line_spacing для визуального разделения строк
-        const processedText = te.text
-          .replace(/\r\n/g, ' ')  // Windows переносы строк -> пробел
-          .replace(/\n/g, ' ')    // Unix переносы строк -> пробел
-          .replace(/\r/g, ' ');   // Старые Mac переносы -> пробел
+        // Функция для переноса текста по ширине
+        // Оцениваем количество символов на строку на основе ширины и размера шрифта
+        const wrapText = (text: string, textWidth?: number): string => {
+          // Оцениваем количество символов на строку
+          // Примерно 0.6 * fontSize пикселей на символ для Arial
+          const availableWidth = textWidth || (720 - textX - boxPadding * 2); // Используем доступную ширину
+          const estimatedCharsPerLine = Math.floor(availableWidth / (te.fontSize * 0.6));
+          const maxCharsPerLine = Math.max(20, Math.min(40, estimatedCharsPerLine));
+          
+          const words = text.split(/\s+/);
+          const lines: string[] = [];
+          let currentLine = '';
+
+          for (const word of words) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            if (testLine.length <= maxCharsPerLine) {
+              currentLine = testLine;
+            } else {
+              if (currentLine) lines.push(currentLine);
+              currentLine = word;
+              // Если одно слово длиннее maxCharsPerLine, разбиваем его принудительно
+              if (currentLine.length > maxCharsPerLine) {
+                const chunks = currentLine.match(new RegExp(`.{1,${maxCharsPerLine}}`, 'g')) || [];
+                lines.push(...chunks.slice(0, -1));
+                currentLine = chunks[chunks.length - 1] || '';
+              }
+            }
+          }
+          if (currentLine) lines.push(currentLine);
+          
+          return lines.join('\n');
+        };
+
+        // Обрабатываем текст: сохраняем существующие переносы строк и добавляем переносы по ширине
+        let processedText = te.text
+          .replace(/\r\n/g, '\n')  // Нормализуем Windows переносы
+          .replace(/\r/g, '\n');   // Нормализуем старые Mac переносы
+
+        // Если указана ширина, применяем перенос по ширине к каждой строке отдельно
+        if (te.width) {
+          const lines = processedText.split('\n');
+          const wrappedLines = lines.map(line => wrapText(line.trim(), te.width));
+          processedText = wrappedLines.join('\n');
+        } else {
+          // Если ширина не указана, применяем стандартный перенос
+          processedText = wrapText(processedText);
+        }
 
         // Экранируем текст для использования в параметре text фильтра drawtext
-        // Нужно экранировать специальные символы для filter_complex
+        // В FFmpeg drawtext \n используется для переноса строк, поэтому его нужно сохранить
+        // Но нужно экранировать обратный слэш перед \n
         const escapedText = processedText
-          .replace(/\\/g, '\\\\')   // \ -> \\
+          .replace(/\\/g, '\\\\')   // \ -> \\ (кроме \n)
+          .replace(/\n/g, '\\n')    // \n -> \\n (перенос строки в FFmpeg)
           .replace(/'/g, "\\'")      // ' -> \'
           .replace(/:/g, '\\:')      // : -> \:
           .replace(/\[/g, '\\[')     // [ -> \[
@@ -482,7 +524,7 @@ export async function renderVideoNew(
           .replace(/,/g, '\\,')      // , -> \,
           .replace(/;/g, '\\;');     // ; -> \;
 
-        // Используем text - статическая сборка не поддерживает textfile
+        // Используем text с поддержкой переносов строк через \n
         // Текст оборачиваем в одинарные кавычки для защиты от специальных символов
         let drawtextFilter = `drawtext=text='${escapedText}':fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
 
@@ -494,6 +536,10 @@ export async function renderVideoNew(
         if (te.backgroundColor) {
           drawtextFilter += `:box=1:boxcolor=${te.backgroundColor}:boxborderw=${boxPadding}`;
         }
+
+        // Добавляем межстрочный интервал для лучшей читаемости
+        const lineSpacing = Math.floor(te.fontSize * 0.3); // ~30% от размера шрифта
+        drawtextFilter += `:line_spacing=${lineSpacing}`;
 
         if (te.width) {
           drawtextFilter += `:text_w=${te.width}`;
