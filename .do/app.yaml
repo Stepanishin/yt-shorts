@@ -5,10 +5,7 @@ services:
       repo: Stepanishin/yt-shorts
       branch: main
       deploy_on_push: true
-    build_command: |
-      chmod +x scripts/install-ffmpeg.sh
-      bash scripts/install-ffmpeg.sh
-      npm run build
+    build_command: npm run build
     run_command: npm start
     http_port: 3000
     instance_count: 1

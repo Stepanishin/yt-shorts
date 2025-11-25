@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "bash scripts/install-ffmpeg.sh || true"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.937.0",
