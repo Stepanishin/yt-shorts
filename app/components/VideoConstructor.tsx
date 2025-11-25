@@ -819,7 +819,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                     updateTextElement(selectedText.id, { text: e.target.value })
                   }
                   className="w-full border rounded px-3 py-2"
-                  rows={3}
+                  style={{ height: '500px' }}
                 />
               </div>
               <div>
