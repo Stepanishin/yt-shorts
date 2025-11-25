@@ -496,37 +496,46 @@ export async function renderVideoNew(
           return lines.join('\n');
         };
 
-        // Обрабатываем текст: сохраняем существующие переносы строк и добавляем переносы по ширине
+        // Обрабатываем текст: сохраняем существующие переносы строк из textarea
         let processedText = te.text
           .replace(/\r\n/g, '\n')  // Нормализуем Windows переносы
           .replace(/\r/g, '\n');   // Нормализуем старые Mac переносы
 
-        // Если указана ширина, применяем перенос по ширине к каждой строке отдельно
-        if (te.width) {
+        // Проверяем, есть ли в тексте явные переносы строк (пользователь нажал Enter)
+        const hasExplicitLineBreaks = processedText.includes('\n');
+        
+        if (hasExplicitLineBreaks) {
+          // Если пользователь сам указал переносы строк - сохраняем их ТОЧНО как есть
+          // Только убираем лишние пробелы в начале/конце каждой строки (но сохраняем пустые строки)
           const lines = processedText.split('\n');
-          const wrappedLines = lines.map(line => wrapText(line.trim(), te.width));
-          processedText = wrappedLines.join('\n');
+          processedText = lines.map(line => line.trim()).join('\n');
+          // Сохраняем пустые строки (двойные переносы) - они могут быть важны для форматирования
         } else {
-          // Если ширина не указана, применяем стандартный перенос
-          processedText = wrapText(processedText);
+          // Если пользователь не указал переносы строк - применяем автоматический перенос по ширине
+          if (te.width) {
+            processedText = wrapText(processedText, te.width);
+          } else {
+            processedText = wrapText(processedText);
+          }
         }
 
-        // Экранируем текст для использования в параметре text фильтра drawtext
-        // В FFmpeg drawtext \n используется для переноса строк, поэтому его нужно сохранить
-        // Но нужно экранировать обратный слэш перед \n
-        const escapedText = processedText
-          .replace(/\\/g, '\\\\')   // \ -> \\ (кроме \n)
-          .replace(/\n/g, '\\n')    // \n -> \\n (перенос строки в FFmpeg)
-          .replace(/'/g, "\\'")      // ' -> \'
+        // Создаем временный файл для текста (как в старом рендерере)
+        // Это более надежный способ для многострочного текста
+        const textFilePath = path.join(videosDir, `text_${jobId}_${i}.txt`);
+        await fs.writeFile(textFilePath, processedText, 'utf-8');
+        textFilePaths.push(textFilePath);
+
+        // Используем textfile вместо text для поддержки многострочного текста
+        // Экранируем путь к файлу для использования в filter_complex
+        const escapedFilePath = textFilePath
+          .replace(/\\/g, '\\\\')   // \ -> \\
           .replace(/:/g, '\\:')      // : -> \:
           .replace(/\[/g, '\\[')     // [ -> \[
           .replace(/\]/g, '\\]')     // ] -> \]
           .replace(/,/g, '\\,')      // , -> \,
           .replace(/;/g, '\\;');     // ; -> \;
 
-        // Используем text с поддержкой переносов строк через \n
-        // Текст оборачиваем в одинарные кавычки для защиты от специальных символов
-        let drawtextFilter = `drawtext=text='${escapedText}':fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
+        let drawtextFilter = `drawtext=textfile='${escapedFilePath}':fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
 
         // Добавляем жирный шрифт если указано
         if (te.fontWeight === "bold") {
