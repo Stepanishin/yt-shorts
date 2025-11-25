@@ -3,6 +3,7 @@ import { uploadVideoToYouTube } from "@/lib/youtube/youtube-client";
 import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
 import { auth } from "@/lib/auth";
 import * as path from "path";
+import * as fs from "fs/promises";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 
 /**
@@ -44,13 +45,42 @@ export async function POST(request: NextRequest) {
     const finalPrivacyStatus = privacyStatus || user.youtubeSettings?.defaultPrivacyStatus || "public";
     const finalTags = tags || user.youtubeSettings?.defaultTags || ["shorts", "comedy", "funny"];
 
-    // Преобразуем URL в локальный путь к файлу
-    // videoUrl выглядит как /videos/final_xxx.mp4
-    const videoPath = path.join(process.cwd(), "public", videoUrl);
-
     console.log(`Uploading video to YouTube: ${title}`);
-    console.log(`Video path: ${videoPath}`);
+    console.log(`Video URL: ${videoUrl}`);
     console.log(`User: ${user.email}`);
+
+    // Определяем, является ли videoUrl полным URL или относительным путем
+    let videoPath: string;
+    
+    if (videoUrl.startsWith("http://") || videoUrl.startsWith("https://")) {
+      // Это полный URL из DigitalOcean Spaces - нужно скачать файл
+      console.log("Downloading video from Spaces...");
+      
+      const response = await fetch(videoUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to download video from Spaces: ${response.statusText}`);
+      }
+
+      // Создаем временный файл
+      const tempDir = process.env.NODE_ENV === 'production' 
+        ? '/tmp/videos' 
+        : path.join(process.cwd(), "public", "videos");
+      await fs.mkdir(tempDir, { recursive: true });
+      
+      const tempFileName = `youtube_upload_${Date.now()}_${Math.random().toString(36).substring(7)}.mp4`;
+      videoPath = path.join(tempDir, tempFileName);
+      
+      // Сохраняем файл
+      const buffer = await response.arrayBuffer();
+      await fs.writeFile(videoPath, Buffer.from(buffer));
+      
+      console.log(`Video downloaded to: ${videoPath}`);
+    } else {
+      // Это относительный путь - используем как есть
+      videoPath = path.join(process.cwd(), "public", videoUrl);
+    }
+
+    console.log(`Video path: ${videoPath}`);
 
     // Загружаем видео
     const result = await uploadVideoToYouTube({
@@ -63,6 +93,17 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`Video uploaded successfully: ${result.videoUrl}`);
+
+    // Удаляем временный файл, если он был скачан из Spaces
+    if (videoUrl.startsWith("http://") || videoUrl.startsWith("https://")) {
+      try {
+        await fs.unlink(videoPath);
+        console.log("Temporary video file deleted");
+      } catch (error) {
+        console.error("Failed to delete temporary file:", error);
+        // Не критично, файл будет удален автоматически при очистке /tmp
+      }
+    }
 
     // Обновляем статус анекдота на "used" после успешной публикации (только если это анекдот)
     if (jokeId && !jokeId.startsWith("constructor-")) {
