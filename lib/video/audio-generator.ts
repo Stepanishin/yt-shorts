@@ -309,8 +309,17 @@ function createAudioPrompt(options: {
 }): string {
   const { jokeText, jokeTitle } = options;
 
-  // Udio создает более качественную музыку с учетом контекста
-  // Можно использовать детальные описания стиля
+  // Если jokeText короткий (меньше 200 символов) и не содержит типичных признаков шутки,
+  // считаем что это кастомный промпт от пользователя и используем его напрямую
+  const looksLikeCustomPrompt = jokeText.length < 200 && !jokeText.includes('\n') && !jokeText.includes('—');
+
+  if (looksLikeCustomPrompt && jokeText.trim().length > 0) {
+    console.log("Using custom user prompt for audio:", jokeText);
+    return `${jokeText}, instrumental, modern production, perfect for YouTube Shorts, 30-45 seconds`;
+  }
+
+  // Иначе используем предустановленный промпт для безопасности
+  console.log("Using preset prompt for audio generation");
 
   // Базовый промпт для веселой фоновой музыки
   const basePrompt = "upbeat cheerful background music, light and energetic, comedy vibe, fun and playful";

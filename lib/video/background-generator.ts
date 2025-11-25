@@ -245,8 +245,19 @@ function createBackgroundPrompt(options: {
   jokeTitle?: string;
   style: "nature" | "abstract" | "minimalist";
 }): string {
-  const { jokeTitle, style } = options;
-  // jokeText не используется напрямую в промпте для избежания проблем с модерацией
+  const { jokeText, jokeTitle, style } = options;
+
+  // Если jokeText короткий (меньше 200 символов) и не содержит типичных признаков шутки,
+  // считаем что это кастомный промпт от пользователя и используем его напрямую
+  const looksLikeCustomPrompt = jokeText.length < 200 && !jokeText.includes('\n') && !jokeText.includes('—');
+
+  if (looksLikeCustomPrompt && jokeText.trim().length > 0) {
+    console.log("Using custom user prompt for background:", jokeText);
+    return `${jokeText}. Vertical format 9:16 ratio, high quality, cinematic, no text overlays, no people`;
+  }
+
+  // Иначе используем предустановленные промпты для безопасности
+  console.log("Using preset prompts for background generation");
 
   // Разнообразные варианты фонов для каждого стиля
   const natureVariants = [
