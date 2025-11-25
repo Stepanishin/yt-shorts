@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOAuth2Client, getTokensFromCode } from "@/lib/youtube/youtube-client";
 import { auth } from "@/lib/auth";
-import { getUserByGoogleId, updateUser } from "@/lib/db/users";
+import { getUserByGoogleId, updateUser, type YouTubeSettings } from "@/lib/db/users";
 import { encrypt } from "@/lib/encryption";
 
 /**
@@ -72,17 +72,29 @@ export async function GET(request: NextRequest) {
 
     // Update user's YouTube settings with encrypted tokens
     // Если используются глобальные credentials, сохраняем их в настройки пользователя для будущего использования
-    const updatedSettings = {
-      ...(user.youtubeSettings || {}),
-      // Если используются глобальные credentials, сохраняем их
-      ...(userSettings ? {} : {
-        clientId: process.env.YOUTUBE_CLIENT_ID || "",
-        clientSecret: process.env.YOUTUBE_CLIENT_SECRET ? encrypt(process.env.YOUTUBE_CLIENT_SECRET) : "",
-        redirectUri: process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`,
-      }),
+    const globalClientId = process.env.YOUTUBE_CLIENT_ID || "";
+    const globalClientSecret = process.env.YOUTUBE_CLIENT_SECRET || "";
+    const globalRedirectUri = process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`;
+
+    // Убеждаемся, что у нас есть credentials (либо пользовательские, либо глобальные)
+    if (!userSettings && (!globalClientId || !globalClientSecret)) {
+      return NextResponse.redirect(
+        new URL("/dashboard/settings?youtube_error=credentials_not_found", request.url)
+      );
+    }
+
+    const updatedSettings: YouTubeSettings = {
+      // Используем пользовательские credentials, если они есть, иначе глобальные
+      clientId: userSettings?.clientId || globalClientId,
+      clientSecret: userSettings?.clientSecret || encrypt(globalClientSecret),
+      redirectUri: userSettings?.redirectUri || globalRedirectUri,
       accessToken: tokens.access_token ? encrypt(tokens.access_token) : user.youtubeSettings?.accessToken,
       refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : user.youtubeSettings?.refreshToken,
       tokenExpiresAt: expiresAt,
+      // Сохраняем остальные настройки пользователя
+      defaultPrivacyStatus: user.youtubeSettings?.defaultPrivacyStatus,
+      defaultTags: user.youtubeSettings?.defaultTags,
+      channelId: user.youtubeSettings?.channelId,
     };
 
     await updateUser(user._id!.toString(), { youtubeSettings: updatedSettings });
