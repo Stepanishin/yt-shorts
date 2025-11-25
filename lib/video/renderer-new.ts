@@ -316,15 +316,10 @@ export async function renderVideoNew(
       for (let i = 0; i < textElements.length; i++) {
         const te = textElements[i];
 
-        // Экранируем текст для FFmpeg drawtext filter
-        // Нужно экранировать: ' (одинарная кавычка), : (двоеточие), \ (обратный слэш)
-        const escapedText = te.text
-          .replace(/\\/g, '\\\\\\\\')  // Сначала экранируем обратные слэши
-          .replace(/:/g, '\\:')         // Экранируем двоеточия
-          .replace(/'/g, "'\\\\\\''")   // Экранируем одинарные кавычки
-          .replace(/\[/g, '\\[')        // Экранируем квадратные скобки
-          .replace(/\]/g, '\\]')
-          .replace(/,/g, '\\,');        // Экранируем запятые
+        // Создаем временный файл для текста - это самый надежный способ
+        const textFilePath = path.join(videosDir, `text_${jobId}_${i}.txt`);
+        textFilePaths.push(textFilePath);
+        await fs.writeFile(textFilePath, te.text, 'utf-8');
 
         // В UI координаты x,y обозначают верхний левый угол контейнера (включая padding)
         // В FFmpeg drawtext координаты x,y обозначают позицию текста, а boxborderw рисует бокс вокруг текста
@@ -333,8 +328,11 @@ export async function renderVideoNew(
         const textX = te.x + boxPadding;
         const textY = te.y + boxPadding;
 
-        // Используем text вместо textfile для избежания проблем с путями
-        let drawtextFilter = `drawtext=text='${escapedText}':fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
+        // Экранируем только путь к файлу, заменяя : и \
+        const escapedPath = textFilePath.replace(/\\/g, '\\\\').replace(/:/g, '\\\\:');
+
+        // Используем textfile с правильным экранированием пути
+        let drawtextFilter = `drawtext=textfile=${escapedPath}:fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
 
         // Добавляем жирный шрифт если указано
         if (te.fontWeight === "bold") {
@@ -447,21 +445,16 @@ export async function renderVideoNew(
         fullFilterComplex = filterComplex;
       }
 
-      // Применяем filter complex напрямую через outputOptions с правильным форматом
-      // Используем массив где каждый параметр - отдельный элемент
-      const filterOpts = ["-filter_complex", fullFilterComplex];
+      // Применяем filter complex через complexFilter с опцией map
+      command = command
+        .complexFilter(fullFilterComplex, hasAudioFile && tempAudioPath ? ["[v]", "[audio]"] : ["[v]"]);
 
-      // Настраиваем маппинг выходов
-      if (hasAudioFile && tempAudioPath) {
-        filterOpts.push("-map", "[v]", "-map", "[audio]");
-      } else {
-        filterOpts.push("-map", "[v]", "-map", "0:a?");
+      // Если нет аудио файла, добавляем опциональный маппинг аудио из входного файла
+      if (!hasAudioFile || !tempAudioPath) {
+        outputOpts.push("-map", "0:a?");
       }
 
-      filterOpts.push("-t", targetDuration.toString());
-
-      // Добавляем все опции фильтров в outputOpts
-      outputOpts.push(...filterOpts);
+      outputOpts.push("-t", targetDuration.toString());
 
       command
         .outputOptions(outputOpts)
