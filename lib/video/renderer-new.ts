@@ -205,6 +205,55 @@ async function checkFFmpegAvailable(): Promise<boolean> {
  */
 async function getMediaDuration(filePath: string): Promise<number> {
   try {
+    // Пробуем найти недостающие библиотеки через find и ldconfig
+    try {
+      // Сначала пробуем обновить кэш библиотек через ldconfig (если доступен)
+      try {
+        await execAsync("ldconfig 2>/dev/null || true");
+      } catch {
+        // Игнорируем ошибки ldconfig
+      }
+
+      const missingLibs = ['libblas.so.3', 'libblas.so', 'libpulsecommon-15.99.so', 'libvpx.so.7'];
+      const searchPaths = [
+        '/layers/digitalocean_apt/apt',
+        '/app/.apt',
+        '/usr/lib',
+        '/lib',
+        '/usr/lib/x86_64-linux-gnu',
+        '/lib/x86_64-linux-gnu',
+      ];
+      
+      for (const libName of missingLibs) {
+        // Ищем библиотеку во всех возможных местах
+        const searchCmd = `find ${searchPaths.join(' ')} -name '${libName}*' -type f 2>/dev/null | head -1 || echo ''`;
+        const { stdout: libPath } = await execAsync(searchCmd);
+        const foundLibPath = libPath.trim();
+        
+        if (foundLibPath) {
+          const libDir = path.dirname(foundLibPath);
+          console.log(`🔍 Found ${libName} at: ${foundLibPath}, adding ${libDir} to LD_LIBRARY_PATH`);
+          const currentLdPath = process.env.LD_LIBRARY_PATH || "";
+          if (!currentLdPath.includes(libDir)) {
+            process.env.LD_LIBRARY_PATH = `${libDir}:${currentLdPath}`;
+          }
+        } else {
+          // Пробуем найти через ldconfig -p
+          try {
+            const { stdout: ldconfigOutput } = await execAsync("ldconfig -p 2>/dev/null | grep " + libName + " || echo ''");
+            if (ldconfigOutput.trim()) {
+              console.log(`🔍 Found ${libName} via ldconfig: ${ldconfigOutput.trim()}`);
+            }
+          } catch {
+            // Игнорируем ошибки
+          }
+        }
+      }
+    } catch (e) {
+      // Игнорируем ошибки поиска
+      console.log("🔍 Library search failed:", e);
+    }
+
     const { stdout } = await execWithFFmpegEnv(
       `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`
     );
