@@ -47,12 +47,21 @@ async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; std
     }
   }
   
-  // Убираем дубликаты
-  const uniquePaths = [...new Set(libraryPaths)];
+  // Убираем дубликаты и сортируем для консистентности
+  const uniquePaths = [...new Set(libraryPaths)].sort();
 
   const currentLdLibraryPath = process.env.LD_LIBRARY_PATH || "";
-  const newLdLibraryPath = [...uniquePaths, currentLdLibraryPath]
+  // Добавляем системные пути в конец
+  const systemPaths = [
+    "/usr/lib/x86_64-linux-gnu",
+    "/usr/lib",
+    "/lib/x86_64-linux-gnu",
+    "/lib",
+  ];
+  
+  const newLdLibraryPath = [...uniquePaths, ...systemPaths, currentLdLibraryPath]
     .filter(Boolean)
+    .filter((p, i, arr) => arr.indexOf(p) === i) // Убираем дубликаты
     .join(":");
   
   console.log("🔍 LD_LIBRARY_PATH configured:", newLdLibraryPath);
@@ -527,10 +536,19 @@ export async function renderVideoNew(
         }
       }
       
-      const uniquePaths = [...new Set(libraryPaths)];
+      const uniquePaths = [...new Set(libraryPaths)].sort();
       const currentLdLibraryPath = process.env.LD_LIBRARY_PATH || "";
-      const newLdLibraryPath = [...uniquePaths, currentLdLibraryPath]
+      // Добавляем системные пути в конец
+      const systemPaths = [
+        "/usr/lib/x86_64-linux-gnu",
+        "/usr/lib",
+        "/lib/x86_64-linux-gnu",
+        "/lib",
+      ];
+      
+      const newLdLibraryPath = [...uniquePaths, ...systemPaths, currentLdLibraryPath]
         .filter(Boolean)
+        .filter((p, i, arr) => arr.indexOf(p) === i) // Убираем дубликаты
         .join(":");
       
       console.log("🔍 LD_LIBRARY_PATH for FFmpeg:", newLdLibraryPath);
