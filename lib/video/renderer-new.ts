@@ -328,11 +328,6 @@ export async function renderVideoNew(
       for (let i = 0; i < textElements.length; i++) {
         const te = textElements[i];
 
-        // Создаем временный файл для текста - это самый надежный способ
-        const textFilePath = path.join(videosDir, `text_${jobId}_${i}.txt`);
-        textFilePaths.push(textFilePath);
-        await fs.writeFile(textFilePath, te.text, 'utf-8');
-
         // В UI координаты x,y обозначают верхний левый угол контейнера (включая padding)
         // В FFmpeg drawtext координаты x,y обозначают позицию текста, а boxborderw рисует бокс вокруг текста
         // Поэтому нужно добавить padding к координатам, чтобы текст начинался с правильного места
@@ -340,19 +335,20 @@ export async function renderVideoNew(
         const textX = te.x + boxPadding;
         const textY = te.y + boxPadding;
 
-        // Экранируем путь к файлу для FFmpeg filter_complex
-        // В filter_complex нужно экранировать : и \ специальным образом
-        // Используем двойное экранирование для Windows путей и одинарное для :
-        const escapedPath = textFilePath
-          .replace(/\\/g, '\\\\\\\\')  // \ -> \\\\ (для Windows путей в filter_complex)
-          .replace(/:/g, '\\\\:')       // : -> \: (экранирование двоеточия)
-          .replace(/,/g, '\\\\,')       // , -> \, (экранирование запятой)
-          .replace(/\[/g, '\\\\[')      // [ -> \[ (экранирование квадратной скобки)
-          .replace(/\]/g, '\\\\]')      // ] -> \] (экранирование квадратной скобки)
-          .replace(/;/g, '\\\\;');      // ; -> \; (экранирование точки с запятой)
+        // Экранируем текст для использования в параметре text фильтра drawtext
+        // Нужно экранировать: ' -> \', : -> \:, \ -> \\, [ -> \[, ] -> \]
+        const escapedText = te.text
+          .replace(/\\/g, '\\\\')   // \ -> \\
+          .replace(/'/g, "\\'")     // ' -> \'
+          .replace(/:/g, '\\:')     // : -> \:
+          .replace(/\[/g, '\\[')    // [ -> \[
+          .replace(/\]/g, '\\]')    // ] -> \]
+          .replace(/,/g, '\\,')     // , -> \,
+          .replace(/;/g, '\\;');    // ; -> \;
 
-        // Используем textfile с правильным экранированием пути
-        let drawtextFilter = `drawtext=textfile=${escapedPath}:fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
+        // Используем text вместо textfile - это более надежно работает в статических сборках FFmpeg
+        // Текст оборачиваем в одинарные кавычки для защиты от специальных символов
+        let drawtextFilter = `drawtext=text='${escapedText}':fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
 
         // Добавляем жирный шрифт если указано
         if (te.fontWeight === "bold") {
