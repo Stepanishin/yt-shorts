@@ -20,24 +20,38 @@ if command -v ffmpeg &> /dev/null; then
   fi
 fi
 
-# Пытаемся установить полную версию через apt-get (если есть права)
-if command -v apt-get &> /dev/null && [ "$EUID" -eq 0 ] || sudo -n true 2>/dev/null; then
-  echo "📦 Installing full FFmpeg via apt-get..."
-  
-  # Обновляем список пакетов
+# Пытаемся установить полную версию через apt-get (если есть права root)
+# На DigitalOcean App Platform buildpack может запускаться от root
+if command -v apt-get &> /dev/null; then
+  # Проверяем, запущены ли мы от root (buildpack часто запускается от root)
   if [ "$EUID" -eq 0 ]; then
+    echo "📦 Installing full FFmpeg via apt-get (running as root)..."
     apt-get update -qq
     apt-get install -y -qq ffmpeg ffprobe
-  else
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq ffmpeg ffprobe
-  fi
-  
-  if command -v ffmpeg &> /dev/null; then
-    echo "✅ FFmpeg installed via apt-get:"
-    ffmpeg -version | head -n 1
-    echo "🎉 Full FFmpeg installation complete!"
-    exit 0
+    
+    if command -v ffmpeg &> /dev/null; then
+      echo "✅ FFmpeg installed via apt-get:"
+      ffmpeg -version | head -n 1
+      
+      # Проверяем, поддерживает ли фильтр loop (признак полной версии)
+      if ffmpeg -filters 2>/dev/null | grep -q "loop"; then
+        echo "✅ Full FFmpeg version confirmed (supports all filters)"
+      fi
+      
+      echo "🎉 Full FFmpeg installation complete!"
+      exit 0
+    fi
+  # Пробуем без sudo (если apt-get доступен без прав root)
+  elif apt-get --version &> /dev/null && [ -w /usr/bin ] 2>/dev/null; then
+    echo "📦 Attempting to install FFmpeg via apt-get (no sudo)..."
+    # Это может не сработать, но попробуем
+    apt-get update -qq 2>/dev/null && apt-get install -y -qq ffmpeg ffprobe 2>/dev/null
+    
+    if command -v ffmpeg &> /dev/null; then
+      echo "✅ FFmpeg installed via apt-get:"
+      ffmpeg -version | head -n 1
+      exit 0
+    fi
   fi
 fi
 

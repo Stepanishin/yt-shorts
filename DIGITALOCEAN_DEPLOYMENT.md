@@ -143,42 +143,47 @@ DigitalOcean App Platform не включает FFmpeg по умолчанию. 
 
 ### ⚠️ Важно: Полная версия FFmpeg
 
-Для корректной работы всех фильтров (включая `loop`, `drawtext` с `textfile`) рекомендуется установить **полную версию FFmpeg** через apt-get, а не статическую сборку.
+Для корректной работы всех фильтров (включая `loop`, `drawtext` с `textfile`) рекомендуется установить **полную версию FFmpeg**, а не статическую сборку.
 
-### Вариант 1: Через `.buildpacks` файл (рекомендуется)
+**Проблема**: На DigitalOcean App Platform нет доступа к `sudo` без пароля в build phase, поэтому установка через `apt-get` напрямую не работает.
 
-Файл `.buildpacks` уже создан в проекте. Он использует buildpack, который устанавливает FFmpeg.
+### ✅ Решение: Использовать buildpack с полной версией FFmpeg
 
-**Для установки полной версии FFmpeg:**
+Buildpack `heroku-buildpack-ffmpeg-latest` обычно устанавливает статическую сборку. Для установки полной версии нужно использовать другой подход.
+
+### Вариант 1: Использовать buildpack, который устанавливает полную версию (рекомендуется)
+
+1. В настройках App Platform → **"Settings"** → **"Build & Deploy"**
+2. Найдите раздел **"Buildpacks"**
+3. Убедитесь, что buildpack для FFmpeg добавлен первым:
+   - `https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git`
+   - `https://github.com/heroku/heroku-buildpack-nodejs.git`
+4. В **"Build Command"** используйте стандартную команду:
+   ```bash
+   npm run build
+   ```
+
+**Примечание**: Buildpack `heroku-buildpack-ffmpeg-latest` может устанавливать статическую сборку. Если это так, используйте Вариант 2.
+
+### Вариант 2: Установка через apt-get без sudo (если buildpack запускается от root)
+
+Если buildpack запускается от root (что часто бывает), можно попробовать установить без sudo:
 
 1. В настройках App Platform → **"Settings"** → **"Build & Deploy"**
 2. Найдите раздел **"Build Command"**
-3. Добавьте перед `npm run build`:
+3. Замените на:
    ```bash
-   sudo apt-get update && sudo apt-get install -y ffmpeg ffprobe && npm run build
+   apt-get update && apt-get install -y ffmpeg ffprobe && npm run build
    ```
+   (без `sudo` - если buildpack запускается от root)
 
-Или используйте альтернативный buildpack, который устанавливает полную версию:
+### Вариант 3: Использовать статическую сборку с обходными путями (текущий вариант)
 
-Замените содержимое `.buildpacks` на:
-```
-https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git
-https://github.com/heroku/heroku-buildpack-nodejs.git
-```
+Если установка полной версии не работает, код уже адаптирован для работы со статической сборкой:
+- Использует `-stream_loop` вместо фильтра `loop`
+- Использует `text` вместо `textfile` в `drawtext`
 
-### Вариант 2: Через настройки App Platform
-
-1. В настройках приложения найдите **"Build Phase"**
-2. Добавьте **Custom Buildpack**:
-   - URL: `https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git`
-3. В **"Build Command"** добавьте установку полной версии:
-   ```bash
-   sudo apt-get update && sudo apt-get install -y ffmpeg ffprobe && npm run build
-   ```
-
-### Вариант 3: Через скрипт (уже настроен)
-
-Скрипт `scripts/install-ffmpeg.sh` автоматически пытается установить полную версию через apt-get, если доступны права sudo. Если нет - использует статическую сборку.
+Скрипт `scripts/install-ffmpeg.sh` автоматически пытается установить полную версию через apt-get, если доступны права. Если нет - использует статическую сборку.
 
 ---
 
@@ -222,13 +227,12 @@ Rendering progress: 50 %
 - ✅ `FFmpeg installed via apt-get` - полная версия (рекомендуется)
 - ⚠️ `Static FFmpeg build installed` - статическая сборка (может не поддерживать все фильтры)
 
+**Важно**: Используйте стандартный Build Command `npm run build`. Скрипт `install-ffmpeg.sh` автоматически попытается установить полную версию, если buildpack запускается от root.
+
 Если установлена статическая сборка, но нужна полная версия:
-1. В настройках App Platform → **"Settings"** → **"Build & Deploy"**
-2. Добавьте в **"Build Command"**:
-   ```bash
-   sudo apt-get update && sudo apt-get install -y ffmpeg ffprobe && npm run build
-   ```
-3. Пересоберите приложение
+1. Убедитесь, что buildpack для FFmpeg добавлен первым в списке buildpacks
+2. Проверьте логи сборки - возможно buildpack не запускается от root
+3. Код уже адаптирован для работы со статической сборкой (использует `-stream_loop` и `text` вместо `textfile`)
 
 ---
 
