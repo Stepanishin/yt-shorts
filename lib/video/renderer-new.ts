@@ -34,6 +34,11 @@ async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; std
       `${basePath}/usr/lib/pulseaudio`,
       `${basePath}/lib/x86_64-linux-gnu/pulseaudio`,
       `${basePath}/lib/pulseaudio`,
+      // BLAS и LAPACK могут быть в поддиректориях
+      `${basePath}/usr/lib/x86_64-linux-gnu/blas`,
+      `${basePath}/usr/lib/x86_64-linux-gnu/lapack`,
+      `${basePath}/usr/lib/blas`,
+      `${basePath}/usr/lib/lapack`,
     ];
     
     for (const p of paths) {
@@ -214,7 +219,7 @@ async function getMediaDuration(filePath: string): Promise<number> {
         // Игнорируем ошибки ldconfig
       }
 
-      const missingLibs = ['libblas.so.3', 'libblas.so', 'libpulsecommon-15.99.so', 'libvpx.so.7'];
+      const missingLibs = ['libblas.so.3', 'libblas.so', 'liblapack.so.3', 'liblapack.so', 'libpulsecommon-15.99.so', 'libvpx.so.7'];
       const searchPaths = [
         '/layers/digitalocean_apt/apt',
         '/app/.apt',
@@ -222,6 +227,11 @@ async function getMediaDuration(filePath: string): Promise<number> {
         '/lib',
         '/usr/lib/x86_64-linux-gnu',
         '/lib/x86_64-linux-gnu',
+        // Специальные поддиректории для BLAS/LAPACK
+        '/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu/blas',
+        '/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu/lapack',
+        '/app/.apt/usr/lib/x86_64-linux-gnu/blas',
+        '/app/.apt/usr/lib/x86_64-linux-gnu/lapack',
       ];
       
       for (const libName of missingLibs) {
@@ -572,6 +582,11 @@ export async function renderVideoNew(
           `${basePath}/usr/lib/pulseaudio`,
           `${basePath}/lib/x86_64-linux-gnu/pulseaudio`,
           `${basePath}/lib/pulseaudio`,
+          // BLAS и LAPACK могут быть в поддиректориях
+          `${basePath}/usr/lib/x86_64-linux-gnu/blas`,
+          `${basePath}/usr/lib/x86_64-linux-gnu/lapack`,
+          `${basePath}/usr/lib/blas`,
+          `${basePath}/usr/lib/lapack`,
         ];
         
         for (const p of paths) {
