@@ -2,10 +2,53 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
+import * as fsSync from "fs";
 import ffmpeg from "fluent-ffmpeg";
 import { uploadVideoToSpaces, isSpacesConfigured } from "@/lib/storage/spaces-client";
 
 const execAsync = promisify(exec);
+
+/**
+ * Выполняет команду с правильными переменными окружения для FFmpeg
+ * Устанавливает LD_LIBRARY_PATH для загрузки библиотек FFmpeg
+ */
+async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; stderr: string }> {
+  // Пути к библиотекам FFmpeg в DigitalOcean APT buildpack
+  const libraryPaths = [
+    "/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu",
+    "/layers/digitalocean_apt/apt/usr/lib",
+    "/app/.apt/usr/lib/x86_64-linux-gnu",
+    "/app/.apt/usr/lib",
+  ].filter((p) => {
+    try {
+      // Проверяем существование директории (синхронно для простоты)
+      return fsSync.existsSync(p);
+    } catch {
+      return false;
+    }
+  });
+
+  const currentLdLibraryPath = process.env.LD_LIBRARY_PATH || "";
+  const newLdLibraryPath = [...libraryPaths, currentLdLibraryPath]
+    .filter(Boolean)
+    .join(":");
+
+  const env = {
+    ...process.env,
+    LD_LIBRARY_PATH: newLdLibraryPath,
+    PATH: process.env.PATH || "",
+  };
+
+  return new Promise((resolve, reject) => {
+    exec(command, { env }, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve({ stdout, stderr });
+      }
+    });
+  });
+}
 
 /**
  * Новый рендерер для конструктора видео
@@ -105,7 +148,7 @@ async function checkFFmpegAvailable(): Promise<boolean> {
   // Просто пытаемся выполнить ffmpeg -version для логирования
   // Если не получится, ошибка будет видна в логах FFmpeg при выполнении команды
   try {
-    const { stdout } = await execAsync("ffmpeg -version 2>&1");
+    const { stdout } = await execWithFFmpegEnv("ffmpeg -version 2>&1");
     const versionLine = stdout.split('\n')[0];
     console.log("✅ FFmpeg found:", versionLine);
     
@@ -129,7 +172,7 @@ async function checkFFmpegAvailable(): Promise<boolean> {
  */
 async function getMediaDuration(filePath: string): Promise<number> {
   try {
-    const { stdout } = await execAsync(
+    const { stdout } = await execWithFFmpegEnv(
       `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`
     );
     return parseFloat(stdout.trim()) || 0;
@@ -417,8 +460,47 @@ export async function renderVideoNew(
       const filterComplex = filterChain.join(";");
       console.log("Filter complex:", filterComplex);
 
+      // Находим путь к FFmpeg
+      let ffmpegPath = "ffmpeg";
+      try {
+        const { stdout: whichPath } = await execAsync("which ffmpeg 2>/dev/null");
+        const foundPath = whichPath.trim();
+        if (foundPath && foundPath.includes('ffmpeg')) {
+          ffmpegPath = foundPath;
+        }
+      } catch (e) {
+        // Используем стандартный путь
+      }
+
+      // Настраиваем переменные окружения для fluent-ffmpeg
+      const libraryPaths = [
+        "/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu",
+        "/layers/digitalocean_apt/apt/usr/lib",
+        "/app/.apt/usr/lib/x86_64-linux-gnu",
+        "/app/.apt/usr/lib",
+      ].filter((p) => {
+        try {
+          return fsSync.existsSync(p);
+        } catch {
+          return false;
+        }
+      });
+
+      const currentLdLibraryPath = process.env.LD_LIBRARY_PATH || "";
+      const newLdLibraryPath = [...libraryPaths, currentLdLibraryPath]
+        .filter(Boolean)
+        .join(":");
+
       // Создаем FFmpeg команду
       let command = ffmpeg(tempBackgroundPath);
+      
+      // Настраиваем путь к FFmpeg и переменные окружения
+      if (ffmpegPath !== "ffmpeg") {
+        command.setFfmpegPath(ffmpegPath);
+      }
+      
+      // Настраиваем переменные окружения перед выполнением команды
+      process.env.LD_LIBRARY_PATH = newLdLibraryPath;
 
       // Для видео используем -stream_loop для зацикливания вместо фильтра loop
       // Используем -1 для бесконечного зацикливания, потом обрежем через trim

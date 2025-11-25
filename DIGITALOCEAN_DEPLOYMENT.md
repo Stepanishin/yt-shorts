@@ -103,8 +103,9 @@ NEXT_PUBLIC_APP_URL=https://your-app-name.ondigitalocean.app
 # Node Environment
 NODE_ENV=production
 
-# FFmpeg PATH (для APT buildpack)
-PATH=/app/.apt/usr/bin:$PATH
+# FFmpeg PATH и библиотеки (для APT buildpack)
+PATH=/layers/digitalocean_apt/apt/usr/bin:$PATH
+LD_LIBRARY_PATH=/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu:/layers/digitalocean_apt/apt/usr/lib:$LD_LIBRARY_PATH
 ```
 
 ### 📝 Как сгенерировать секретные ключи:
@@ -159,8 +160,9 @@ DigitalOcean App Platform не включает FFmpeg по умолчанию. 
 
 **Как это работает:**
 - APT buildpack устанавливает FFmpeg из репозиториев Ubuntu/Debian (полная версия)
-- FFmpeg будет установлен в `/app/.apt/usr/bin/ffmpeg`
-- Скрипт автоматически добавляет путь в `PATH`
+- FFmpeg будет установлен в `/layers/digitalocean_apt/apt/usr/bin/ffmpeg`
+- Библиотеки будут в `/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu/`
+- Нужно настроить переменные `PATH` и `LD_LIBRARY_PATH` в Environment Variables
 
 **Проверка после деплоя:**
 В логах сборки вы должны увидеть:
@@ -229,16 +231,20 @@ Rendering progress: 50 %
 - ✅ `FFmpeg installed via APT buildpack` - полная версия установлена
 - ✅ `Full FFmpeg version detected (supports drawtext filter)` - фильтр drawtext доступен
 
-**⚠️ ВАЖНО: Настройка PATH в Runtime**
+**⚠️ ВАЖНО: Настройка PATH и LD_LIBRARY_PATH в Runtime**
 
-APT buildpack устанавливает FFmpeg в `/app/.apt/usr/bin/ffmpeg`, но этот путь должен быть в переменной окружения `PATH` в runtime.
+APT buildpack устанавливает FFmpeg в `/layers/digitalocean_apt/apt/usr/bin/ffmpeg`, но пути должны быть в переменных окружения в runtime.
 
-**Обязательно добавьте переменную окружения:**
+**Обязательно добавьте переменные окружения:**
 1. В настройках App Platform → **"Settings"** → **"Environment Variables"**
-2. Добавьте переменную:
+2. Добавьте переменные:
    - **Name**: `PATH`
-   - **Value**: `/app/.apt/usr/bin:$PATH`
+     **Value**: `/layers/digitalocean_apt/apt/usr/bin:$PATH`
+   - **Name**: `LD_LIBRARY_PATH`
+     **Value**: `/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu:/layers/digitalocean_apt/apt/usr/lib:$LD_LIBRARY_PATH`
 3. Сохраните и перезапустите приложение
+
+**Примечание**: `LD_LIBRARY_PATH` необходим для загрузки библиотек FFmpeg (например, `libvpx.so.7`).
 
 **Если FFmpeg не найден в runtime:**
 1. Проверьте логи runtime - там должно быть сообщение `🔍 Current PATH:` с текущим значением PATH
