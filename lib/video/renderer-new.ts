@@ -106,29 +106,44 @@ function createEmojiAnimationExpression(
  * опциональные фильтры. Поэтому мы используем -stream_loop вместо фильтра loop.
  */
 async function checkFFmpegAvailable(): Promise<boolean> {
-  try {
-    const { stdout, stderr } = await execAsync("ffmpeg -version");
-    const versionLine = stdout.split('\n')[0];
-    console.log("✅ FFmpeg found:", versionLine);
-    
-    // Проверяем, является ли это статической сборкой
-    if (versionLine.includes('static') || versionLine.includes('johnvansickle')) {
-      console.log("⚠️  Static FFmpeg build detected - some filters may not be available");
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("❌ FFmpeg not found:", error);
-    // Пробуем альтернативный путь (для production)
+  // Список возможных путей к FFmpeg (в порядке приоритета)
+  const ffmpegPaths = [
+    "ffmpeg", // Стандартный путь (если в PATH)
+    "/app/.apt/usr/bin/ffmpeg", // APT buildpack путь
+    "/usr/bin/ffmpeg", // Системный путь
+    "/usr/local/bin/ffmpeg", // Локальная установка
+  ];
+
+  for (const ffmpegPath of ffmpegPaths) {
     try {
-      const { stdout } = await execAsync("which ffmpeg");
-      console.log("✅ FFmpeg found at:", stdout.trim());
+      const { stdout, stderr } = await execAsync(`${ffmpegPath} -version`);
+      const versionLine = stdout.split('\n')[0];
+      console.log(`✅ FFmpeg found at ${ffmpegPath}:`, versionLine);
+      
+      // Проверяем, является ли это статической сборкой
+      if (versionLine.includes('static') || versionLine.includes('johnvansickle')) {
+        console.log("⚠️  Static FFmpeg build detected - some filters may not be available");
+      } else {
+        // Проверяем поддержку drawtext (признак полной версии)
+        try {
+          const { stdout: filters } = await execAsync(`${ffmpegPath} -filters 2>/dev/null | grep drawtext || echo ""`);
+          if (filters.includes('drawtext')) {
+            console.log("✅ Full FFmpeg version detected (supports drawtext filter)");
+          }
+        } catch (e) {
+          // Игнорируем ошибки проверки фильтров
+        }
+      }
+      
       return true;
-    } catch (e) {
-      console.error("❌ FFmpeg not in PATH:", e);
-      return false;
+    } catch (error) {
+      // Пробуем следующий путь
+      continue;
     }
   }
+
+  console.error("❌ FFmpeg not found in any of the expected locations");
+  return false;
 }
 
 /**

@@ -6,14 +6,28 @@
 
 echo "📦 Installing FFmpeg..."
 
-# Проверяем, установлен ли уже FFmpeg
+# Проверяем, установлен ли уже FFmpeg через APT buildpack
+if [ -f "/app/.apt/usr/bin/ffmpeg" ]; then
+  echo "✅ FFmpeg installed via APT buildpack:"
+  /app/.apt/usr/bin/ffmpeg -version | head -n 1
+  
+  # Проверяем, поддерживает ли фильтр drawtext (признак полной версии)
+  if /app/.apt/usr/bin/ffmpeg -filters 2>/dev/null | grep -q "drawtext"; then
+    echo "✅ Full FFmpeg version detected (supports drawtext filter)"
+    # Добавляем путь к FFmpeg в PATH
+    export PATH="/app/.apt/usr/bin:$PATH"
+    exit 0
+  fi
+fi
+
+# Проверяем, установлен ли уже FFmpeg в системе
 if command -v ffmpeg &> /dev/null; then
   echo "✅ FFmpeg already installed:"
   ffmpeg -version | head -n 1
   
-  # Проверяем, поддерживает ли фильтр loop (признак полной версии)
-  if ffmpeg -filters 2>/dev/null | grep -q "loop"; then
-    echo "✅ Full FFmpeg version detected (supports all filters)"
+  # Проверяем, поддерживает ли фильтр drawtext (признак полной версии)
+  if ffmpeg -filters 2>/dev/null | grep -q "drawtext"; then
+    echo "✅ Full FFmpeg version detected (supports drawtext filter)"
     exit 0
   else
     echo "⚠️  Static FFmpeg detected, will try to install full version"
