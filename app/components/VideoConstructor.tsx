@@ -52,7 +52,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [videoDescription, setVideoDescription] = useState("");
   const [generatingBackground, setGeneratingBackground] = useState(false);
   const [generatingAudio, setGeneratingAudio] = useState(false);
-  const [backgroundModel, setBackgroundModel] = useState<"ray-v1">("ray-v1");
+  const [backgroundModel, setBackgroundModel] = useState<"ray-v1" | "hailuo-t2v-01">("ray-v1");
   const [audioModel, setAudioModel] = useState<"llm">("llm");
   const [backgroundPrompt, setBackgroundPrompt] = useState<string>("");
   const [audioPrompt, setAudioPrompt] = useState<string>("");
@@ -408,7 +408,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const handleGenerateBackground = async () => {
     // Определяем стоимость на основе модели
     const modelCosts: Record<string, number> = {
-      "ray-v1": 35,
+      "ray-v1": 35, // Luma Dream Machine - $0.35
+      "hailuo-t2v-01": 35, // Hailuo Text-to-Video - $0.35
     };
     const requiredCredits = modelCosts[backgroundModel];
     const confirmMessage = `Генерация фона (${backgroundModel}) стоит ${requiredCredits} кредитов (€${(requiredCredits / 100).toFixed(2)}). Продолжить?`;
@@ -668,11 +669,12 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               <div className="flex gap-2 mb-2">
                 <select
                   value={backgroundModel}
-                  onChange={(e) => setBackgroundModel(e.target.value as "ray-v1")}
+                  onChange={(e) => setBackgroundModel(e.target.value as "ray-v1" | "hailuo-t2v-01")}
                   className="border rounded px-3 py-2 text-sm"
                   title="Модель для генерации фона"
                 >
-                  <option value="ray-v1">Luma Ray v1 (35 кредитов)</option>
+                  <option value="ray-v1">Luma Ray v1 (35 кредитов / $0.35)</option>
+                  <option value="hailuo-t2v-01">Hailuo T2V-01 (35 кредитов / $0.35)</option>
                 </select>
               </div>
 

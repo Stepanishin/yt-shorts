@@ -2,7 +2,7 @@ export interface GenerateBackgroundOptions {
   jokeText: string;
   jokeTitle?: string;
   style?: "nature" | "abstract" | "minimalist";
-  modelName?: "ray-v1"; // Пока только одна модель доступна
+  modelName?: "ray-v1" | "hailuo-t2v-01"; // Luma Dream Machine или Hailuo
 }
 
 export interface GenerateBackgroundResult {
@@ -42,21 +42,36 @@ export async function generateBackground(
         throw new Error("PIAPI_X_API_KEY environment variable is not set");
       }
 
-      // Генерируем видео через PiAPI/Luma Dream Machine
-      // Согласно документации: POST https://api.piapi.ai/api/v1/task
-      const response = await fetch("https://api.piapi.ai/api/v1/task", {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      // Определяем параметры в зависимости от модели
+      let requestBody: any;
+
+      if (modelName === "hailuo-t2v-01") {
+        // Hailuo API
+        requestBody = {
+          model: "hailuo",
+          task_type: "text_to_video",
+          input: {
+            prompt: prompt,
+            model_name: "t2v-01", // Hailuo text-to-video model
+            duration: 5, // 5 секунд
+          },
+          config: {
+            webhook_config: {
+              endpoint: "",
+              secret: "",
+            },
+            service_mode: "public", // PAYG mode - $0.20
+          },
+        };
+      } else {
+        // Luma Dream Machine API (default)
+        requestBody = {
           model: "luma",
           task_type: "video_generation",
           input: {
             prompt: prompt,
             model_name: modelName,
-            duration: 5, // 10 секунд для txt2video (можно использовать 5)
+            duration: 5, // 5 секунд для txt2video
             aspect_ratio: "9:16", // Вертикальный формат для YouTube Shorts
             resolution: 540, // 768 (поддерживается 6s/10s; 1080p+10s нельзя)
           },
@@ -67,13 +82,25 @@ export async function generateBackground(
             },
             service_mode: "public", // PAYG mode
           },
-        }),
+        };
+      }
+
+      // Генерируем видео через PiAPI
+      // Согласно документации: POST https://api.piapi.ai/api/v1/task
+      const response = await fetch("https://api.piapi.ai/api/v1/task", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("PiAPI/Luma error:", response.status, errorText);
-        throw new Error(`PiAPI/Luma request failed: ${response.status} ${errorText}`);
+        const modelType = modelName === "hailuo-t2v-01" ? "Hailuo" : "Luma";
+        console.error(`PiAPI/${modelType} error:`, response.status, errorText);
+        throw new Error(`PiAPI/${modelType} request failed: ${response.status} ${errorText}`);
       }
 
       const responseData = await response.json();
@@ -84,13 +111,15 @@ export async function generateBackground(
       const status = responseData.data?.status || responseData.status;
 
       if (!taskId) {
-        console.error("Unexpected PiAPI/Luma response format:", JSON.stringify(responseData, null, 2));
-        throw new Error(`Unexpected PiAPI/Luma response format: ${JSON.stringify(responseData)}`);
+        const modelType = modelName === "hailuo-t2v-01" ? "Hailuo" : "Luma";
+        console.error(`Unexpected PiAPI/${modelType} response format:`, JSON.stringify(responseData, null, 2));
+        throw new Error(`Unexpected PiAPI/${modelType} response format: ${JSON.stringify(responseData)}`);
       }
 
       // Асинхронная генерация - нужно ждать завершения
-      console.log(`Video generation task created. Task ID: ${taskId}, Status: ${status}`);
-      const videoUrl = await pollForLumaCompletion(apiKey, taskId);
+      const modelType = modelName === "hailuo-t2v-01" ? "Hailuo" : "Luma";
+      console.log(`${modelType} video generation task created. Task ID: ${taskId}, Status: ${status}`);
+      const videoUrl = await pollForCompletion(apiKey, taskId, modelType);
 
       // Успех! Возвращаем результат
       console.log(`Background generation successful on attempt ${attempt}`);
@@ -119,11 +148,11 @@ export async function generateBackground(
 
 
 /**
- * Ожидает завершения генерации видео через Luma Dream Machine
+ * Ожидает завершения генерации видео через Luma или Hailuo
  * Проверяет статус задачи через GET /api/v1/task/{task_id}
- * Таймаут: 10 минут (200 попыток * 3 секунды)
+ * Таймаут: 10 минут (300 попыток * 3 секунды)
  */
-async function pollForLumaCompletion(apiKey: string, taskId: string, maxAttempts = 300): Promise<string> {
+async function pollForCompletion(apiKey: string, taskId: string, modelType: string = "Luma", maxAttempts = 300): Promise<string> {
   // Согласно документации: GET https://api.piapi.ai/api/v1/task/{task_id}
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
@@ -147,9 +176,9 @@ async function pollForLumaCompletion(apiKey: string, taskId: string, maxAttempts
       console.log(`Task ${taskId} status: ${status} (attempt ${attempt + 1}/${maxAttempts})`);
       
       // Успешное завершение
-      // Согласно документации Luma, статус может быть "Completed" (с большой буквы)
+      // Статус может быть "completed" или "Completed"
       if (status === "completed" || status === "Completed") {
-        // Согласно документации Luma, видео находится в data.output.video или data.output.video_raw
+        // Видео находится в data.output.video или data.output.video_raw
         // API может возвращать как строку URL, так и объект { url, width, height }
         const extractVideoUrl = (video: unknown): string | null => {
           if (!video) return null;
@@ -179,31 +208,31 @@ async function pollForLumaCompletion(apiKey: string, taskId: string, maxAttempts
           console.log("Background video generated successfully:", data.output?.video || data.output?.video_raw || { url: videoUrl });
           return videoUrl;
         }
-        
+
         // Логируем полный ответ для отладки
         console.error("Task completed but no video URL found. Full response:", JSON.stringify(responseData, null, 2));
-        throw new Error(`Video generation completed but no URL found. Response: ${JSON.stringify(responseData)}`);
+        throw new Error(`${modelType} video generation completed but no URL found. Response: ${JSON.stringify(responseData)}`);
       }
 
       // Ошибка генерации
       if (status === "failed" || status === "Failed") {
         const errorData = data.error || responseData.error || {};
         const errorMsg = errorData.message || errorData.raw_message || responseData.message || "Unknown error";
-        
+
         // Более понятные сообщения на русском для частых ошибок
         if (errorMsg.includes("insufficient credits") || errorMsg.includes("credit")) {
           throw new Error(
-            `Недостаточно кредитов на аккаунте PiAPI для генерации видео. ` +
+            `Недостаточно кредитов на аккаунте PiAPI для генерации видео (${modelType}). ` +
             `Пожалуйста, пополните баланс на https://piapi.ai или проверьте статус аккаунта. ` +
             `(Error: ${errorMsg})`
           );
         }
-        
-        throw new Error(`Luma video generation failed: ${errorMsg}`);
+
+        throw new Error(`${modelType} video generation failed: ${errorMsg}`);
       }
 
       // Если статус еще обрабатывается, ждем
-      // Согласно документации Luma: Processing, Pending, Staged
+      // Processing, Pending, Staged
       if (status === "processing" || status === "Processing" || 
           status === "pending" || status === "Pending" ||
           status === "staged" || status === "Staged") {
@@ -236,7 +265,7 @@ async function pollForLumaCompletion(apiKey: string, taskId: string, maxAttempts
     }
   }
 
-  throw new Error("Luma video generation timed out after 10 minutes");
+  throw new Error(`${modelType} video generation timed out after 10 minutes`);
 }
 
 
