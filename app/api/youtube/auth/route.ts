@@ -25,22 +25,27 @@ export async function GET(request: NextRequest) {
       hasYoutubeSettings: !!user.youtubeSettings,
       hasClientId: !!user.youtubeSettings?.clientId,
       hasClientSecret: !!user.youtubeSettings?.clientSecret,
-      clientId: user.youtubeSettings?.clientId?.substring(0, 20) + "...",
+      hasGlobalCredentials: !!(process.env.YOUTUBE_CLIENT_ID && process.env.YOUTUBE_CLIENT_SECRET),
     });
 
-    if (!user.youtubeSettings?.clientId || !user.youtubeSettings?.clientSecret) {
-      console.error("YouTube settings missing:", {
-        hasSettings: !!user.youtubeSettings,
-        hasClientId: !!user.youtubeSettings?.clientId,
-        hasClientSecret: !!user.youtubeSettings?.clientSecret,
+    // Используем пользовательские credentials, если они есть, иначе fallback на глобальные из env
+    const userSettings = (user.youtubeSettings?.clientId && user.youtubeSettings?.clientSecret)
+      ? user.youtubeSettings
+      : undefined;
+
+    // Если нет ни пользовательских, ни глобальных credentials - возвращаем ошибку
+    if (!userSettings && (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET)) {
+      console.error("YouTube credentials missing:", {
+        hasUserSettings: !!userSettings,
+        hasGlobalCredentials: !!(process.env.YOUTUBE_CLIENT_ID && process.env.YOUTUBE_CLIENT_SECRET),
       });
       return NextResponse.json(
-        { error: "YouTube OAuth credentials not configured. Please configure them in Settings." },
+        { error: "YouTube OAuth credentials not configured. Please configure them in Settings or contact administrator." },
         { status: 400 }
       );
     }
 
-    const oauth2Client = createOAuth2Client(user.youtubeSettings);
+    const oauth2Client = createOAuth2Client(userSettings);
     const authUrl = getAuthUrl(oauth2Client);
 
     // Редирект на страницу авторизации Google

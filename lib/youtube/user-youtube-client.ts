@@ -14,15 +14,22 @@ export async function getUserYouTubeClient(googleId: string): Promise<{ oauth2Cl
     throw new Error("User not found");
   }
 
-  if (!user.youtubeSettings) {
-    throw new Error("YouTube settings not configured. Please configure OAuth credentials in Settings.");
-  }
-
-  if (!user.youtubeSettings.accessToken) {
+  // Проверяем наличие токенов доступа
+  if (!user.youtubeSettings?.accessToken) {
     throw new Error("YouTube not connected. Please authorize YouTube access in Settings.");
   }
 
-  const oauth2Client = createOAuth2Client(user.youtubeSettings);
+  // Используем пользовательские credentials, если они есть, иначе fallback на глобальные
+  const userSettings = (user.youtubeSettings?.clientId && user.youtubeSettings?.clientSecret)
+    ? user.youtubeSettings
+    : undefined;
+
+  // Если нет ни пользовательских credentials, ни глобальных - ошибка
+  if (!userSettings && (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET)) {
+    throw new Error("YouTube settings not configured. Please configure OAuth credentials in Settings or contact administrator.");
+  }
+
+  const oauth2Client = createOAuth2Client(userSettings);
 
   // Set credentials from database
   setEncryptedCredentials(

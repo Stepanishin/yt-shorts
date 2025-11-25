@@ -85,13 +85,8 @@ export default function SettingsPage() {
   };
 
   const handleConnectYouTube = () => {
-    // Only check for clientId since clientSecret is not loaded back after saving (security)
-    if (!youtubeSettings.clientId) {
-      setMessage({ type: "error", text: "Please configure your YouTube OAuth settings first" });
-      setShowYouTubeForm(true);
-      return;
-    }
-
+    // Если у пользователя нет своих credentials, можно использовать глобальные (если они настроены)
+    // Проверка наличия credentials происходит на сервере
     const authWindow = window.open("/api/youtube/auth", "_blank", "width=600,height=700");
 
     const checkAuthInterval = setInterval(() => {
@@ -224,10 +219,17 @@ export default function SettingsPage() {
             {/* YouTube OAuth Configuration Form */}
             {showYouTubeForm && (
               <form onSubmit={handleSaveYouTubeSettings} className="mt-4 pt-4 border-t border-gray-200">
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    <strong>Опционально:</strong> Вы можете настроить свои собственные YouTube OAuth credentials, 
+                    или использовать глобальные настройки (если они настроены администратором). 
+                    Если вы не заполните эти поля, будут использоваться глобальные настройки.
+                  </p>
+                </div>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Google Cloud Client ID
+                      Google Cloud Client ID <span className="text-gray-500 font-normal">(опционально)</span>
                     </label>
                     <input
                       type="text"
@@ -237,7 +239,6 @@ export default function SettingsPage() {
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="123456789.apps.googleusercontent.com"
-                      required
                     />
                   </div>
 

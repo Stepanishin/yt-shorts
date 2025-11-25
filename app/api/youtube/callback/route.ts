@@ -36,19 +36,33 @@ export async function GET(request: NextRequest) {
     }
 
     const user = await getUserByGoogleId(session.user.id);
-    if (!user || !user.youtubeSettings) {
+    if (!user) {
       return NextResponse.redirect(
-        new URL("/dashboard/settings?youtube_error=settings_not_found", request.url)
+        new URL("/dashboard/settings?youtube_error=user_not_found", request.url)
       );
     }
 
-    const oauth2Client = createOAuth2Client(user.youtubeSettings);
+    // Используем те же credentials, что использовались в auth
+    // Если у пользователя есть свои credentials - используем их, иначе глобальные
+    const userSettings = (user.youtubeSettings?.clientId && user.youtubeSettings?.clientSecret)
+      ? user.youtubeSettings
+      : undefined;
+
+    // Проверяем наличие credentials (пользовательских или глобальных)
+    if (!userSettings && (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET)) {
+      return NextResponse.redirect(
+        new URL("/dashboard/settings?youtube_error=credentials_not_found", request.url)
+      );
+    }
+
+    const oauth2Client = createOAuth2Client(userSettings);
     const tokens = await getTokensFromCode(oauth2Client, code);
 
     console.log("YouTube tokens received:", {
       hasAccessToken: !!tokens.access_token,
       hasRefreshToken: !!tokens.refresh_token,
       expiryDate: tokens.expiry_date,
+      usingGlobalCredentials: !userSettings,
     });
 
     // Calculate token expiry date
@@ -57,10 +71,17 @@ export async function GET(request: NextRequest) {
       : new Date(Date.now() + 3600 * 1000); // Default: 1 hour from now
 
     // Update user's YouTube settings with encrypted tokens
+    // Если используются глобальные credentials, сохраняем их в настройки пользователя для будущего использования
     const updatedSettings = {
-      ...user.youtubeSettings,
-      accessToken: tokens.access_token ? encrypt(tokens.access_token) : user.youtubeSettings.accessToken,
-      refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : user.youtubeSettings.refreshToken,
+      ...(user.youtubeSettings || {}),
+      // Если используются глобальные credentials, сохраняем их
+      ...(userSettings ? {} : {
+        clientId: process.env.YOUTUBE_CLIENT_ID || "",
+        clientSecret: process.env.YOUTUBE_CLIENT_SECRET ? encrypt(process.env.YOUTUBE_CLIENT_SECRET) : "",
+        redirectUri: process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`,
+      }),
+      accessToken: tokens.access_token ? encrypt(tokens.access_token) : user.youtubeSettings?.accessToken,
+      refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : user.youtubeSettings?.refreshToken,
       tokenExpiresAt: expiresAt,
     };
 

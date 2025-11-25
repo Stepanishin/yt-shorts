@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import HeaderNew from "./components/HeaderNew";
+import Footer from "./components/Footer";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import SessionProvider from "./components/SessionProvider";
 
@@ -28,12 +29,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
         <SessionProvider>
           <LanguageProvider>
             <HeaderNew />
-            {children}
+            <main className="flex-grow">
+              {children}
+            </main>
+            <Footer />
           </LanguageProvider>
         </SessionProvider>
       </body>
