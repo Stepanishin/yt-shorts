@@ -14,11 +14,16 @@ const execAsync = promisify(exec);
  */
 async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; stderr: string }> {
   // Пути к библиотекам FFmpeg в DigitalOcean APT buildpack
+  // Добавляем все возможные пути, где могут быть библиотеки
   const libraryPaths = [
     "/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu",
     "/layers/digitalocean_apt/apt/usr/lib",
+    "/layers/digitalocean_apt/apt/lib/x86_64-linux-gnu",
+    "/layers/digitalocean_apt/apt/lib",
     "/app/.apt/usr/lib/x86_64-linux-gnu",
     "/app/.apt/usr/lib",
+    "/app/.apt/lib/x86_64-linux-gnu",
+    "/app/.apt/lib",
   ].filter((p) => {
     try {
       // Проверяем существование директории (синхронно для простоты)
@@ -476,8 +481,12 @@ export async function renderVideoNew(
       const libraryPaths = [
         "/layers/digitalocean_apt/apt/usr/lib/x86_64-linux-gnu",
         "/layers/digitalocean_apt/apt/usr/lib",
+        "/layers/digitalocean_apt/apt/lib/x86_64-linux-gnu",
+        "/layers/digitalocean_apt/apt/lib",
         "/app/.apt/usr/lib/x86_64-linux-gnu",
         "/app/.apt/usr/lib",
+        "/app/.apt/lib/x86_64-linux-gnu",
+        "/app/.apt/lib",
       ].filter((p) => {
         try {
           return fsSync.existsSync(p);
@@ -564,11 +573,17 @@ export async function renderVideoNew(
 
       outputOpts.push("-t", targetDuration.toString());
 
+      // Настраиваем переменные окружения для spawn процесса
+      // fluent-ffmpeg использует spawn, который наследует process.env
+      const originalLdLibraryPath = process.env.LD_LIBRARY_PATH;
+      process.env.LD_LIBRARY_PATH = newLdLibraryPath;
+
       command
         .outputOptions(outputOpts)
         .output(outputVideoPath)
         .on("start", (commandLine) => {
           console.log("FFmpeg command:", commandLine);
+          console.log("LD_LIBRARY_PATH:", process.env.LD_LIBRARY_PATH);
         })
         .on("progress", (progress) => {
           if (progress.percent) {
@@ -576,6 +591,13 @@ export async function renderVideoNew(
           }
         })
         .on("end", async () => {
+          // Восстанавливаем оригинальный LD_LIBRARY_PATH после завершения
+          if (originalLdLibraryPath !== undefined) {
+            process.env.LD_LIBRARY_PATH = originalLdLibraryPath;
+          } else {
+            delete process.env.LD_LIBRARY_PATH;
+          }
+          
           try {
             const finalDuration = await getMediaDuration(outputVideoPath);
 

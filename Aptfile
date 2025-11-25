@@ -1,4 +1,16 @@
 ffmpeg
 libvpx7
-libvpx-dev
+libpulse0
+libpulse-mainloop-glib0
+libpulsecommon-15.99
+libsndio7.0
+libopenal1
+libsdl2-2.0-0
+libavcodec58
+libavformat58
+libavutil56
+libswscale5
+libswresample3
+libavfilter7
+libavdevice58
 
