@@ -335,25 +335,28 @@ export async function renderVideoNew(
         const textX = te.x + boxPadding;
         const textY = te.y + boxPadding;
 
-        // Для многострочного текста лучше использовать textfile, так как text с переносами строк
-        // может вызывать проблемы в filter_complex. Создаем временный файл для текста.
-        const textFilePath = path.join(videosDir, `text_${jobId}_${i}.txt`);
-        textFilePaths.push(textFilePath);
-        
-        // Сохраняем текст в файл (сохраняем переносы строк как есть)
-        await fs.writeFile(textFilePath, te.text, 'utf-8');
+        // Статическая сборка FFmpeg не поддерживает textfile, используем text
+        // Для многострочного текста заменяем переносы строк на пробелы
+        // или используем line_spacing для визуального разделения строк
+        let processedText = te.text
+          .replace(/\r\n/g, ' ')  // Windows переносы строк -> пробел
+          .replace(/\n/g, ' ')    // Unix переносы строк -> пробел
+          .replace(/\r/g, ' ');   // Старые Mac переносы -> пробел
 
-        // Экранируем путь к файлу для использования в filter_complex
-        // В filter_complex нужно экранировать только двоеточие и обратный слэш
-        // Используем более простой подход - экранируем только необходимые символы
-        const escapedPath = textFilePath
+        // Экранируем текст для использования в параметре text фильтра drawtext
+        // Нужно экранировать специальные символы для filter_complex
+        const escapedText = processedText
           .replace(/\\/g, '\\\\')   // \ -> \\
-          .replace(/:/g, '\\:');     // : -> \:
+          .replace(/'/g, "\\'")      // ' -> \'
+          .replace(/:/g, '\\:')      // : -> \:
+          .replace(/\[/g, '\\[')     // [ -> \[
+          .replace(/\]/g, '\\]')     // ] -> \]
+          .replace(/,/g, '\\,')      // , -> \,
+          .replace(/;/g, '\\;');     // ; -> \;
 
-        // Используем textfile - это более надежно для многострочного текста
-        // Путь не оборачиваем в кавычки, так как это может вызывать проблемы
-        // Вместо этого правильно экранируем специальные символы
-        let drawtextFilter = `drawtext=textfile=${escapedPath}:fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
+        // Используем text - статическая сборка не поддерживает textfile
+        // Текст оборачиваем в одинарные кавычки для защиты от специальных символов
+        let drawtextFilter = `drawtext=text='${escapedText}':fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
 
         // Добавляем жирный шрифт если указано
         if (te.fontWeight === "bold") {
