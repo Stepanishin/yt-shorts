@@ -303,10 +303,10 @@ export async function renderVideoNew(
       // Обработка фона
       if (isVideoBackground) {
         // Зацикливаем видео
-        filterChain.push(`[0:v]loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black[base]`);
+        filterChain.push(`[0:v]loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black[base]`);
       } else {
         // Для изображения создаем видео нужной длительности
-        filterChain.push(`[0:v]loop=loop=-1:size=1,fps=fps=25,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black[base]`);
+        filterChain.push(`[0:v]loop=-1:size=1,fps=25,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black[base]`);
       }
 
       let currentLayer = "[base]";
@@ -367,7 +367,7 @@ export async function renderVideoNew(
 
         // Создаем фильтр для эмодзи
         const emojiLayer = `[emoji${i}]`;
-        let emojiFilter = `[${inputIndex}:v]fps=fps=25,scale=${ee.size}:${ee.size}`;
+        let emojiFilter = `[${inputIndex}:v]fps=25,scale=${ee.size}:${ee.size}`;
 
         // Добавляем анимацию fade
         if (ee.animation === "fade") {
@@ -434,7 +434,7 @@ export async function renderVideoNew(
 
         if (targetDuration > audioDuration) {
           const loops = Math.ceil(targetDuration / audioDuration);
-          audioFilter = `[${audioInputIndex}:a]aloop=loop=${loops}:size=2e+09,asetpts=N/SR/TB[audio]`;
+          audioFilter = `[${audioInputIndex}:a]aloop=${loops}:size=2e+09,asetpts=N/SR/TB[audio]`;
         } else {
           audioFilter = `[${audioInputIndex}:a]atrim=0:${targetDuration},asetpts=PTS-STARTPTS[audio]`;
         }
