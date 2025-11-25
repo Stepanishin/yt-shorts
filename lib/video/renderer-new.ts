@@ -426,6 +426,7 @@ export async function renderVideoNew(
       ];
 
       // Обработка аудио
+      let fullFilterComplex: string;
       if (hasAudioFile && tempAudioPath) {
         const audioInputIndex = 1 + emojiElements.length; // После фона и всех эмодзи
         let audioFilter: string;
@@ -438,14 +439,19 @@ export async function renderVideoNew(
         }
 
         // Объединяем видео и аудио фильтры
-        const fullFilterComplex = `${filterComplex};${audioFilter}`;
-        outputOpts.push("-filter_complex", fullFilterComplex);
-        outputOpts.push("-map", "[v]");
-        outputOpts.push("-map", "[audio]");
+        fullFilterComplex = `${filterComplex};${audioFilter}`;
       } else {
-        outputOpts.push("-filter_complex", filterComplex);
-        outputOpts.push("-map", "[v]");
-        outputOpts.push("-map", "0:a?");
+        fullFilterComplex = filterComplex;
+      }
+
+      // Применяем filter complex через complexFilter() вместо outputOptions
+      command = command.complexFilter(fullFilterComplex);
+
+      // Настраиваем маппинг выходов
+      if (hasAudioFile && tempAudioPath) {
+        command = command.outputOptions(["-map", "[v]", "-map", "[audio]"]);
+      } else {
+        command = command.outputOptions(["-map", "[v]", "-map", "0:a?"]);
       }
 
       outputOpts.push("-t", targetDuration.toString());
