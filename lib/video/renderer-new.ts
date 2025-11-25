@@ -106,16 +106,36 @@ function createEmojiAnimationExpression(
  * опциональные фильтры. Поэтому мы используем -stream_loop вместо фильтра loop.
  */
 async function checkFFmpegAvailable(): Promise<boolean> {
+  // Проверяем переменную окружения PATH
+  const currentPath = process.env.PATH || '';
+  console.log("🔍 Current PATH:", currentPath);
+  
   // Список возможных путей к FFmpeg (в порядке приоритета)
   const ffmpegPaths = [
     "ffmpeg", // Стандартный путь (если в PATH)
-    "/app/.apt/usr/bin/ffmpeg", // APT buildpack путь
+    "/app/.apt/usr/bin/ffmpeg", // APT buildpack путь (build time)
+    process.env.HOME ? `${process.env.HOME}/.apt/usr/bin/ffmpeg` : null, // APT buildpack путь (runtime)
+    "/workspace/.apt/usr/bin/ffmpeg", // Альтернативный путь APT buildpack
+    "/app/vendor/.apt/usr/bin/ffmpeg", // Еще один вариант APT buildpack
     "/usr/bin/ffmpeg", // Системный путь
     "/usr/local/bin/ffmpeg", // Локальная установка
-  ];
+    "/bin/ffmpeg", // Еще один системный путь
+  ].filter((path): path is string => path !== null);
+
+  console.log("🔍 Checking FFmpeg in the following locations:", ffmpegPaths);
 
   for (const ffmpegPath of ffmpegPaths) {
     try {
+      // Проверяем существование файла (если это абсолютный путь)
+      if (ffmpegPath.startsWith('/')) {
+        try {
+          await fs.access(ffmpegPath);
+        } catch {
+          // Файл не существует, пропускаем
+          continue;
+        }
+      }
+
       const { stdout, stderr } = await execAsync(`${ffmpegPath} -version`);
       const versionLine = stdout.split('\n')[0];
       console.log(`✅ FFmpeg found at ${ffmpegPath}:`, versionLine);
@@ -142,7 +162,23 @@ async function checkFFmpegAvailable(): Promise<boolean> {
     }
   }
 
+  // Пробуем найти через which/whereis
+  try {
+    const { stdout: whichPath } = await execAsync("which ffmpeg 2>/dev/null || whereis -b ffmpeg | awk '{print $2}' | head -1");
+    const foundPath = whichPath.trim();
+    if (foundPath && foundPath !== 'ffmpeg:' && foundPath !== '') {
+      console.log(`🔍 Trying to use FFmpeg found via which/whereis: ${foundPath}`);
+      const { stdout } = await execAsync(`${foundPath} -version`);
+      const versionLine = stdout.split('\n')[0];
+      console.log(`✅ FFmpeg found at ${foundPath}:`, versionLine);
+      return true;
+    }
+  } catch (e) {
+    // Игнорируем ошибки
+  }
+
   console.error("❌ FFmpeg not found in any of the expected locations");
+  console.error("💡 Make sure PATH environment variable includes /app/.apt/usr/bin or similar");
   return false;
 }
 
