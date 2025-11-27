@@ -5,8 +5,9 @@ import { generateBackground } from "@/lib/video/background-generator";
 
 // Стоимость в зависимости от модели
 const BACKGROUND_MODEL_COSTS: Record<string, number> = {
-  "ray-v1": 35, // 35 кредитов ($0.35) за генерацию фона через Luma Dream Machine
+  "ray-v1": 35, // 35 кредитов ($0.35) за генерацию фона через Luma Dream Machine (PiAPI)
   "hailuo-t2v-01": 35, // 35 кредитов ($0.35) за генерацию фона через Hailuo
+  "luma-direct": 25, // 25 кредитов ($0.25) за генерацию через прямой Luma API (Ray Flash 2: 540p·5sec, себестоимость $0.14)
 };
 
 /**
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     console.log("✅ User authenticated:", { userId: session.user.id, email: session.user.email });
 
     const body = await request.json();
-    const { text, style = "nature", modelName = "ray-v1" as "ray-v1" | "hailuo-t2v-01" } = body;
+    const { text, style = "nature", modelName = "ray-v1" as "ray-v1" | "hailuo-t2v-01" | "luma-direct" } = body;
 
     console.log("📝 Request params:", { text, style, modelName });
 
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
       const result = await generateBackground({
         jokeText: text || "Beautiful background video",
         style: style as "nature" | "abstract" | "minimalist",
-        modelName: modelName as "ray-v1" | "hailuo-t2v-01",
+        modelName: modelName as "ray-v1" | "hailuo-t2v-01" | "luma-direct",
       });
 
       console.log("Background generated:", result.videoUrl);

@@ -2,7 +2,7 @@ export interface GenerateBackgroundOptions {
   jokeText: string;
   jokeTitle?: string;
   style?: "nature" | "abstract" | "minimalist";
-  modelName?: "ray-v1" | "hailuo-t2v-01"; // Luma Dream Machine или Hailuo
+  modelName?: "ray-v1" | "hailuo-t2v-01" | "luma-direct"; // Luma Dream Machine через PiAPI, Hailuo или прямой Luma
 }
 
 export interface GenerateBackgroundResult {
@@ -12,7 +12,7 @@ export interface GenerateBackgroundResult {
 }
 
 /**
- * Генерирует видео фон для YouTube Shorts через PiAPI/Luma Dream Machine
+ * Генерирует видео фон для YouTube Shorts через PiAPI/Luma Dream Machine или прямой Luma API
  * Создает вертикальное видео (9:16) в природном стиле
  * При ошибке повторяет попытку после задержки
  */
@@ -22,6 +22,11 @@ export async function generateBackground(
   retryDelayMs = 60000
 ): Promise<GenerateBackgroundResult> {
   const { jokeText, jokeTitle, style = "nature", modelName = "ray-v1" } = options;
+
+  // Если выбран прямой Luma API, используем отдельную функцию
+  if (modelName === "luma-direct") {
+    return generateBackgroundViaDirect({ jokeText, jokeTitle, style }, maxRetries, retryDelayMs);
+  }
 
   let lastError: Error | null = null;
 
@@ -349,5 +354,67 @@ function createBackgroundPrompt(options: {
     : ", suitable for Spanish humor content";
 
   return `${basePrompt}${suffix}. Vertical format 9:16 ratio, high quality, cinematic, no text overlays, no people`;
+}
+
+/**
+ * Генерирует видео фон напрямую через Luma AI API
+ * Используется Ray Flash 2 для быстрой и недорогой генерации
+ * Стоимость: $0.14, цена для пользователя: $0.25
+ */
+async function generateBackgroundViaDirect(
+  options: { jokeText: string; jokeTitle?: string; style: "nature" | "abstract" | "minimalist" },
+  maxRetries = 3,
+  retryDelayMs = 60000
+): Promise<GenerateBackgroundResult> {
+  const { jokeText, jokeTitle, style } = options;
+  const { generateLumaVideo } = await import("./luma-direct");
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Luma direct background generation attempt ${attempt}/${maxRetries}`);
+
+      // Создаем промпт для генерации видео фона
+      const prompt = createBackgroundPrompt({
+        jokeText,
+        jokeTitle,
+        style,
+      });
+
+      console.log("Generating background via Luma direct API with prompt:", prompt);
+
+      // Генерируем видео через прямой Luma API
+      // Ray Flash 2: 540p, 5s - быстро и дешево
+      const result = await generateLumaVideo({
+        prompt,
+        model: "ray-flash-2",
+        resolution: "540p",
+        duration: "5s",
+      });
+
+      console.log(`Luma direct background generation successful on attempt ${attempt}`);
+
+      return {
+        videoUrl: result.videoUrl,
+        revisedPrompt: prompt,
+        generationId: result.generationId,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`Luma direct generation attempt ${attempt}/${maxRetries} failed:`, lastError.message);
+
+      // Если это не последняя попытка, ждем перед повторной попыткой
+      if (attempt < maxRetries) {
+        console.log(`Waiting ${retryDelayMs / 1000} seconds before retry...`);
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
+  }
+
+  // Все попытки исчерпаны
+  throw new Error(
+    `Failed to generate background via Luma direct after ${maxRetries} attempts. Last error: ${lastError?.message || 'Unknown error'}`
+  );
 }
 
