@@ -939,16 +939,6 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           </div>
         )}
 
-        {/* Кнопка рендеринга */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <button
-            onClick={handleRender}
-            disabled={isRendering}
-            className="w-full bg-green-500 text-white rounded px-4 py-3 font-semibold hover:bg-green-600 disabled:bg-gray-400"
-          >
-            {isRendering ? "Создание видео..." : "Создать видео"}
-          </button>
-        </div>
       </div>
 
       {/* Область предпросмотра */}
@@ -1046,6 +1036,17 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               ))}
             </div>
           </div>
+
+          {/* Кнопка рендеринга под preview */}
+          <div className="mt-4">
+            <button
+              onClick={handleRender}
+              disabled={isRendering}
+              className="w-full bg-green-500 text-white rounded px-4 py-3 font-semibold hover:bg-green-600 disabled:bg-gray-400"
+            >
+              {isRendering ? "Создание видео..." : "Создать видео"}
+            </button>
+          </div>
         </div>
 
         {/* Готовое видео */}
@@ -1053,46 +1054,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           <div className="bg-white rounded-lg shadow p-4 mt-6">
             <h2 className="text-lg font-semibold mb-3">Готовое видео</h2>
 
-            {/* Настройки публикации */}
-            <div className="mb-4 space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Название видео (опционально)
-                </label>
-                <input
-                  type="text"
-                  value={videoTitle}
-                  onChange={(e) => setVideoTitle(e.target.value)}
-                  placeholder="Оставьте пустым для генерации AI"
-                  className="w-full border rounded px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Описание (опционально)
-                </label>
-                <textarea
-                  value={videoDescription}
-                  onChange={(e) => setVideoDescription(e.target.value)}
-                  placeholder="Оставьте пустым для генерации AI"
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  rows={2}
-                />
-              </div>
-
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={useAITitle}
-                  onChange={(e) => setUseAITitle(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                />
-                <span>🤖 Использовать AI для генерации названия и описания</span>
-              </label>
-            </div>
-
-            {/* Кнопки действий */}
+            {/* Кнопки действий сверху */}
             <div className="flex gap-2 mb-3">
               <button
                 onClick={handleUploadToYouTube}
@@ -1136,11 +1098,59 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               </div>
             )}
 
-            <video
-              src={renderedVideoUrl}
-              controls
-              className="w-full rounded"
-            />
+            {/* Видео по центру с размером как у preview */}
+            <div className="flex justify-center mb-4">
+              <div style={{ width: VIDEO_WIDTH * PREVIEW_SCALE }}>
+                <video
+                  src={renderedVideoUrl}
+                  controls
+                  className="w-full rounded bg-black"
+                  style={{
+                    maxHeight: VIDEO_HEIGHT * PREVIEW_SCALE,
+                    objectFit: "contain"
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Настройки публикации */}
+            <div className="mb-4 space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Название видео (опционально)
+                </label>
+                <input
+                  type="text"
+                  value={videoTitle}
+                  onChange={(e) => setVideoTitle(e.target.value)}
+                  placeholder="Оставьте пустым для генерации AI"
+                  className="w-full border rounded px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Описание (опционально)
+                </label>
+                <textarea
+                  value={videoDescription}
+                  onChange={(e) => setVideoDescription(e.target.value)}
+                  placeholder="Оставьте пустым для генерации AI"
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  rows={2}
+                />
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useAITitle}
+                  onChange={(e) => setUseAITitle(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <span>🤖 Использовать AI для генерации названия и описания</span>
+              </label>
+            </div>
           </div>
         )}
       </div>
