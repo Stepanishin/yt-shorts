@@ -832,7 +832,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                     id: Math.random().toString(36).substr(2, 9),
                     text: "SUBSCRIBE",
                     x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
-                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 150),
+                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 300), // Поднято на 150px (было -150)
                     fontSize: 40,
                     color: "white@1",
                     backgroundColor: "red@0.8",
@@ -847,7 +847,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                     id: Math.random().toString(36).substr(2, 9),
                     emoji: "👇",
                     x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2),
-                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 90),
+                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 240), // Поднято на 150px (было -90)
                     size: 60,
                     animation: "bounce",
                   };
@@ -863,7 +863,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                     id: Math.random().toString(36).substr(2, 9),
                     text: "SUSCRIBETE",
                     x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
-                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 150),
+                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 300), // Поднято на 150px (было -150)
                     fontSize: 40,
                     color: "white@1",
                     backgroundColor: "red@0.8",
@@ -878,7 +878,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                     id: Math.random().toString(36).substr(2, 9),
                     emoji: "👇",
                     x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2),
-                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 90),
+                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 240), // Поднято на 150px (было -90)
                     size: 60,
                     animation: "bounce",
                   };
