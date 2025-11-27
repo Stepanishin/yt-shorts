@@ -49,53 +49,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Проверяем и списываем кредиты перед генерацией (используем MongoDB _id)
-    try {
-      await deductCredits(user._id.toString(), cost);
-      console.log("✅ Credits deducted successfully");
-
-      // Проверяем баланс после списания
-      const userAfter = await getUserByGoogleId(session.user.id);
-      console.log("💰 User balance after deduction:", userAfter?.credits);
-    } catch (error) {
-      console.error("❌ Failed to deduct credits:", error);
+    // Проверяем баланс пользователя БЕЗ списания (просто проверка достаточности средств)
+    if ((user.credits || 0) < cost) {
+      console.error("❌ Insufficient credits:", { current: user.credits, required: cost });
       return NextResponse.json(
         {
-          error: error instanceof Error ? error.message : "Insufficient credits",
+          error: "Insufficient credits",
           requiredCredits: cost,
+          currentCredits: user.credits || 0,
         },
         { status: 402 } // 402 Payment Required
       );
     }
 
+    console.log("✅ User has sufficient credits:", { current: user.credits, required: cost });
+
+    // Генерируем фон
+    const result = await generateBackground({
+      jokeText: text || "Beautiful background video",
+      style: style as "nature" | "abstract" | "minimalist",
+      modelName: modelName as "ray-v1" | "hailuo-t2v-01" | "luma-direct",
+    });
+
+    console.log("✅ Background generated successfully:", result.videoUrl);
+
+    // Списываем кредиты ТОЛЬКО после успешной генерации
     try {
-      // Генерируем фон
-      const result = await generateBackground({
-        jokeText: text || "Beautiful background video",
-        style: style as "nature" | "abstract" | "minimalist",
-        modelName: modelName as "ray-v1" | "hailuo-t2v-01" | "luma-direct",
-      });
+      await deductCredits(user._id.toString(), cost);
+      console.log("✅ Credits deducted after successful generation");
 
-      console.log("Background generated:", result.videoUrl);
-
-      return NextResponse.json({
-        success: true,
-        videoUrl: result.videoUrl,
-        generationId: result.generationId,
-      });
-    } catch (error) {
-      // Если генерация не удалась, возвращаем кредиты
-      console.error("Background generation failed, refunding credits:", error);
-      try {
-        const { addCredits } = await import("@/lib/db/users");
-        await addCredits(user._id.toString(), cost);
-        console.log("✅ Credits refunded");
-      } catch (refundError) {
-        console.error("Failed to refund credits:", refundError);
-      }
-
-      throw error;
+      // Проверяем баланс после списания
+      const userAfter = await getUserByGoogleId(session.user.id);
+      console.log("💰 User balance after deduction:", userAfter?.credits);
+    } catch (deductError) {
+      console.error("⚠️ Failed to deduct credits after generation:", deductError);
+      // Генерация прошла успешно, но не удалось списать кредиты
+      // Возвращаем результат, но логируем ошибку для расследования
     }
+
+    return NextResponse.json({
+      success: true,
+      videoUrl: result.videoUrl,
+      generationId: result.generationId,
+    });
   } catch (error) {
     console.error("Error generating background:", error);
     return NextResponse.json(
