@@ -225,6 +225,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       color: "black@1",
       backgroundColor: "white@0.6",
       boxPadding: 10,
+      fontWeight: "bold", // Жирный шрифт по умолчанию
     };
     setTextElements([...textElements, newElement]);
     setSelectedTextId(newElement.id);
@@ -374,7 +375,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             color: el.color,
             backgroundColor: el.backgroundColor,
             boxPadding: el.boxPadding,
-            fontWeight: el.fontWeight || "normal",
+            fontWeight: el.fontWeight || "bold",
           })),
           emojiElements: emojiElements.map((el) => ({
             emoji: el.emoji,
@@ -1084,7 +1085,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                     left: el.x * PREVIEW_SCALE,
                     top: el.y * PREVIEW_SCALE,
                     fontSize: el.fontSize * PREVIEW_SCALE,
-                    fontWeight: el.fontWeight || "normal",
+                    fontWeight: el.fontWeight || "bold",
                     backgroundColor: el.backgroundColor
                       ? `rgba(255, 255, 255, 0.6)`
                       : "transparent",

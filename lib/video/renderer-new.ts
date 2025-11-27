@@ -560,12 +560,21 @@ export async function renderVideoNew(
           .replace(/,/g, '\\,')      // , -> \,
           .replace(/;/g, '\\;');     // ; -> \;
 
-        let drawtextFilter = `drawtext=textfile='${escapedFilePath}':fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
+        // По умолчанию используем жирный шрифт (если не указано normal)
+        const fontWeight = te.fontWeight ?? "bold";
 
-        // Добавляем жирный шрифт если указано
-        if (te.fontWeight === "bold") {
-          drawtextFilter += `:font=Arial-Bold`;
+        // Используем fontfile для точного указания файла шрифта
+        let fontParam = "";
+        if (fontWeight === "bold") {
+          // Путь к жирному шрифту Arial
+          const arialBoldPath = "/System/Library/Fonts/Supplemental/Arial Bold.ttf";
+          fontParam = `:fontfile='${arialBoldPath}'`;
+        } else {
+          // Обычный Arial (можно указать путь или использовать системное имя)
+          fontParam = `:font=Arial`;
         }
+
+        let drawtextFilter = `drawtext=textfile='${escapedFilePath}'${fontParam}:fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
 
         if (te.backgroundColor) {
           drawtextFilter += `:box=1:boxcolor=${te.backgroundColor}:boxborderw=${boxPadding}`;
