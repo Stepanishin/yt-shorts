@@ -1,21 +1,12 @@
 import { LumaAI } from "lumaai";
+import type { GenerationCreateParams } from "lumaai/resources/generations";
 
 export interface GenerateLumaVideoOptions {
   prompt: string;
   model?: "ray-flash-2" | "ray-2" | "ray-1-6";
   resolution?: "540p" | "720p" | "1080p" | "4k";
   duration?: "5s";
-  keyframes?: {
-    frame0?: {
-      type: "image";
-      url: string;
-    };
-    frame1?: {
-      type: "image" | "generation";
-      url?: string;
-      id?: string;
-    };
-  };
+  keyframes?: GenerationCreateParams['keyframes'];
   loop?: boolean;
 }
 
@@ -73,6 +64,12 @@ export async function generateLumaVideo(
 
   console.log(`Luma generation created. ID: ${generation.id}, State: ${generation.state}`);
 
+  if (!generation.id) {
+    throw new Error("Luma generation created but no ID returned");
+  }
+
+  const generationId = generation.id;
+
   // Ожидаем завершения генерации
   let completed = false;
   let attempts = 0;
@@ -82,7 +79,7 @@ export async function generateLumaVideo(
     attempts++;
 
     // Получаем актуальный статус
-    generation = await client.generations.get(generation.id);
+    generation = await client.generations.get(generationId);
 
     if (generation.state === "completed") {
       completed = true;
@@ -114,7 +111,7 @@ export async function generateLumaVideo(
 
   return {
     videoUrl,
-    generationId: generation.id,
+    generationId, // Используем сохраненный generationId
     prompt,
   };
 }
