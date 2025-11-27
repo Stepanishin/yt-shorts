@@ -99,7 +99,7 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
                   📝 Редактор
                 </Link>
                 <Link
-                  href={`/video-constructor?jokeId=${joke._id}`}
+                  href={`/dashboard?jokeId=${joke._id}`}
                   className="px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600 whitespace-nowrap"
                   title="Конструктор видео"
                 >
