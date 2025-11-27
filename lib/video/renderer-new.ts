@@ -276,6 +276,7 @@ async function getMediaDuration(filePath: string): Promise<number> {
 
 /**
  * Создает изображение эмодзи используя Twemoji API
+ * Добавлен fallback для эмодзи с вариантными селекторами
  */
 async function createEmojiImage(emoji: string, outputPath: string): Promise<void> {
   const codePoints: string[] = [];
@@ -285,24 +286,47 @@ async function createEmojiImage(emoji: string, outputPath: string): Promise<void
       codePoints.push(cp.toString(16));
     }
   }
+
   const emojiCode = codePoints.join('-');
-  const twemojiUrl = `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/${emojiCode}.png`;
 
-  console.log(`Downloading emoji from Twemoji: ${twemojiUrl}`);
+  // Список URL для попыток (с fallback без вариантного селектора)
+  const urlsToTry: string[] = [
+    `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/${emojiCode}.png`,
+  ];
 
-  try {
-    const response = await fetch(twemojiUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download emoji: ${response.statusText}`);
-    }
-
-    const buffer = Buffer.from(await response.arrayBuffer());
-    await fs.writeFile(outputPath, buffer);
-    console.log(`Emoji image downloaded: ${outputPath}`);
-  } catch (error) {
-    console.error(`Failed to download emoji from Twemoji:`, error);
-    throw error;
+  // Если код содержит вариантный селектор (fe0f), добавляем вариант без него
+  if (emojiCode.includes('-fe0f')) {
+    const codeWithoutVariant = emojiCode.replace(/-fe0f/g, '');
+    urlsToTry.push(`https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/${codeWithoutVariant}.png`);
   }
+
+  console.log(`Downloading emoji, trying ${urlsToTry.length} URL(s): ${emoji}`);
+
+  let lastError: Error | null = null;
+
+  for (const twemojiUrl of urlsToTry) {
+    try {
+      console.log(`Trying: ${twemojiUrl}`);
+      const response = await fetch(twemojiUrl);
+
+      if (response.ok) {
+        const buffer = Buffer.from(await response.arrayBuffer());
+        await fs.writeFile(outputPath, buffer);
+        console.log(`✅ Emoji image downloaded: ${outputPath}`);
+        return; // Успешно скачали
+      } else {
+        console.log(`❌ Failed with status ${response.status}, trying next URL...`);
+        lastError = new Error(`Failed to download emoji: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.log(`❌ Error downloading from ${twemojiUrl}:`, error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  // Если все попытки не удались
+  console.error(`Failed to download emoji after ${urlsToTry.length} attempts`);
+  throw lastError || new Error('Failed to download emoji from all sources');
 }
 
 /**
@@ -567,9 +591,10 @@ export async function renderVideoNew(
         const emojiPath = emojiImagePaths[i];
 
         // Проверяем существование файла эмодзи
-        const emojiExists = fs.stat(emojiPath).then(() => true).catch(() => false);
-        if (!emojiExists) {
-          console.warn(`Emoji ${i} file not found, skipping`);
+        try {
+          await fs.stat(emojiPath);
+        } catch {
+          console.warn(`Emoji ${i} file not found at ${emojiPath}, skipping`);
           continue;
         }
 
@@ -693,11 +718,16 @@ export async function renderVideoNew(
         command = command.inputOptions(["-loop", "1"]);
       }
 
-      // Добавляем входы для эмодзи
+      // Добавляем входы для эмодзи (только существующие файлы)
       for (const emojiPath of emojiImagePaths) {
-        command = command
-          .input(emojiPath)
-          .inputOptions(["-loop", "1", "-framerate", "25"]);
+        try {
+          await fs.stat(emojiPath);
+          command = command
+            .input(emojiPath)
+            .inputOptions(["-loop", "1", "-framerate", "25"]);
+        } catch {
+          console.warn(`Skipping emoji input ${emojiPath} - file not found`);
+        }
       }
 
       // Добавляем аудио
