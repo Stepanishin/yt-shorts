@@ -442,11 +442,12 @@ export async function renderVideoNew(
 
       // Обработка фона
       if (isVideoBackground) {
-        // Для видео используем scale и pad без фильтра loop (зацикливание через -stream_loop)
-        filterChain.push(`[0:v]scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black[base]`);
+        // Для видео: масштабируем до заполнения всего кадра (increase) + обрезаем лишнее (crop)
+        // Это предотвращает черные полосы и обрезку сверху/снизу
+        filterChain.push(`[0:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280[base]`);
       } else {
-        // Для изображения создаем видео нужной длительности без фильтра loop
-        filterChain.push(`[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black[base]`);
+        // Для изображения создаем видео нужной длительности
+        filterChain.push(`[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280[base]`);
       }
 
       let currentLayer = "[base]";
