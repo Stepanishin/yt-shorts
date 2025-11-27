@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
     console.log("✅ User authenticated:", { userId: session.user.id, email: session.user.email });
 
     const body = await request.json();
-    const { text, style = "nature", modelName = "ray-v1" as "ray-v1" | "hailuo-t2v-01" | "luma-direct" } = body;
+    const { text, style = "nature", modelName = "ray-v1" as "ray-v1" | "hailuo-t2v-01" | "luma-direct", useCustomPrompt = false } = body;
 
-    console.log("📝 Request params:", { text, style, modelName });
+    console.log("📝 Request params:", { text, style, modelName, useCustomPrompt, textLength: text?.length });
 
     // Определяем стоимость на основе модели
     const cost = BACKGROUND_MODEL_COSTS[modelName] || BACKGROUND_MODEL_COSTS["ray-v1"];
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
       jokeText: text || "Beautiful background video",
       style: style as "nature" | "abstract" | "minimalist",
       modelName: modelName as "ray-v1" | "hailuo-t2v-01" | "luma-direct",
+      useCustomPrompt, // Передаем флаг для использования пользовательского промпта
     });
 
     console.log("✅ Background generated successfully:", result.videoUrl);

@@ -3,6 +3,7 @@ export interface GenerateBackgroundOptions {
   jokeTitle?: string;
   style?: "nature" | "abstract" | "minimalist";
   modelName?: "ray-v1" | "hailuo-t2v-01" | "luma-direct"; // Luma Dream Machine через PiAPI, Hailuo или прямой Luma
+  useCustomPrompt?: boolean; // Если true, использовать jokeText как прямой промпт без изменений
 }
 
 export interface GenerateBackgroundResult {
@@ -21,11 +22,11 @@ export async function generateBackground(
   maxRetries = 3,
   retryDelayMs = 60000
 ): Promise<GenerateBackgroundResult> {
-  const { jokeText, jokeTitle, style = "nature", modelName = "ray-v1" } = options;
+  const { jokeText, jokeTitle, style = "nature", modelName = "ray-v1", useCustomPrompt = false } = options;
 
   // Если выбран прямой Luma API, используем отдельную функцию
   if (modelName === "luma-direct") {
-    return generateBackgroundViaDirect({ jokeText, jokeTitle, style }, maxRetries, retryDelayMs);
+    return generateBackgroundViaDirect({ jokeText, jokeTitle, style, useCustomPrompt }, maxRetries, retryDelayMs);
   }
 
   let lastError: Error | null = null;
@@ -39,6 +40,7 @@ export async function generateBackground(
         jokeText,
         jokeTitle,
         style,
+        useCustomPrompt,
       });
 
       const apiKey = process.env.PIAPI_X_API_KEY;
@@ -278,15 +280,26 @@ function createBackgroundPrompt(options: {
   jokeText: string;
   jokeTitle?: string;
   style: "nature" | "abstract" | "minimalist";
+  useCustomPrompt?: boolean;
 }): string {
-  const { jokeText, jokeTitle, style } = options;
+  const { jokeText, jokeTitle, style, useCustomPrompt = false } = options;
 
-  // Если jokeText короткий (меньше 200 символов) и не содержит типичных признаков шутки,
-  // считаем что это кастомный промпт от пользователя и используем его напрямую
+  // Если явно указано использовать кастомный промпт, используем текст напрямую
+  if (useCustomPrompt && jokeText.trim().length > 0) {
+    console.log("Using explicit custom user prompt for background:", jokeText.substring(0, 100) + "...");
+    // Добавляем технические параметры только если их нет в промпте
+    const hasVerticalFormat = jokeText.toLowerCase().includes('9:16') || jokeText.toLowerCase().includes('vertical');
+    const technicalSuffix = hasVerticalFormat
+      ? ""
+      : ". Vertical format 9:16 ratio, high quality, cinematic";
+    return `${jokeText}${technicalSuffix}`;
+  }
+
+  // Автоматическое определение: если jokeText короткий и не содержит типичных признаков шутки
   const looksLikeCustomPrompt = jokeText.length < 200 && !jokeText.includes('\n') && !jokeText.includes('—');
 
   if (looksLikeCustomPrompt && jokeText.trim().length > 0) {
-    console.log("Using custom user prompt for background:", jokeText);
+    console.log("Auto-detected custom user prompt for background:", jokeText);
     return `${jokeText}. Vertical format 9:16 ratio, high quality, cinematic, no text overlays, no people`;
   }
 
@@ -362,11 +375,11 @@ function createBackgroundPrompt(options: {
  * Стоимость: $0.14, цена для пользователя: $0.25
  */
 async function generateBackgroundViaDirect(
-  options: { jokeText: string; jokeTitle?: string; style: "nature" | "abstract" | "minimalist" },
+  options: { jokeText: string; jokeTitle?: string; style: "nature" | "abstract" | "minimalist"; useCustomPrompt?: boolean },
   maxRetries = 3,
   retryDelayMs = 60000
 ): Promise<GenerateBackgroundResult> {
-  const { jokeText, jokeTitle, style } = options;
+  const { jokeText, jokeTitle, style, useCustomPrompt = false } = options;
   const { generateLumaVideo } = await import("./luma-direct");
 
   let lastError: Error | null = null;
@@ -380,6 +393,7 @@ async function generateBackgroundViaDirect(
         jokeText,
         jokeTitle,
         style,
+        useCustomPrompt,
       });
 
       console.log("Generating background via Luma direct API with prompt:", prompt);

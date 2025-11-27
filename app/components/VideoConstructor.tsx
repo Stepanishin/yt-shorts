@@ -422,7 +422,10 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     setGeneratingBackground(true);
     try {
       // Используем пользовательский промпт или собираем весь текст для контекста
-      const promptText = backgroundPrompt.trim() || textElements.map(el => el.text).join(" ") || "Beautiful background video";
+      const hasCustomPrompt = backgroundPrompt.trim().length > 0;
+      const promptText = hasCustomPrompt
+        ? backgroundPrompt.trim()
+        : textElements.map(el => el.text).join(" ") || "Beautiful background video";
 
       const response = await fetch("/api/videos/constructor/generate-background", {
         method: "POST",
@@ -433,6 +436,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           text: promptText,
           style: "nature", // Можно добавить выбор стиля позже
           modelName: backgroundModel,
+          useCustomPrompt: hasCustomPrompt, // Указываем что это кастомный промпт
         }),
       });
 
