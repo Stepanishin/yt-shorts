@@ -792,6 +792,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             >
               + Добавить текст
             </button>
+
+            {/* Основные эмодзи */}
             <div className="grid grid-cols-4 gap-2">
               {["😂", "❤️", "🔥", "👍", "🎉", "⭐", "💯", "✨"].map((emoji) => (
                 <button
@@ -802,6 +804,90 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   {emoji}
                 </button>
               ))}
+            </div>
+
+            {/* Subscribe / Suscríbete эмодзи */}
+            <div className="border-t pt-2 mt-2">
+              <p className="text-xs text-gray-600 mb-1 font-medium">Subscribe Actions:</p>
+              <div className="grid grid-cols-4 gap-2">
+                {["👇", "☝️", "👉", "👈", "🔔", "▶️", "📺", "🎬"].map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => addEmojiElement(emoji)}
+                    className="text-2xl border rounded py-2 hover:bg-gray-100"
+                    title="Subscribe action emoji"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Subscribe Text Buttons */}
+            <div className="border-t pt-2 mt-2 space-y-1">
+              <p className="text-xs text-gray-600 mb-1 font-medium">Quick Actions:</p>
+              <button
+                onClick={() => {
+                  const newElement: TextElement = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    text: "SUBSCRIBE",
+                    x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
+                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 150),
+                    fontSize: 40,
+                    color: "white@1",
+                    backgroundColor: "red@0.8",
+                    boxPadding: 15,
+                    fontWeight: "bold",
+                  };
+                  setTextElements([...textElements, newElement]);
+                  setSelectedTextId(newElement.id);
+
+                  // Добавляем стрелку вниз как эмодзи отдельно
+                  const arrowElement: EmojiElement = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    emoji: "👇",
+                    x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2),
+                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 90),
+                    size: 60,
+                    animation: "bounce",
+                  };
+                  setEmojiElements([...emojiElements, arrowElement]);
+                }}
+                className="w-full bg-red-600 text-white rounded px-3 py-1.5 text-sm hover:bg-red-700 font-medium"
+              >
+                + SUBSCRIBE 👇
+              </button>
+              <button
+                onClick={() => {
+                  const newElement: TextElement = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    text: "SUSCRIBETE",
+                    x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
+                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 150),
+                    fontSize: 40,
+                    color: "white@1",
+                    backgroundColor: "red@0.8",
+                    boxPadding: 15,
+                    fontWeight: "bold",
+                  };
+                  setTextElements([...textElements, newElement]);
+                  setSelectedTextId(newElement.id);
+
+                  // Добавляем стрелку вниз как эмодзи отдельно
+                  const arrowElement: EmojiElement = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    emoji: "👇",
+                    x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2),
+                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 90),
+                    size: 60,
+                    animation: "bounce",
+                  };
+                  setEmojiElements([...emojiElements, arrowElement]);
+                }}
+                className="w-full bg-red-600 text-white rounded px-3 py-1.5 text-sm hover:bg-red-700 font-medium"
+              >
+                + SUSCRÍBETE 👇
+              </button>
             </div>
           </div>
         </div>
