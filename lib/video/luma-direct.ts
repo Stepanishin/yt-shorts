@@ -53,7 +53,13 @@ export async function generateLumaVideo(
     authToken: apiKey,
   });
 
-  console.log("Creating Luma generation:", { model, resolution, duration, prompt: prompt.substring(0, 100) });
+  console.log("Creating Luma generation:", {
+    model,
+    resolution,
+    duration,
+    promptLength: prompt.length,
+    promptPreview: prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')
+  });
 
   // Создаем задачу генерации
   let generation = await client.generations.create({
