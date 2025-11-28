@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import GenerationLogsModal from "./GenerationLogsModal";
 
 interface TextElement {
   id: string;
@@ -57,9 +58,28 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [backgroundPrompt, setBackgroundPrompt] = useState<string>("");
   const [audioPrompt, setAudioPrompt] = useState<string>("");
 
+  // Состояния для модального окна с логами
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const [logsModalTitle, setLogsModalTitle] = useState("");
+  const [generationLogs, setGenerationLogs] = useState<string[]>([]);
+  const [generationComplete, setGenerationComplete] = useState(false);
+  const [generationError, setGenerationError] = useState(false);
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragStartPos = useRef<{ x: number; y: number } | null>(null);
   const hasLoadedFromStorage = useRef(false);
+
+  // Вспомогательная функция для добавления логов
+  const addLog = (message: string) => {
+    setGenerationLogs((prev) => [...prev, message]);
+  };
+
+  // Сброс состояния модального окна
+  const resetLogsModal = () => {
+    setGenerationLogs([]);
+    setGenerationComplete(false);
+    setGenerationError(false);
+  };
 
   // Загрузить сохраненное состояние из localStorage при монтировании
   // НО только если НЕ передан jokeId (иначе загрузим анекдот из библиотеки)
@@ -420,13 +440,25 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       return;
     }
 
+    // Открываем модальное окно и сбрасываем логи
+    resetLogsModal();
+    setLogsModalTitle("Генерация видео-фона");
+    setShowLogsModal(true);
     setGeneratingBackground(true);
+
     try {
+      addLog("🎬 Начинаем генерацию видео-фона...");
+      addLog(`💰 Стоимость: ${requiredCredits} кредитов (€${(requiredCredits / 100).toFixed(2)})`);
+      addLog(`🎨 Модель: ${backgroundModel}`);
+
       // Используем пользовательский промпт или собираем весь текст для контекста
       const hasCustomPrompt = backgroundPrompt.trim().length > 0;
       const promptText = hasCustomPrompt
         ? backgroundPrompt.trim()
         : textElements.map(el => el.text).join(" ") || "Beautiful background video";
+
+      addLog(`📝 Промпт: "${promptText.substring(0, 100)}${promptText.length > 100 ? '...' : ''}"`);
+      addLog("🔄 Отправка запроса на сервер...");
 
       const response = await fetch("/api/videos/constructor/generate-background", {
         method: "POST",
@@ -444,22 +476,37 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       const data = await response.json();
 
       if (data.success) {
+        addLog("✅ Фон успешно сгенерирован!");
+        addLog(`📹 URL видео: ${data.videoUrl.substring(0, 50)}...`);
+        addLog("💳 Кредиты успешно списаны");
+
         setBackgroundUrl(data.videoUrl);
         setBackgroundType("video");
-        alert("Фон успешно сгенерирован!");
+        setGenerationComplete(true);
+
+        // Автозакрытие через 3 секунды
+        setTimeout(() => {
+          setShowLogsModal(false);
+        }, 3000);
       } else {
         // Проверяем на ошибку недостатка кредитов
         if (response.status === 402) {
-          alert(`Недостаточно кредитов! Требуется ${data.requiredCredits} кредитов для генерации фона. Пожалуйста, пополните баланс.`);
+          addLog(`❌ Недостаточно кредитов!`);
+          addLog(`💰 Требуется: ${data.requiredCredits} кредитов`);
+          addLog(`💰 Доступно: ${data.currentCredits} кредитов`);
+          addLog("⚠️ Пожалуйста, пополните баланс");
         } else {
-          alert(`Ошибка: ${data.error}`);
+          addLog(`❌ Ошибка: ${data.error}`);
         }
+        setGenerationError(true);
       }
     } catch (error) {
       console.error("Generate background error:", error);
-      alert("Произошла ошибка при генерации фона");
+      addLog(`❌ Произошла ошибка: ${error instanceof Error ? error.message : "Неизвестная ошибка"}`);
+      setGenerationError(true);
     } finally {
       setGeneratingBackground(false);
+      setGenerationComplete(true);
     }
   };
 
@@ -476,10 +523,22 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       return;
     }
 
+    // Открываем модальное окно и сбрасываем логи
+    resetLogsModal();
+    setLogsModalTitle("Генерация аудио");
+    setShowLogsModal(true);
     setGeneratingAudio(true);
+
     try {
+      addLog("🎵 Начинаем генерацию аудио...");
+      addLog(`💰 Стоимость: ${requiredCredits} кредитов (€${(requiredCredits / 100).toFixed(2)})`);
+      addLog(`🎨 Модель: ${audioModel} (Udio)`);
+
       // Используем пользовательский промпт или собираем весь текст для контекста
       const promptText = audioPrompt.trim() || textElements.map(el => el.text).join(" ") || "Upbeat cheerful background music";
+
+      addLog(`📝 Промпт: "${promptText.substring(0, 100)}${promptText.length > 100 ? '...' : ''}"`);
+      addLog("🔄 Отправка запроса на сервер...");
 
       const response = await fetch("/api/videos/constructor/generate-audio", {
         method: "POST",
@@ -496,21 +555,39 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       const data = await response.json();
 
       if (data.success) {
+        addLog("✅ Аудио успешно сгенерировано!");
+        addLog(`🎵 URL аудио: ${data.audioUrl.substring(0, 50)}...`);
+        if (data.duration) {
+          addLog(`⏱️ Длительность: ${data.duration} секунд`);
+        }
+        addLog("💳 Кредиты успешно списаны");
+
         setAudioUrl(data.audioUrl);
-        alert("Аудио успешно сгенерировано!");
+        setGenerationComplete(true);
+
+        // Автозакрытие через 3 секунды
+        setTimeout(() => {
+          setShowLogsModal(false);
+        }, 3000);
       } else {
         // Проверяем на ошибку недостатка кредитов
         if (response.status === 402) {
-          alert(`Недостаточно кредитов! Требуется ${data.requiredCredits} кредитов для генерации аудио. Пожалуйста, пополните баланс.`);
+          addLog(`❌ Недостаточно кредитов!`);
+          addLog(`💰 Требуется: ${data.requiredCredits} кредитов`);
+          addLog(`💰 Доступно: ${data.currentCredits} кредитов`);
+          addLog("⚠️ Пожалуйста, пополните баланс");
         } else {
-          alert(`Ошибка: ${data.error}`);
+          addLog(`❌ Ошибка: ${data.error}`);
         }
+        setGenerationError(true);
       }
     } catch (error) {
       console.error("Generate audio error:", error);
-      alert("Произошла ошибка при генерации аудио");
+      addLog(`❌ Произошла ошибка: ${error instanceof Error ? error.message : "Неизвестная ошибка"}`);
+      setGenerationError(true);
     } finally {
       setGeneratingAudio(false);
+      setGenerationComplete(true);
     }
   };
 
@@ -1242,6 +1319,15 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         )}
       </div>
       </div>
+
+      {/* Модальное окно с логами генерации */}
+      <GenerationLogsModal
+        isOpen={showLogsModal}
+        title={logsModalTitle}
+        logs={generationLogs}
+        isComplete={generationComplete}
+        hasError={generationError}
+      />
     </div>
   );
 }
