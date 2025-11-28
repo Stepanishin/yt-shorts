@@ -375,10 +375,24 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       return;
     }
 
+    // Открываем модальное окно и сбрасываем логи
+    resetLogsModal();
+    setLogsModalTitle("Создание видео");
+    setShowLogsModal(true);
     setIsRendering(true);
     setRenderedVideoUrl("");
 
     try {
+      addLog("🎬 Начинаем создание видео...");
+      addLog(`⏱️ Длительность: ${videoDuration} секунд`);
+      addLog(`📹 Фон: ${backgroundType === "video" ? "видео" : "изображение"}`);
+      addLog(`📝 Текстовых элементов: ${textElements.length}`);
+      addLog(`😀 Эмодзи элементов: ${emojiElements.length}`);
+      if (audioUrl) {
+        addLog("🎵 Аудио: добавлено");
+      }
+      addLog("🔄 Отправка на рендеринг...");
+
       const response = await fetch("/api/videos/constructor/render", {
         method: "POST",
         headers: {
@@ -412,16 +426,27 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       const data = await response.json();
 
       if (data.success) {
+        addLog("✅ Видео успешно создано!");
+        addLog(`📹 URL видео: ${data.video.videoUrl.substring(0, 50)}...`);
+
         setRenderedVideoUrl(data.video.videoUrl);
-        alert("Видео успешно создано!");
+        setGenerationComplete(true);
+
+        // Автозакрытие через 3 секунды
+        setTimeout(() => {
+          setShowLogsModal(false);
+        }, 3000);
       } else {
-        alert(`Ошибка: ${data.error}`);
+        addLog(`❌ Ошибка: ${data.error}`);
+        setGenerationError(true);
       }
     } catch (error) {
       console.error("Render error:", error);
-      alert("Произошла ошибка при создании видео");
+      addLog(`❌ Произошла ошибка: ${error instanceof Error ? error.message : "Неизвестная ошибка"}`);
+      setGenerationError(true);
     } finally {
       setIsRendering(false);
+      setGenerationComplete(true);
     }
   };
 
