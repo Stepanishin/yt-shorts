@@ -29,7 +29,7 @@ export default function JokeList() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/ingest/queue?limit=20");
+      const response = await fetch("/api/ingest/queue?limit=100");
       if (!response.ok) {
         throw new Error("Не удалось загрузить анекдоты");
       }
