@@ -59,6 +59,7 @@ export const authConfig: NextAuthConfig = {
             session.user.name = dbUser.name;
             session.user.image = dbUser.image;
             session.user.credits = dbUser.credits || 0;
+            session.user.isAdmin = dbUser.isAdmin || false;
           }
         } catch (error) {
           console.error("Error loading user from database:", error);

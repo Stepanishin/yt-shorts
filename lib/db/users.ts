@@ -20,6 +20,7 @@ export interface User {
   name: string;
   image?: string;
   credits: number; // 1 credit = 1 euro cent
+  isAdmin?: boolean; // Флаг администратора (опционально)
   youtubeSettings?: YouTubeSettings;
   createdAt: Date;
   updatedAt: Date;
