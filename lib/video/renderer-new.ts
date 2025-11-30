@@ -521,28 +521,14 @@ export async function renderVideoNew(
           return lines.join('\n');
         };
 
-        // Обрабатываем текст: сохраняем существующие переносы строк из textarea
+        // Обрабатываем текст: сохраняем только явные переносы строк (Enter), убираем автоматические
         let processedText = te.text
           .replace(/\r\n/g, '\n')  // Нормализуем Windows переносы
-          .replace(/\r/g, '\n');   // Нормализуем старые Mac переносы
+          .replace(/\r/g, '\n')    // Нормализуем старые Mac переносы
+          .trim();                 // Убираем лишние пробелы по краям
 
-        // Проверяем, есть ли в тексте явные переносы строк (пользователь нажал Enter)
-        const hasExplicitLineBreaks = processedText.includes('\n');
-        
-        if (hasExplicitLineBreaks) {
-          // Если пользователь сам указал переносы строк - сохраняем их ТОЧНО как есть
-          // Только убираем лишние пробелы в начале/конце каждой строки (но сохраняем пустые строки)
-          const lines = processedText.split('\n');
-          processedText = lines.map(line => line.trim()).join('\n');
-          // Сохраняем пустые строки (двойные переносы) - они могут быть важны для форматирования
-        } else {
-          // Если пользователь не указал переносы строк - применяем автоматический перенос по ширине
-          if (te.width) {
-            processedText = wrapText(processedText, te.width);
-          } else {
-            processedText = wrapText(processedText);
-          }
-        }
+        // НЕ применяем автоматический wrapText - FFmpeg сам перенесет текст по ширине через text_w
+        // Сохраняем только явные переносы строк, которые пользователь ввел через Enter
 
         // Создаем временный файл для текста (как в старом рендерере)
         // Это более надежный способ для многострочного текста
@@ -580,13 +566,15 @@ export async function renderVideoNew(
           drawtextFilter += `:box=1:boxcolor=${te.backgroundColor}:boxborderw=${boxPadding}`;
         }
 
-        // Добавляем межстрочный интервал для лучшей читаемости
-        const lineSpacing = Math.floor(te.fontSize * 0.3); // ~30% от размера шрифта
+        // Добавляем межстрочный интервал для соответствия UI (lineHeight: 1.2)
+        // lineHeight 1.2 означает, что высота строки = fontSize * 1.2
+        // line_spacing в FFmpeg - это дополнительное расстояние между строками
+        // Поэтому: line_spacing = fontSize * (1.2 - 1) = fontSize * 0.2
+        const lineSpacing = Math.floor(te.fontSize * 0.2);
         drawtextFilter += `:line_spacing=${lineSpacing}`;
 
-        if (te.width) {
-          drawtextFilter += `:text_w=${te.width}`;
-        }
+        // НЕ используем text_w - переносы уже добавлены в текст на клиенте через Canvas API
+        // Это обеспечивает точное совпадение с тем, что отображается в textarea
 
         const nextLayer = `[text${i}]`;
         filterChain.push(`${currentLayer}${drawtextFilter}${nextLayer}`);

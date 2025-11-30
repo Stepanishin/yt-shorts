@@ -18,6 +18,7 @@ interface TextElement {
   backgroundColor?: string;
   boxPadding?: number;
   fontWeight?: "normal" | "bold";
+  width?: number; // Ширина текстового блока в пикселях
   isDragging?: boolean;
 }
 
@@ -271,6 +272,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       backgroundColor: "white@0.6",
       boxPadding: 10,
       fontWeight: "bold",
+      width: 400, // Дефолтная ширина текстового блока
     };
     setTextElements([...textElements, newElement]);
     setSelectedTextId(newElement.id);
@@ -445,6 +447,40 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     if (selectedEmojiId === id) setSelectedEmojiId(null);
   };
 
+  // Функция для расчета переносов текста как в браузере
+  const wrapTextLikeBrowser = (text: string, fontSize: number, fontWeight: string, width: number, padding: number): string => {
+    // Создаем canvas для измерения ширины текста
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return text;
+
+    ctx.font = `${fontWeight} ${fontSize}px Arial`;
+
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    const maxWidth = width - (padding * 2);
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines.join('\n');
+  };
+
   // Рендерить видео
   const handleRender = async () => {
     if (!backgroundUrl) {
@@ -472,27 +508,48 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       addLog("🔄 Отправка на рендеринг...");
 
       // Объединяем текстовые и subscribe элементы в один массив для рендеринга
+      // Применяем переносы текста как в браузере
       const allTextElements = [
-        ...textElements.map((el) => ({
-          text: el.text,
-          x: el.x,
-          y: el.y,
-          fontSize: el.fontSize,
-          color: el.color,
-          backgroundColor: el.backgroundColor,
-          boxPadding: el.boxPadding,
-          fontWeight: el.fontWeight || "bold",
-        })),
-        ...subscribeElements.map((el) => ({
-          text: el.text,
-          x: el.x,
-          y: el.y,
-          fontSize: el.fontSize,
-          color: "white@1",
-          backgroundColor: "red@0.9",
-          boxPadding: el.boxPadding || 15,
-          fontWeight: "bold",
-        })),
+        ...textElements.map((el) => {
+          const wrappedText = wrapTextLikeBrowser(
+            el.text,
+            el.fontSize,
+            el.fontWeight || "bold",
+            el.width || 400,
+            el.boxPadding || 10
+          );
+          return {
+            text: wrappedText, // Текст с явными переносами строк
+            x: el.x,
+            y: el.y,
+            fontSize: el.fontSize,
+            color: el.color,
+            backgroundColor: el.backgroundColor,
+            boxPadding: el.boxPadding,
+            fontWeight: el.fontWeight || "bold",
+            width: el.width || 400,
+          };
+        }),
+        ...subscribeElements.map((el) => {
+          const wrappedText = wrapTextLikeBrowser(
+            el.text,
+            el.fontSize,
+            "bold",
+            400,
+            el.boxPadding || 15
+          );
+          return {
+            text: wrappedText, // Текст с явными переносами строк
+            x: el.x,
+            y: el.y,
+            fontSize: el.fontSize,
+            color: "white@1",
+            backgroundColor: "red@0.9",
+            boxPadding: el.boxPadding || 15,
+            fontWeight: "bold",
+            width: 400,
+          };
+        }),
       ];
 
       const response = await fetch("/api/videos/constructor/render", {

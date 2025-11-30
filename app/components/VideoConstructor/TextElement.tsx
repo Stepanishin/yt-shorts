@@ -12,6 +12,7 @@ interface TextElementData {
   backgroundColor?: string;
   boxPadding?: number;
   fontWeight?: "normal" | "bold";
+  width?: number;
 }
 
 interface TextElementProps {
@@ -35,9 +36,12 @@ export default function TextElement({
 }: TextElementProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [isResizing, setIsResizing] = useState<"left" | "right" | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const draggedRef = useRef(false);
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
+  const resizeStartRef = useRef<{ width: number; x: number; mouseX: number } | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Закрытие при клике вне компонента
   useEffect(() => {
@@ -107,6 +111,71 @@ export default function TextElement({
     setShowDropdown(false);
   };
 
+  const handleResizeStart = (e: React.MouseEvent, side: "left" | "right") => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Устанавливаем флаг что был клик на resize handle
+    draggedRef.current = true;
+
+    setIsResizing(side);
+    resizeStartRef.current = {
+      width: element.width || 400,
+      x: element.x,
+      mouseX: e.clientX,
+    };
+  };
+
+  useEffect(() => {
+    if (!isResizing || !resizeStartRef.current) return;
+
+    const handleResizeMove = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!resizeStartRef.current) return;
+
+      const deltaX = (e.clientX - resizeStartRef.current.mouseX) / previewScale;
+
+      if (isResizing === "right") {
+        // Изменяем ширину справа
+        const newWidth = Math.max(100, resizeStartRef.current.width + deltaX);
+        onUpdate(element.id, { width: newWidth });
+      } else if (isResizing === "left") {
+        // Изменяем ширину слева и сдвигаем позицию
+        const newWidth = Math.max(100, resizeStartRef.current.width - deltaX);
+        const widthDiff = newWidth - resizeStartRef.current.width;
+        onUpdate(element.id, {
+          width: newWidth,
+          x: resizeStartRef.current.x - widthDiff,
+        });
+      }
+    };
+
+    const handleResizeEnd = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      setIsResizing(null);
+      resizeStartRef.current = null;
+
+      // Сбрасываем флаг с небольшой задержкой
+      setTimeout(() => {
+        draggedRef.current = false;
+      }, 100);
+    };
+
+    document.addEventListener("mousemove", handleResizeMove, { capture: true });
+    document.addEventListener("mouseup", handleResizeEnd, { capture: true });
+    document.addEventListener("mouseleave", handleResizeEnd, { capture: true });
+
+    return () => {
+      document.removeEventListener("mousemove", handleResizeMove, { capture: true });
+      document.removeEventListener("mouseup", handleResizeEnd, { capture: true });
+      document.removeEventListener("mouseleave", handleResizeEnd, { capture: true });
+    };
+  }, [isResizing, element.id, onUpdate, previewScale]);
+
   return (
     <div
       ref={containerRef}
@@ -117,27 +186,58 @@ export default function TextElement({
       }}
       data-text-element
     >
-      <div
-        className={`cursor-move relative ${
-          isSelected ? "ring-2 ring-blue-500 rounded" : ""
-        }`}
-        style={{
-          fontSize: element.fontSize * previewScale,
-          fontWeight: element.fontWeight || "bold",
-          backgroundColor: element.backgroundColor
-            ? `rgba(255, 255, 255, 0.6)`
-            : "transparent",
-          padding: element.boxPadding
-            ? element.boxPadding * previewScale
-            : undefined,
-          borderRadius: "4px",
-          whiteSpace: "pre-wrap",
-        }}
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleMouseDown}
-        onClick={handleClick}
-      >
-        {element.text}
+      <div className="relative">
+        {/* Левая ручка изменения размера */}
+        {isSelected && !showDropdown && !showEdit && (
+          <div
+            className="absolute top-0 left-0 w-3 h-full cursor-ew-resize bg-blue-500 hover:bg-blue-600 z-20 rounded-l"
+            style={{
+              transform: "translateX(-100%)",
+              opacity: isResizing === "left" ? 1 : 0.7,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, "left")}
+          />
+        )}
+
+        <div
+          className={`cursor-move relative ${
+            isSelected ? "ring-2 ring-blue-500 rounded" : ""
+          }`}
+          style={{
+            fontSize: element.fontSize * previewScale,
+            fontWeight: element.fontWeight || "bold",
+            backgroundColor: element.backgroundColor
+              ? `rgba(255, 255, 255, 0.6)`
+              : "transparent",
+            padding: element.boxPadding
+              ? element.boxPadding * previewScale
+              : undefined,
+            borderRadius: "4px",
+            whiteSpace: "pre-wrap",
+            width: element.width ? element.width * previewScale : "auto",
+            wordWrap: "break-word",
+            overflowWrap: "break-word",
+            lineHeight: "1.2",
+            boxSizing: "border-box",
+          }}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleMouseDown}
+          onClick={handleClick}
+        >
+          {element.text}
+        </div>
+
+        {/* Правая ручка изменения размера */}
+        {isSelected && !showDropdown && !showEdit && (
+          <div
+            className="absolute top-0 right-0 w-3 h-full cursor-ew-resize bg-blue-500 hover:bg-blue-600 z-20 rounded-r"
+            style={{
+              transform: "translateX(100%)",
+              opacity: isResizing === "right" ? 1 : 0.7,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, "right")}
+          />
+        )}
       </div>
 
       {/* Dropdown Menu */}
@@ -186,13 +286,50 @@ export default function TextElement({
             {/* Text Input */}
             <div>
               <label className="block text-xs font-medium mb-1 text-gray-700">
-                Text
+                Text (переносы как в preview)
               </label>
               <textarea
+                ref={textareaRef}
                 value={element.text}
                 onChange={(e) => onUpdate(element.id, { text: e.target.value })}
-                className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 h-80 w-96"
-                rows={4}
+                className="border border-gray-300 rounded resize-none h-96"
+                style={{
+                  width: `${element.width || 400}px`,
+                  fontSize: `${element.fontSize}px`,
+                  fontWeight: element.fontWeight || "bold",
+                  backgroundColor: element.backgroundColor
+                    ? `rgba(255, 255, 255, 0.6)`
+                    : "transparent",
+                  padding: element.boxPadding
+                    ? `${element.boxPadding}px`
+                    : "10px",
+                  whiteSpace: "pre-wrap",
+                  wordWrap: "break-word",
+                  overflowWrap: "break-word",
+                  minHeight: "100px",
+                  color: "#000",
+                  lineHeight: "1.2",
+                  fontFamily: "inherit",
+                  boxSizing: "border-box",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+
+            {/* Width Slider */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700">
+                Width: {element.width || 400}px
+              </label>
+              <input
+                type="range"
+                min="100"
+                max="720"
+                value={element.width || 400}
+                onChange={(e) =>
+                  onUpdate(element.id, { width: parseInt(e.target.value) })
+                }
+                className="w-full"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
