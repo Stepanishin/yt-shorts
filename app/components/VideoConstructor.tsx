@@ -46,6 +46,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [renderedVideoUrl, setRenderedVideoUrl] = useState<string>("");
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [selectedEmojiId, setSelectedEmojiId] = useState<string | null>(null);
+  const [openEmojiDropdown, setOpenEmojiDropdown] = useState<string | null>(null);
+  const [editingEmojiId, setEditingEmojiId] = useState<string | null>(null);
   const [uploadingToYouTube, setUploadingToYouTube] = useState(false);
   const [youtubeVideoUrl, setYoutubeVideoUrl] = useState<string | null>(null);
   const [useAITitle, setUseAITitle] = useState(true);
@@ -734,6 +736,27 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     };
   }, []);
 
+  // Закрытие dropdown и edit панелей при клике вне их
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+
+      // Проверяем, что клик был не по dropdown или edit панели
+      if (!target.closest('[data-emoji-dropdown]') &&
+          !target.closest('[data-emoji-edit]') &&
+          !target.closest('[data-emoji-element]')) {
+        setOpenEmojiDropdown(null);
+        setEditingEmojiId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const selectedText = textElements.find((el) => el.id === selectedTextId);
   const selectedEmoji = emojiElements.find((el) => el.id === selectedEmojiId);
 
@@ -888,43 +911,23 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               Очистить все
             </button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
+            {/* Add Text Button */}
             <button
               onClick={addTextElement}
-              className="w-full bg-blue-500 text-white rounded px-4 py-2 hover:bg-blue-600"
+              className="w-full bg-blue-500 text-white rounded-lg px-4 py-3 hover:bg-blue-600 font-medium transition-colors shadow-sm hover:shadow-md"
             >
               + Добавить текст
             </button>
 
-            {/* Основные эмодзи */}
-            <div className="grid grid-cols-4 gap-2">
-              {["😂", "❤️", "🔥", "👍", "🎉", "⭐", "💯", "✨"].map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => addEmojiElement(emoji)}
-                  className="text-2xl border rounded py-2 hover:bg-gray-100"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-
-            {/* Subscribe / Suscríbete эмодзи */}
-            <div className="border-t pt-2 mt-2">
-              <p className="text-xs text-gray-800 mb-1 font-medium">Subscribe Actions:</p>
-              <div className="grid grid-cols-4 gap-2">
-                {["👇", "☝️", "👉", "👈", "🔔", "▶️", "📺", "🎬"].map((emoji) => (
-                  <button
-                    key={emoji}
-                    onClick={() => addEmojiElement(emoji)}
-                    className="text-2xl border rounded py-2 hover:bg-gray-100"
-                    title="Subscribe action emoji"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Add Emoji Button - Beautiful Square 40x40 */}
+            <button
+              onClick={() => addEmojiElement("😂")}
+              className="w-20 h-20 border-2 border-purple-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center justify-center hover:scale-110 bg-gradient-to-br from-purple-50 to-pink-50 shadow-sm hover:shadow-md"
+              title="Add Emoji"
+            >
+              <span className="text-2xl">😊</span>
+            </button>
 
             {/* Quick Subscribe Text Buttons */}
             <div className="border-t pt-2 mt-2 space-y-1">
@@ -1060,73 +1063,6 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           </div>
         )}
 
-        {/* Редактирование выбранного эмодзи */}
-        {selectedEmoji && (
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-semibold text-gray-900">Редактировать эмодзи</h2>
-              <button
-                onClick={() => deleteEmojiElement(selectedEmoji.id)}
-                className="text-red-500 hover:text-red-700"
-              >
-                Удалить
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-900">Эмодзи</label>
-                <input
-                  type="text"
-                  value={selectedEmoji.emoji}
-                  onChange={(e) =>
-                    updateEmojiElement(selectedEmoji.id, { emoji: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-2xl"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-900">
-                  Размер: {selectedEmoji.size}
-                </label>
-                <input
-                  type="range"
-                  min="40"
-                  max="200"
-                  value={selectedEmoji.size}
-                  onChange={(e) =>
-                    updateEmojiElement(selectedEmoji.id, {
-                      size: parseInt(e.target.value),
-                    })
-                  }
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-900">Анимация</label>
-                <select
-                  value={selectedEmoji.animation}
-                  onChange={(e) =>
-                    updateEmojiElement(selectedEmoji.id, {
-                      animation: e.target.value as EmojiElement["animation"],
-                    })
-                  }
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
-                >
-                  <option value="none">Без анимации</option>
-                  <option value="pulse">Пульсация</option>
-                  <option value="rotate">Вращение</option>
-                  <option value="bounce">Подпрыгивание</option>
-                  <option value="fade">Появление</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-900">
-                  X: {selectedEmoji.x.toFixed(0)} Y: {selectedEmoji.y.toFixed(0)}
-                </label>
-              </div>
-            </div>
-          </div>
-        )}
 
       </div>
 
@@ -1141,40 +1077,47 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               style={{
                 width: VIDEO_WIDTH * PREVIEW_SCALE,
                 height: VIDEO_HEIGHT * PREVIEW_SCALE,
-                overflow: "hidden",
+                overflow: "visible",
+              }}
+              onClick={() => {
+                setOpenEmojiDropdown(null);
+                setEditingEmojiId(null);
               }}
             >
-              {/* Фон */}
-              {backgroundUrl && (
-                <>
-                  {backgroundType === "video" ? (
-                    <video
-                      src={backgroundUrl}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      autoPlay
-                      loop
-                      muted
-                    />
-                  ) : (
-                    <img
-                      src={backgroundUrl}
-                      alt="Background"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  )}
-                </>
-              )}
+              {/* Clipped background and safe zone area */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {/* Фон */}
+                {backgroundUrl && (
+                  <>
+                    {backgroundType === "video" ? (
+                      <video
+                        src={backgroundUrl}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        autoPlay
+                        loop
+                        muted
+                      />
+                    ) : (
+                      <img
+                        src={backgroundUrl}
+                        alt="Background"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    )}
+                  </>
+                )}
 
-              {/* Safe Zone границы */}
-              <div
-                className="absolute pointer-events-none border-2 border-dashed border-yellow-400 opacity-50"
-                style={{
-                  left: SAFE_PADDING * PREVIEW_SCALE,
-                  top: SAFE_PADDING * PREVIEW_SCALE,
-                  right: SAFE_PADDING * PREVIEW_SCALE,
-                  bottom: SAFE_PADDING * PREVIEW_SCALE,
-                }}
-              />
+                {/* Safe Zone границы */}
+                <div
+                  className="absolute border-2 border-dashed border-yellow-400 opacity-50"
+                  style={{
+                    left: SAFE_PADDING * PREVIEW_SCALE,
+                    top: SAFE_PADDING * PREVIEW_SCALE,
+                    right: SAFE_PADDING * PREVIEW_SCALE,
+                    bottom: SAFE_PADDING * PREVIEW_SCALE,
+                  }}
+                />
+              </div>
 
               {/* Текстовые элементы */}
               {textElements.map((el) => (
@@ -1208,19 +1151,155 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               {emojiElements.map((el) => (
                 <div
                   key={el.id}
-                  className={`absolute cursor-move ${
-                    selectedEmojiId === el.id ? "ring-2 ring-green-500" : ""
-                  }`}
+                  className="absolute"
                   style={{
                     left: el.x * PREVIEW_SCALE,
                     top: el.y * PREVIEW_SCALE,
-                    fontSize: el.size * PREVIEW_SCALE,
-                    lineHeight: 1,
                   }}
-                  onMouseDown={(e) => handleDragStart(e, el.id, "emoji")}
-                  onTouchStart={(e) => handleDragStart(e, el.id, "emoji")}
+                  data-emoji-element
                 >
-                  {el.emoji}
+                  <div
+                    className={`cursor-move relative ${
+                      selectedEmojiId === el.id ? "ring-2 ring-green-500 rounded" : ""
+                    }`}
+                    style={{
+                      fontSize: el.size * PREVIEW_SCALE,
+                      lineHeight: 1,
+                    }}
+                    onMouseDown={(e) => handleDragStart(e, el.id, "emoji")}
+                    onTouchStart={(e) => handleDragStart(e, el.id, "emoji")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenEmojiDropdown(openEmojiDropdown === el.id ? null : el.id);
+                      setSelectedEmojiId(el.id);
+                    }}
+                  >
+                    {el.emoji}
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  {openEmojiDropdown === el.id && (
+                    <div
+                      data-emoji-dropdown
+                      className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 min-w-[120px]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => {
+                          setEditingEmojiId(el.id);
+                          setOpenEmojiDropdown(null);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-800 hover:bg-blue-50 flex items-center gap-2 rounded-t-lg"
+                      >
+                        <span>✏️</span> Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          deleteEmojiElement(el.id);
+                          setOpenEmojiDropdown(null);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-200 rounded-b-lg"
+                      >
+                        <span>🗑️</span> Delete
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Edit Settings Panel */}
+                  {editingEmojiId === el.id && (
+                    <div
+                      data-emoji-edit
+                      className="absolute top-full left-0 mt-2 bg-white border-2 border-blue-500 rounded-lg shadow-xl z-50 p-4 min-w-[280px] max-h-[400px] overflow-y-auto"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-sm font-semibold text-gray-900">Edit Emoji</h3>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingEmojiId(null);
+                          }}
+                          className="text-gray-500 hover:text-gray-700 text-xl leading-none"
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {/* Emoji Select */}
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-700">Emoji</label>
+                          <select
+                            value={el.emoji}
+                            onChange={(e) =>
+                              updateEmojiElement(el.id, { emoji: e.target.value })
+                            }
+                            className="w-full border border-gray-300 rounded px-2 py-2 text-2xl text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <optgroup label="Main Emojis">
+                              {["😂", "❤️", "🔥", "👍", "🎉", "⭐", "💯", "✨"].map((emoji) => (
+                                <option key={emoji} value={emoji}>
+                                  {emoji}
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="Subscribe Actions">
+                              {["👇", "☝️", "👉", "👈", "🔔", "▶️", "📺", "🎬"].map((emoji) => (
+                                <option key={emoji} value={emoji}>
+                                  {emoji}
+                                </option>
+                              ))}
+                            </optgroup>
+                          </select>
+                        </div>
+
+                        {/* Size Slider */}
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-700">
+                            Size: {el.size}px
+                          </label>
+                          <input
+                            type="range"
+                            min="40"
+                            max="200"
+                            value={el.size}
+                            onChange={(e) =>
+                              updateEmojiElement(el.id, { size: parseInt(e.target.value) })
+                            }
+                            className="w-full"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+
+                        {/* Animation Select */}
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-700">Animation</label>
+                          <select
+                            value={el.animation}
+                            onChange={(e) =>
+                              updateEmojiElement(el.id, {
+                                animation: e.target.value as EmojiElement["animation"],
+                              })
+                            }
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-gray-900"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <option value="none">No Animation</option>
+                            <option value="pulse">Pulse</option>
+                            <option value="rotate">Rotate</option>
+                            <option value="bounce">Bounce</option>
+                            <option value="fade">Fade In</option>
+                          </select>
+                        </div>
+
+                        {/* Position Info */}
+                        <div className="text-xs text-gray-600 pt-2 border-t">
+                          Position: X: {el.x.toFixed(0)}, Y: {el.y.toFixed(0)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
