@@ -191,7 +191,7 @@ export default function TextElement({
               <textarea
                 value={element.text}
                 onChange={(e) => onUpdate(element.id, { text: e.target.value })}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 h-80"
+                className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 h-80 w-96"
                 rows={4}
                 onClick={(e) => e.stopPropagation()}
               />
