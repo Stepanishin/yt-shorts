@@ -1,21 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSession, signIn } from "next-auth/react";
 import { useLanguage } from "../contexts/LanguageContext";
 
 export default function LandingPage() {
   const { t } = useLanguage();
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { data: session } = useSession();
 
-  useEffect(() => {
-    if (status === "authenticated" && session) {
-      router.push("/dashboard");
+  // Обработчик для кнопок CTA
+  const handleCTA = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!session) {
+      e.preventDefault();
+      signIn("google");
     }
-  }, [status, session, router]);
+    // Если залогинен, ссылка сработает как обычно и перейдет на /dashboard
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -33,7 +33,8 @@ export default function LandingPage() {
           </p>
           <div className="flex justify-center">
             <Link
-              href="/jokes"
+              href="/dashboard"
+              onClick={handleCTA}
               className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl"
             >
               {t("landing.hero.cta")}
@@ -146,7 +147,8 @@ export default function LandingPage() {
             {t("landing.cta.subtitle")}
           </p>
           <Link
-            href="/jokes"
+            href="/dashboard"
+            onClick={handleCTA}
             className="inline-block px-10 py-4 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl"
           >
             {t("landing.cta.button")}
