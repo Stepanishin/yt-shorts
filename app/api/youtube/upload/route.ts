@@ -108,17 +108,29 @@ export async function POST(request: NextRequest) {
     // Обновляем статус анекдота на "used" после успешной публикации (только если это анекдот)
     if (jokeId && !jokeId.startsWith("constructor-")) {
       try {
+        console.log(`Attempting to mark joke ${jokeId} as used after YouTube upload`);
         await markJokeCandidateAsPublished({
           id: jokeId,
           youtubeVideoUrl: result.videoUrl,
           youtubeVideoId: result.videoId,
         });
-
-        console.log(`Joke ${jokeId} marked as used and published`);
+        console.log(`✅ Joke ${jokeId} successfully marked as used and published`);
       } catch (dbError) {
-        console.error("Failed to update joke status:", dbError);
-        // Не прерываем выполнение, так как видео уже загружено
+        console.error(`❌ Failed to update joke ${jokeId} status:`, dbError);
+        // Не прерываем выполнение, так как видео уже загружено, но логируем ошибку
+        // Возвращаем предупреждение в ответе
+        return NextResponse.json({
+          success: true,
+          videoId: result.videoId,
+          videoUrl: result.videoUrl,
+          title: result.title,
+          warning: `Video uploaded successfully, but failed to mark joke as used: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`,
+        });
       }
+    } else if (jokeId) {
+      console.log(`Skipping status update for constructor joke: ${jokeId}`);
+    } else {
+      console.log("No jokeId provided, skipping status update");
     }
 
     return NextResponse.json({

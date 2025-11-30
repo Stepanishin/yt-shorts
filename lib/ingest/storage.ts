@@ -267,7 +267,22 @@ export const markJokeCandidateAsPublished = async ({
   };
 
   const objectId: ObjectId | unknown = ObjectId.isValid(String(id)) ? new ObjectId(String(id)) : id;
-  await collection.updateOne({ _id: objectId as ObjectId }, { $set: update });
+  
+  console.log(`Marking joke ${id} (ObjectId: ${objectId}) as published`);
+  
+  const result = await collection.updateOne({ _id: objectId as ObjectId }, { $set: update });
+  
+  if (result.matchedCount === 0) {
+    throw new Error(`Joke with id ${id} not found in database`);
+  }
+  
+  if (result.modifiedCount === 0) {
+    console.warn(`Joke ${id} was found but not modified (might already be marked as used)`);
+  } else {
+    console.log(`Successfully marked joke ${id} as used and published`);
+  }
+  
+  return result;
 };
 
 export const deleteJokeCandidate = async (id: unknown) => {

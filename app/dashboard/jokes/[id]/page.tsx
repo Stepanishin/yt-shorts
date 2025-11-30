@@ -572,16 +572,28 @@ export default function JokeDetailPage() {
       const result = await response.json();
       setYoutubeVideoUrl(result.videoUrl);
 
-      // Обновляем статус анекдота на клиенте
-      if (joke) {
-        setJoke({
-          ...joke,
-          status: "used",
-        });
+      // Перезагружаем данные анекдота с сервера, чтобы получить актуальный статус
+      try {
+        const jokeResponse = await fetch(`/api/jokes/${joke._id}`);
+        if (jokeResponse.ok) {
+          const jokeData = await jokeResponse.json();
+          setJoke(jokeData.joke);
+          console.log(`Joke ${joke._id} status updated to: ${jokeData.joke.status}`);
+        }
+      } catch (reloadError) {
+        console.error("Failed to reload joke data:", reloadError);
+        // Если не удалось перезагрузить, обновляем локально
+        if (joke) {
+          setJoke({
+            ...joke,
+            status: "used",
+          });
+        }
       }
 
       // Показываем успешное сообщение
-      alert(`Видео успешно загружено на YouTube!\n${result.videoUrl}\n\nАнекдот помечен как "Использован" и больше не будет отображаться в списке.`);
+      const warningMessage = result.warning ? `\n\n⚠️ Предупреждение: ${result.warning}` : '';
+      alert(`Видео успешно загружено на YouTube!\n${result.videoUrl}\n\nАнекдот помечен как "Использован" и больше не будет отображаться в списке.${warningMessage}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Произошла ошибка");
       console.error("Failed to upload to YouTube:", err);

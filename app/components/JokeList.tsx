@@ -181,6 +181,10 @@ export default function JokeList() {
           <JokeCard
             key={String(joke._id)}
             joke={joke}
+            onDelete={(id) => {
+              // Удаляем шутку из списка после успешного удаления
+              setJokes((prevJokes) => prevJokes.filter((j) => j._id !== id));
+            }}
           />
         ))}
       </div>

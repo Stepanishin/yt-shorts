@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
 interface JokeCardProps {
@@ -9,7 +10,7 @@ interface JokeCardProps {
     title?: string;
     text: string;
     category?: string;
-    status?: "pending" | "reserved" | "used" | "rejected";
+    status?: "pending" | "reserved" | "used" | "rejected" | "deleted";
     ratingPercent?: number;
     votesTotal?: number;
     createdAt?: string;
@@ -17,6 +18,7 @@ interface JokeCardProps {
   selectable?: boolean;
   selected?: boolean;
   onToggleSelect?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 const sourceLabels: Record<string, string> = {
@@ -30,6 +32,7 @@ const statusLabels: Record<string, string> = {
   reserved: "Зарезервирован",
   used: "Использован",
   rejected: "Отклонен",
+  deleted: "Удален",
 };
 
 const statusColors: Record<string, string> = {
@@ -37,11 +40,13 @@ const statusColors: Record<string, string> = {
   reserved: "bg-blue-100 text-blue-800",
   used: "bg-green-100 text-green-800",
   rejected: "bg-red-100 text-red-800",
+  deleted: "bg-gray-200 text-gray-600",
 };
 
-export default function JokeCard({ joke, selectable = false, selected = false, onToggleSelect }: JokeCardProps) {
+export default function JokeCard({ joke, selectable = false, selected = false, onToggleSelect, onDelete }: JokeCardProps) {
   const status = joke.status ?? "pending";
   const sourceLabel = sourceLabels[joke.source] ?? joke.source;
+  const [deleting, setDeleting] = useState(false);
 
   if (!joke._id) {
     return (
@@ -55,6 +60,43 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
     if (selectable && onToggleSelect) {
       e.preventDefault();
       onToggleSelect(joke._id!);
+    } else if (!selectable) {
+      // Если не в режиме выбора, открываем конструктор при клике на контейнер
+      window.location.href = `/dashboard?jokeId=${joke._id}`;
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!joke._id) return;
+
+    const confirmed = confirm("Вы уверены, что хотите удалить этот анекдот? Он будет помечен как удаленный и не будет отображаться в списке.");
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/jokes/${joke._id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Не удалось удалить анекдот");
+      }
+
+      // Вызываем callback для обновления списка
+      if (onDelete) {
+        onDelete(joke._id);
+      } else {
+        // Если callback не передан, просто перезагружаем страницу
+        window.location.reload();
+      }
+    } catch (err) {
+      alert(`Ошибка удаления: ${err instanceof Error ? err.message : "Произошла ошибка"}`);
+      console.error("Failed to delete joke:", err);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -66,7 +108,7 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
             ? 'border-purple-500 border-2 bg-purple-50 shadow-md'
             : 'border-gray-300 hover:border-purple-300 hover:shadow-md'
           : 'border-gray-300 hover:shadow-md'
-      } ${!selectable ? 'cursor-pointer' : ''}`}
+      } cursor-pointer`}
       onClick={handleClick}
     >
       <div className="flex items-center gap-3">
@@ -98,6 +140,14 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
                 >
                   🎬 Конструктор
                 </Link>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting || joke.status === "deleted"}
+                  className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 whitespace-nowrap disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  title="Удалить анекдот"
+                >
+                  {deleting ? "..." : joke.status === "deleted" ? "Удалено" : "🗑️"}
+                </button>
               </div>
             )}
           </div>
