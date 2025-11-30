@@ -80,27 +80,27 @@ export default function CreditsBalance() {
   };
 
   if (loading) {
-    return <div className="text-gray-600">Загрузка баланса...</div>;
+    return <div className="text-gray-800">Загрузка баланса...</div>;
   }
 
   const creditsInEuros = (credits || 0) / 100;
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-bold mb-4">Баланс кредитов</h2>
+      <h2 className="text-xl font-bold mb-4 text-gray-900">Баланс кредитов</h2>
 
       <div className="mb-6">
         <div className="text-3xl font-bold text-blue-600 mb-2">
           {credits !== null ? credits : "—"} кредитов
         </div>
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-gray-800">
           ≈ €{creditsInEuros.toFixed(2)}
         </div>
       </div>
 
       <div className="border-t pt-4 mb-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Стоимость операций</h3>
-        <ul className="text-xs text-gray-600 space-y-1">
+        <h3 className="text-sm font-medium text-gray-900 mb-2">Стоимость операций</h3>
+        <ul className="text-xs text-gray-800 space-y-1">
           <li>• Генерация видео-фона (Luma Ray v1): 35 кредитов (€0.35)</li>
           <li>• Генерация аудио (Udio): 10 кредитов (€0.10)</li>
           <li>• Рендеринг видео: бесплатно</li>
@@ -108,10 +108,10 @@ export default function CreditsBalance() {
       </div>
 
       <div className="border-t pt-4">
-        <h3 className="font-semibold mb-3">Пополнить баланс</h3>
+        <h3 className="font-semibold mb-3 text-gray-900">Пополнить баланс</h3>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">
+          <label className="block text-sm font-medium mb-2 text-gray-900">
             Сумма пополнения (кредиты)
           </label>
           <div className="flex gap-2 mb-2">
@@ -120,7 +120,7 @@ export default function CreditsBalance() {
               className={`px-3 py-2 rounded ${
                 topUpAmount === 500
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700"
+                  : "bg-gray-200 text-gray-800"
               }`}
             >
               500 (€5)
@@ -130,7 +130,7 @@ export default function CreditsBalance() {
               className={`px-3 py-2 rounded ${
                 topUpAmount === 1000
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700"
+                  : "bg-gray-200 text-gray-800"
               }`}
             >
               1000 (€10)
@@ -140,7 +140,7 @@ export default function CreditsBalance() {
               className={`px-3 py-2 rounded ${
                 topUpAmount === 2000
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700"
+                  : "bg-gray-200 text-gray-800"
               }`}
             >
               2000 (€20)
@@ -153,9 +153,9 @@ export default function CreditsBalance() {
             step="100"
             value={topUpAmount}
             onChange={(e) => setTopUpAmount(parseInt(e.target.value) || 100)}
-            className="w-full border rounded px-3 py-2"
+            className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-700 mt-1">
             ≈ €{(topUpAmount / 100).toFixed(2)} (минимум €1.00)
           </p>
         </div>

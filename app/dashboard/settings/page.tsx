@@ -121,8 +121,8 @@ export default function SettingsPage() {
           <div
             className={`mb-6 p-4 rounded-lg ${
               message.type === "success"
-                ? "bg-green-50 border border-green-200 text-green-800"
-                : "bg-red-50 border border-red-200 text-red-800"
+                ? "bg-green-50 border border-green-300 text-green-900"
+                : "bg-red-50 border border-red-300 text-red-900"
             }`}
           >
             {message.text}
@@ -146,7 +146,7 @@ export default function SettingsPage() {
               <p className="text-lg font-medium text-gray-900">
                 {session?.user?.name}
               </p>
-              <p className="text-sm text-gray-600">{session?.user?.email}</p>
+              <p className="text-sm text-gray-800">{session?.user?.email}</p>
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function SettingsPage() {
           </h2>
 
           {/* YouTube Integration */}
-          <div className="border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="border border-gray-300 rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <svg
@@ -175,14 +175,14 @@ export default function SettingsPage() {
                 </svg>
                 <div>
                   <h3 className="font-semibold text-gray-900">YouTube</h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-800">
                     Connect your YouTube channel to upload videos directly
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {youtubeConnected && (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-300 rounded-md">
                     <svg
                       className="w-5 h-5 text-green-600"
                       fill="currentColor"
@@ -194,14 +194,14 @@ export default function SettingsPage() {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span className="text-sm font-medium text-green-800">
+                    <span className="text-sm font-medium text-green-900">
                       Connected
                     </span>
                   </div>
                 )}
                 <button
                   onClick={() => setShowYouTubeForm(!showYouTubeForm)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors font-medium text-sm"
+                  className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition-colors font-medium text-sm"
                 >
                   {showYouTubeForm ? "Hide" : "Configure"}
                 </button>
@@ -216,9 +216,9 @@ export default function SettingsPage() {
 
             {/* YouTube OAuth Configuration Form */}
             {showYouTubeForm && (
-              <form onSubmit={handleSaveYouTubeSettings} className="mt-4 pt-4 border-t border-gray-200">
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm text-blue-800">
+              <form onSubmit={handleSaveYouTubeSettings} className="mt-4 pt-4 border-t border-gray-300">
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-300 rounded-md">
+                  <p className="text-sm text-blue-900">
                     <strong>Опционально:</strong> Вы можете настроить свои собственные YouTube OAuth credentials, 
                     или использовать глобальные настройки (если они настроены администратором). 
                     Если вы не заполните эти поля, будут использоваться глобальные настройки.
@@ -226,8 +226,8 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Google Cloud Client ID <span className="text-gray-500 font-normal">(опционально)</span>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                      Google Cloud Client ID <span className="text-gray-700 font-normal">(опционально)</span>
                     </label>
                     <input
                       type="text"
@@ -235,13 +235,13 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         setYoutubeSettings({ ...youtubeSettings, clientId: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="123456789.apps.googleusercontent.com"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-900 mb-1">
                       Google Cloud Client Secret
                     </label>
                     <input
@@ -250,28 +250,28 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         setYoutubeSettings({ ...youtubeSettings, clientSecret: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Enter your client secret"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-700 mt-1">
                       Leave empty to keep existing secret
                     </p>
                   </div>
 
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="p-3 bg-gray-50 border border-gray-300 rounded-md">
+                    <label className="block text-sm font-medium text-gray-900 mb-1">
                       Redirect URI (автоматически)
                     </label>
-                    <code className="text-xs text-gray-600 block">
+                    <code className="text-xs text-gray-800 block">
                       {typeof window !== 'undefined' ? `${window.location.origin}/api/youtube/callback` : '/api/youtube/callback'}
                     </code>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-700 mt-1">
                       Используйте этот URL при создании OAuth credentials в Google Cloud Console
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-900 mb-1">
                       Default Privacy Status
                     </label>
                     <select
@@ -282,7 +282,7 @@ export default function SettingsPage() {
                           defaultPrivacyStatus: e.target.value as "public" | "private" | "unlisted",
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="public">Public</option>
                       <option value="unlisted">Unlisted</option>
@@ -291,7 +291,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-900 mb-1">
                       Default Tags (comma-separated)
                     </label>
                     <input
@@ -300,7 +300,7 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         setYoutubeSettings({ ...youtubeSettings, defaultTags: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="shorts, funny, viral"
                     />
                   </div>
@@ -316,14 +316,14 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setShowYouTubeForm(false)}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium text-sm"
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors font-medium text-sm"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
 
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800">
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-300 rounded-md text-xs text-blue-900">
                   <p className="font-medium mb-1">How to get your OAuth credentials:</p>
                   <ol className="list-decimal list-inside space-y-1">
                     <li>Go to Google Cloud Console</li>

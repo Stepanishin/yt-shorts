@@ -45,8 +45,8 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
 
   if (!joke._id) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="text-gray-500">Анекдот без ID</div>
+      <div className="rounded-lg border border-gray-300 bg-white p-6 shadow-sm">
+        <div className="text-gray-700">Анекдот без ID</div>
       </div>
     );
   }
@@ -64,8 +64,8 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
         selectable
           ? selected
             ? 'border-purple-500 border-2 bg-purple-50 shadow-md'
-            : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
-          : 'border-gray-200 hover:shadow-md'
+            : 'border-gray-300 hover:border-purple-300 hover:shadow-md'
+          : 'border-gray-300 hover:shadow-md'
       } ${!selectable ? 'cursor-pointer' : ''}`}
       onClick={handleClick}
     >

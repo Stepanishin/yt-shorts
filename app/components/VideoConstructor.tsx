@@ -745,14 +745,14 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         <div className="lg:col-span-1 space-y-6">
         {/* Фон */}
         <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-lg font-semibold mb-3">Фон и настройки</h2>
+          <h2 className="text-lg font-semibold mb-3 text-gray-900">Фон и настройки</h2>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium mb-1">Длительность видео</label>
+              <label className="block text-sm font-medium mb-1 text-gray-900">Длительность видео</label>
               <select
                 value={videoDuration}
                 onChange={(e) => setVideoDuration(parseInt(e.target.value))}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
               >
                 <option value={5}>5 секунд</option>
                 <option value={10}>10 секунд</option>
@@ -762,23 +762,23 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Тип фона</label>
+              <label className="block text-sm font-medium mb-1 text-gray-900">Тип фона</label>
               <select
                 value={backgroundType}
                 onChange={(e) => setBackgroundType(e.target.value as "video" | "image")}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
               >
                 <option value="video">Видео</option>
                 <option value="image">Изображение</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">URL фона</label>
+              <label className="block text-sm font-medium mb-1 text-gray-900">URL фона</label>
               <div className="flex gap-2 mb-2">
                 <select
                   value={backgroundModel}
                   onChange={(e) => setBackgroundModel(e.target.value as "ray-v1" | "hailuo-t2v-01" | "luma-direct")}
-                  className="border rounded px-3 py-2 text-sm"
+                  className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-900"
                   title="Модель для генерации фона"
                 >
                   <option value="luma-direct">⚡ Luma Flash (25 кредитов / $0.25) - БЫСТРО</option>
@@ -793,7 +793,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   value={backgroundPrompt}
                   onChange={(e) => setBackgroundPrompt(e.target.value)}
                   placeholder="Опционально: описание фона для AI (если пусто, используется текст из элементов)"
-                  className="w-full border rounded px-3 py-2 text-sm resize-none"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none text-gray-900"
                   rows={2}
                 />
               </div>
@@ -804,7 +804,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   value={backgroundUrl}
                   onChange={(e) => setBackgroundUrl(e.target.value)}
                   placeholder="https://..."
-                  className="flex-1 border rounded px-3 py-2"
+                  className="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-900"
                 />
                 <button
                   onClick={handleGenerateBackground}
@@ -817,12 +817,12 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">URL аудио (опционально)</label>
+              <label className="block text-sm font-medium mb-1 text-gray-900">URL аудио (опционально)</label>
               <div className="flex gap-2 mb-2">
                 <select
                   value={audioModel}
                   onChange={(e) => setAudioModel(e.target.value as "llm")}
-                  className="border rounded px-3 py-2 text-sm"
+                  className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-900"
                   title="Модель для генерации аудио"
                 >
                   <option value="llm">Udio (10 кредитов)</option>
@@ -835,7 +835,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   value={audioPrompt}
                   onChange={(e) => setAudioPrompt(e.target.value)}
                   placeholder="Опционально: описание музыки для AI (если пусто, используется текст из элементов)"
-                  className="w-full border rounded px-3 py-2 text-sm resize-none"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none text-gray-900"
                   rows={2}
                 />
               </div>
@@ -846,7 +846,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   value={audioUrl}
                   onChange={(e) => setAudioUrl(e.target.value)}
                   placeholder="https://..."
-                  className="flex-1 border rounded px-3 py-2"
+                  className="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-900"
                 />
                 <button
                   onClick={handleGenerateAudio}
@@ -857,7 +857,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   {generatingAudio ? "⏳" : "🎵 AI"}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-700 mt-1">
                 MP3 или другой аудио формат
               </p>
             </div>
@@ -867,7 +867,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         {/* Добавить элементы */}
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold">Добавить элементы</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Добавить элементы</h2>
             <button
               onClick={() => {
                 if (confirm("Очистить все элементы и начать заново?")) {
@@ -911,7 +911,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
             {/* Subscribe / Suscríbete эмодзи */}
             <div className="border-t pt-2 mt-2">
-              <p className="text-xs text-gray-600 mb-1 font-medium">Subscribe Actions:</p>
+              <p className="text-xs text-gray-800 mb-1 font-medium">Subscribe Actions:</p>
               <div className="grid grid-cols-4 gap-2">
                 {["👇", "☝️", "👉", "👈", "🔔", "▶️", "📺", "🎬"].map((emoji) => (
                   <button
@@ -928,7 +928,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
             {/* Quick Subscribe Text Buttons */}
             <div className="border-t pt-2 mt-2 space-y-1">
-              <p className="text-xs text-gray-600 mb-1 font-medium">Quick Actions:</p>
+              <p className="text-xs text-gray-800 mb-1 font-medium">Quick Actions:</p>
               <button
                 onClick={() => {
                   const newElement: TextElement = {
@@ -999,7 +999,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         {selectedText && (
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-semibold">Редактировать текст</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Редактировать текст</h2>
               <button
                 onClick={() => deleteTextElement(selectedText.id)}
                 className="text-red-500 hover:text-red-700"
@@ -1009,18 +1009,18 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Текст</label>
+                <label className="block text-sm font-medium mb-1 text-gray-900">Текст</label>
                 <textarea
                   value={selectedText.text}
                   onChange={(e) =>
                     updateTextElement(selectedText.id, { text: e.target.value })
                   }
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
                   style={{ height: '500px' }}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 text-gray-900">
                   Размер шрифта: {selectedText.fontSize}
                 </label>
                 <input
@@ -1037,7 +1037,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-900">
                   <input
                     type="checkbox"
                     checked={selectedText.fontWeight === "bold"}
@@ -1052,7 +1052,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                 </label>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 text-gray-900">
                   X: {selectedText.x.toFixed(0)} Y: {selectedText.y.toFixed(0)}
                 </label>
               </div>
@@ -1064,7 +1064,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         {selectedEmoji && (
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-semibold">Редактировать эмодзи</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Редактировать эмодзи</h2>
               <button
                 onClick={() => deleteEmojiElement(selectedEmoji.id)}
                 className="text-red-500 hover:text-red-700"
@@ -1074,18 +1074,18 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Эмодзи</label>
+                <label className="block text-sm font-medium mb-1 text-gray-900">Эмодзи</label>
                 <input
                   type="text"
                   value={selectedEmoji.emoji}
                   onChange={(e) =>
                     updateEmojiElement(selectedEmoji.id, { emoji: e.target.value })
                   }
-                  className="w-full border rounded px-3 py-2 text-2xl"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-2xl"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 text-gray-900">
                   Размер: {selectedEmoji.size}
                 </label>
                 <input
@@ -1102,7 +1102,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Анимация</label>
+                <label className="block text-sm font-medium mb-1 text-gray-900">Анимация</label>
                 <select
                   value={selectedEmoji.animation}
                   onChange={(e) =>
@@ -1110,7 +1110,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                       animation: e.target.value as EmojiElement["animation"],
                     })
                   }
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
                 >
                   <option value="none">Без анимации</option>
                   <option value="pulse">Пульсация</option>
@@ -1120,7 +1120,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 text-gray-900">
                   X: {selectedEmoji.x.toFixed(0)} Y: {selectedEmoji.y.toFixed(0)}
                 </label>
               </div>
@@ -1133,7 +1133,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       {/* Область предпросмотра */}
       <div className="lg:col-span-2">
         <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-lg font-semibold mb-3">Предпросмотр</h2>
+          <h2 className="text-lg font-semibold mb-3 text-gray-900">Предпросмотр</h2>
           <div className="flex justify-center">
             <div
               ref={canvasRef}
@@ -1241,7 +1241,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         {/* Готовое видео */}
         {renderedVideoUrl && (
           <div className="bg-white rounded-lg shadow p-4 mt-6">
-            <h2 className="text-lg font-semibold mb-3">Готовое видео</h2>
+            <h2 className="text-lg font-semibold mb-3 text-gray-900">Готовое видео</h2>
 
             {/* Кнопки действий сверху */}
             <div className="flex gap-2 mb-3">
@@ -1305,7 +1305,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             {/* Настройки публикации */}
             <div className="mb-4 space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 text-gray-900">
                   Название видео (опционально)
                 </label>
                 <input
@@ -1313,24 +1313,24 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   value={videoTitle}
                   onChange={(e) => setVideoTitle(e.target.value)}
                   placeholder="Оставьте пустым для генерации AI"
-                  className="w-full border rounded px-3 py-2 text-sm"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 text-gray-900">
                   Описание (опционально)
                 </label>
                 <textarea
                   value={videoDescription}
                   onChange={(e) => setVideoDescription(e.target.value)}
                   placeholder="Оставьте пустым для генерации AI"
-                  className="w-full border rounded px-3 py-2 text-sm"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900"
                   rows={2}
                 />
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-gray-900 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={useAITitle}

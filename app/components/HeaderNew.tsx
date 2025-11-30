@@ -45,7 +45,7 @@ export default function HeaderNew() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm">
+    <header className="bg-white border-b border-gray-300 shadow-sm">
       <div className="container mx-auto px-4 py-4 max-w-7xl">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
@@ -54,7 +54,7 @@ export default function HeaderNew() {
               <h1 className="text-xl font-bold text-gray-900">
                 {t("header.title")}
               </h1>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-700">
                 {t("header.subtitle")}
               </p>
             </div>
@@ -64,7 +64,7 @@ export default function HeaderNew() {
             <LanguageSwitcher />
 
             {status === "loading" ? (
-              <div className="text-sm text-gray-500">{t("header.checking")}</div>
+              <div className="text-sm text-gray-700">{t("header.checking")}</div>
             ) : session ? (
               <div className="flex items-center gap-3">
                 {/* Credits Balance */}

@@ -25,7 +25,7 @@ export default function DashboardLayout({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-800">Loading...</p>
         </div>
       </div>
     );
@@ -40,7 +40,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0">
+      <aside className="w-64 bg-white border-r border-gray-300 min-h-screen fixed left-0">
         <nav className="p-4">
           {/* Credits Balance in Sidebar */}
           {/* <Link
@@ -67,7 +67,7 @@ export default function DashboardLayout({
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                 isActive("/dashboard")
                   ? "bg-blue-50 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-100"
+                  : "text-gray-800 hover:bg-gray-100"
               }`}
             >
               <svg
@@ -91,7 +91,7 @@ export default function DashboardLayout({
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                 isActive("/dashboard/jokes")
                   ? "bg-blue-50 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-100"
+                  : "text-gray-800 hover:bg-gray-100"
               }`}
             >
               <svg
@@ -115,7 +115,7 @@ export default function DashboardLayout({
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                 isActive("/dashboard/settings")
                   ? "bg-blue-50 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-100"
+                  : "text-gray-800 hover:bg-gray-100"
               }`}
             >
               <svg

@@ -102,16 +102,16 @@ export default function JokeList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-600">Загрузка анекдотов...</div>
+        <div className="text-gray-800">Загрузка анекдотов...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-        <div className="text-red-800 font-medium mb-2">Ошибка загрузки</div>
-        <div className="text-red-600 text-sm mb-3">{error}</div>
+      <div className="rounded-lg border border-red-300 bg-red-50 p-4">
+        <div className="text-red-900 font-medium mb-2">Ошибка загрузки</div>
+        <div className="text-red-700 text-sm mb-3">{error}</div>
         <button
           onClick={loadJokes}
           className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
@@ -124,9 +124,9 @@ export default function JokeList() {
 
   if (jokes.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-        <div className="text-gray-600 mb-4">Анекдотов пока нет</div>
-        <div className="text-sm text-gray-500 mb-6">
+      <div className="rounded-lg border border-gray-300 bg-gray-50 p-8 text-center">
+        <div className="text-gray-800 mb-4">Анекдотов пока нет</div>
+        <div className="text-sm text-gray-700 mb-6">
           Соберите анекдоты из различных источников
         </div>
         <button
@@ -172,7 +172,7 @@ export default function JokeList() {
       </div>
 
       {collectResult && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+        <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900">
           Собрано: {collectResult.totalCollected}, добавлено в базу: {collectResult.inserted}
         </div>
       )}

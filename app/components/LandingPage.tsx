@@ -28,7 +28,7 @@ export default function LandingPage() {
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
             {t("landing.hero.title")}
           </h1>
-          <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-800 mb-10 max-w-3xl mx-auto">
             {t("landing.hero.subtitle")}
           </p>
           <div className="flex justify-center">
@@ -53,7 +53,7 @@ export default function LandingPage() {
             <h3 className="text-xl font-bold text-gray-900 mb-3">
               {t("landing.features.automation.title")}
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-800">
               {t("landing.features.automation.description")}
             </p>
           </div>
@@ -63,7 +63,7 @@ export default function LandingPage() {
             <h3 className="text-xl font-bold text-gray-900 mb-3">
               {t("landing.features.quality.title")}
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-800">
               {t("landing.features.quality.description")}
             </p>
           </div>
@@ -73,7 +73,7 @@ export default function LandingPage() {
             <h3 className="text-xl font-bold text-gray-900 mb-3">
               {t("landing.features.youtube.title")}
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-800">
               {t("landing.features.youtube.description")}
             </p>
           </div>
@@ -83,7 +83,7 @@ export default function LandingPage() {
             <h3 className="text-xl font-bold text-gray-900 mb-3">
               {t("landing.features.customization.title")}
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-800">
               {t("landing.features.customization.description")}
             </p>
           </div>
@@ -104,7 +104,7 @@ export default function LandingPage() {
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 {t("landing.howItWorks.step1.title")}
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-800">
                 {t("landing.howItWorks.step1.description")}
               </p>
             </div>
@@ -116,7 +116,7 @@ export default function LandingPage() {
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 {t("landing.howItWorks.step2.title")}
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-800">
                 {t("landing.howItWorks.step2.description")}
               </p>
             </div>
@@ -128,7 +128,7 @@ export default function LandingPage() {
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 {t("landing.howItWorks.step3.title")}
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-800">
                 {t("landing.howItWorks.step3.description")}
               </p>
             </div>
@@ -155,8 +155,8 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 py-8">
-        <div className="container mx-auto px-4 text-center text-gray-600">
+      <footer className="border-t border-gray-300 py-8">
+        <div className="container mx-auto px-4 text-center text-gray-800">
           <p>
             {t("landing.footer.madeWith")} ❤️ {t("landing.footer.by")} Shorts Generator
           </p>
