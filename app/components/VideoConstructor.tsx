@@ -119,6 +119,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       try {
         const state = JSON.parse(savedState);
         setTextElements(state.textElements || []);
+        setSubscribeElements(state.subscribeElements || []);
         setEmojiElements(state.emojiElements || []);
         setBackgroundUrl(state.backgroundUrl || "");
         setBackgroundType(state.backgroundType || "video");
@@ -150,6 +151,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
     const state = {
       textElements,
+      subscribeElements,
       emojiElements,
       backgroundUrl,
       backgroundType,
@@ -166,6 +168,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     localStorage.setItem("videoConstructorState", JSON.stringify(state));
   }, [
     textElements,
+    subscribeElements,
     emojiElements,
     backgroundUrl,
     backgroundType,
@@ -190,6 +193,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
         // Очищаем весь state перед загрузкой новой шутки
         setTextElements([]);
+        setSubscribeElements([]);
         setEmojiElements([]);
         setBackgroundUrl("");
         setBackgroundType("video");
@@ -460,11 +464,36 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       addLog(`⏱️ Длительность: ${videoDuration} секунд`);
       addLog(`📹 Фон: ${backgroundType === "video" ? "видео" : "изображение"}`);
       addLog(`📝 Текстовых элементов: ${textElements.length}`);
+      addLog(`🔔 Subscribe элементов: ${subscribeElements.length}`);
       addLog(`😀 Эмодзи элементов: ${emojiElements.length}`);
       if (audioUrl) {
         addLog("🎵 Аудио: добавлено");
       }
       addLog("🔄 Отправка на рендеринг...");
+
+      // Объединяем текстовые и subscribe элементы в один массив для рендеринга
+      const allTextElements = [
+        ...textElements.map((el) => ({
+          text: el.text,
+          x: el.x,
+          y: el.y,
+          fontSize: el.fontSize,
+          color: el.color,
+          backgroundColor: el.backgroundColor,
+          boxPadding: el.boxPadding,
+          fontWeight: el.fontWeight || "bold",
+        })),
+        ...subscribeElements.map((el) => ({
+          text: el.text,
+          x: el.x,
+          y: el.y,
+          fontSize: el.fontSize,
+          color: "white@1",
+          backgroundColor: "red@0.9",
+          boxPadding: el.boxPadding || 15,
+          fontWeight: "bold",
+        })),
+      ];
 
       const response = await fetch("/api/videos/constructor/render", {
         method: "POST",
@@ -474,16 +503,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         body: JSON.stringify({
           backgroundVideoUrl: backgroundType === "video" ? backgroundUrl : undefined,
           backgroundImageUrl: backgroundType === "image" ? backgroundUrl : undefined,
-          textElements: textElements.map((el) => ({
-            text: el.text,
-            x: el.x,
-            y: el.y,
-            fontSize: el.fontSize,
-            color: el.color,
-            backgroundColor: el.backgroundColor,
-            boxPadding: el.boxPadding,
-            fontWeight: el.fontWeight || "bold",
-          })),
+          textElements: allTextElements,
           emojiElements: emojiElements.map((el) => ({
             emoji: el.emoji,
             x: el.x,

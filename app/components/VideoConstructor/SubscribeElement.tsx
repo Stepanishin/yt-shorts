@@ -130,13 +130,9 @@ export default function SubscribeElement({
         style={{
           fontSize: element.fontSize * previewScale,
           fontWeight: element.fontWeight || "bold",
-          backgroundColor: element.backgroundColor
-            ? `rgba(220, 38, 38, 0.8)`
-            : "transparent",
+          backgroundColor: "rgba(220, 38, 38, 0.9)",
           color: "white",
-          padding: element.boxPadding
-            ? element.boxPadding * previewScale
-            : undefined,
+          padding: (element.boxPadding || 15) * previewScale,
           borderRadius: "4px",
           whiteSpace: "pre-wrap",
         }}
