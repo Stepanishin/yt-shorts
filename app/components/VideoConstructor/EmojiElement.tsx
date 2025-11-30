@@ -38,6 +38,8 @@ export default function EmojiElement({
   const [showDropdown, setShowDropdown] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const draggedRef = useRef(false);
+  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
   // Закрытие при клике вне компонента
   useEffect(() => {
@@ -60,10 +62,41 @@ export default function EmojiElement({
     }
   }, [showDropdown, showEdit]);
 
+  // Отслеживание перемещения мыши для определения перетаскивания
+  useEffect(() => {
+    const handleMouseMove = () => {
+      if (mouseDownPosRef.current) {
+        draggedRef.current = true;
+      }
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
+
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+
+    mouseDownPosRef.current = { x: clientX, y: clientY };
+    draggedRef.current = false;
+    onDragStart(e, element.id);
+  };
+
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setShowDropdown(!showDropdown);
-    onSelect(element.id);
+
+    // Открываем dropdown только если элемент не перетаскивался
+    if (!draggedRef.current) {
+      setShowDropdown(!showDropdown);
+      onSelect(element.id);
+    }
+
+    // Сбрасываем флаг
+    draggedRef.current = false;
+    mouseDownPosRef.current = null;
   };
 
   const handleEdit = () => {
@@ -94,8 +127,8 @@ export default function EmojiElement({
           fontSize: element.size * previewScale,
           lineHeight: 1,
         }}
-        onMouseDown={(e) => onDragStart(e, element.id)}
-        onTouchStart={(e) => onDragStart(e, element.id)}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleMouseDown}
         onClick={handleClick}
       >
         {element.emoji}
