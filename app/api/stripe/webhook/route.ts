@@ -52,7 +52,19 @@ export async function POST(req: NextRequest) {
 
     try {
       // Добавляем кредиты пользователю
-      await addCredits(userId, parseInt(credits, 10));
+      const creditsAmount = parseInt(credits, 10);
+      await addCredits(
+        userId,
+        creditsAmount,
+        "purchase",
+        `Purchase via Stripe (Session: ${session.id})`,
+        {
+          stripeSessionId: session.id,
+          stripePaymentIntentId: session.payment_intent as string | undefined,
+          amountPaid: session.amount_total ? session.amount_total / 100 : undefined, // Конвертируем из центов
+          currency: session.currency,
+        }
+      );
       console.log(`Added ${credits} credits to user ${userId}`);
     } catch (error) {
       console.error("Error adding credits:", error);

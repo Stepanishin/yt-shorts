@@ -1,5 +1,6 @@
 import { MongoClient, Db, ObjectId } from "mongodb";
 import { getMongoDatabase } from "./mongodb";
+import { createTransaction, TransactionReason } from "./transactions";
 
 export interface YouTubeSettings {
   clientId: string;
@@ -86,6 +87,10 @@ export async function upsertUserByGoogleId(
 ): Promise<User> {
   const db = await getMongoDatabase();
 
+  // Проверяем, существует ли пользователь
+  const existingUser = await getUserByGoogleId(googleId);
+  const isNewUser = !existingUser;
+
   const result = await db.collection<User>(COLLECTION_NAME).findOneAndUpdate(
     { googleId },
     {
@@ -109,11 +114,39 @@ export async function upsertUserByGoogleId(
     throw new Error("Failed to upsert user");
   }
 
+  // Логируем начальный баланс только для новых пользователей
+  if (isNewUser && result.credits === 50) {
+    try {
+      await createTransaction(
+        result._id!.toString(),
+        "deposit",
+        50,
+        "initial_balance",
+        0,
+        50,
+        "Начальный баланс при регистрации"
+      );
+    } catch (error) {
+      console.error("Failed to log initial balance transaction:", error);
+      // Не прерываем выполнение, если логирование не удалось
+    }
+  }
+
   return result;
 }
 
-export async function addCredits(userId: string, amount: number): Promise<User | null> {
+export async function addCredits(
+  userId: string,
+  amount: number,
+  reason: TransactionReason = "purchase",
+  description?: string,
+  metadata?: Record<string, unknown>
+): Promise<User | null> {
   const db = await getMongoDatabase();
+
+  // Получаем текущий баланс
+  const userBefore = await getUserById(userId);
+  const balanceBefore = userBefore?.credits || 0;
 
   const result = await db.collection<User>(COLLECTION_NAME).findOneAndUpdate(
     { _id: new ObjectId(userId) },
@@ -124,10 +157,35 @@ export async function addCredits(userId: string, amount: number): Promise<User |
     { returnDocument: "after" }
   );
 
+  if (result) {
+    // Логируем транзакцию
+    try {
+      await createTransaction(
+        userId,
+        "deposit",
+        amount,
+        reason,
+        balanceBefore,
+        result.credits,
+        description,
+        metadata
+      );
+    } catch (error) {
+      console.error("Failed to log transaction:", error);
+      // Не прерываем выполнение, если логирование не удалось
+    }
+  }
+
   return result || null;
 }
 
-export async function deductCredits(userId: string, amount: number): Promise<User | null> {
+export async function deductCredits(
+  userId: string,
+  amount: number,
+  reason: TransactionReason = "video_generation",
+  description?: string,
+  metadata?: Record<string, unknown>
+): Promise<User | null> {
   console.log("🔍 deductCredits called with:", { userId, amount });
 
   const db = await getMongoDatabase();
@@ -158,6 +216,8 @@ export async function deductCredits(userId: string, amount: number): Promise<Use
 
   console.log("✅ User has sufficient credits, proceeding with deduction...");
 
+  const balanceBefore = user.credits;
+
   const result = await db.collection<User>(COLLECTION_NAME).findOneAndUpdate(
     { _id: new ObjectId(userId), credits: { $gte: amount } },
     {
@@ -173,5 +233,23 @@ export async function deductCredits(userId: string, amount: number): Promise<Use
   }
 
   console.log("✅ Credits deducted successfully, new balance:", result.credits);
+
+  // Логируем транзакцию
+  try {
+    await createTransaction(
+      userId,
+      "withdrawal",
+      amount,
+      reason,
+      balanceBefore,
+      result.credits,
+      description,
+      metadata
+    );
+  } catch (error) {
+    console.error("Failed to log transaction:", error);
+    // Не прерываем выполнение, если логирование не удалось
+  }
+
   return result;
 }

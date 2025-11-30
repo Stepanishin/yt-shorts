@@ -76,7 +76,17 @@ export async function POST(request: NextRequest) {
 
     // Списываем кредиты ТОЛЬКО после успешной генерации
     try {
-      await deductCredits(user._id.toString(), cost);
+      await deductCredits(
+        user._id.toString(),
+        cost,
+        "background_generation",
+        `Background generation (${modelName})`,
+        {
+          modelName,
+          style,
+          generationId: result.generationId,
+        }
+      );
       console.log("✅ Credits deducted after successful generation");
 
       // Проверяем баланс после списания

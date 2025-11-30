@@ -64,7 +64,17 @@ export async function POST(request: NextRequest) {
 
     // Списываем кредиты ТОЛЬКО после успешной генерации
     try {
-      await deductCredits(user._id.toString(), cost);
+      await deductCredits(
+        user._id.toString(),
+        cost,
+        "audio_generation",
+        `Audio generation (${modelName}, ${lyricsType})`,
+        {
+          modelName,
+          lyricsType,
+          generationId: result.generationId,
+        }
+      );
       console.log("✅ Credits deducted after successful generation");
 
       // Проверяем баланс после списания
