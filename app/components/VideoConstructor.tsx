@@ -481,6 +481,102 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     return lines.join('\n');
   };
 
+  // Генерация только названия
+  const handleGenerateTitle = async () => {
+    const jokeText = textElements.map(el => el.text).join(' ');
+    if (!jokeText.trim()) {
+      alert('Добавьте текст шутки сначала');
+      return;
+    }
+
+    // Открываем модальное окно и сбрасываем логи
+    resetLogsModal();
+    setLogsModalTitle("Генерация названия");
+    setShowLogsModal(true);
+
+    try {
+      addLog('🤖 Генерируем название для видео...');
+      addLog(`📝 Текст шутки: "${jokeText.substring(0, 100)}${jokeText.length > 100 ? '...' : ''}"`);
+      addLog('🔄 Отправка запроса к AI...');
+
+      const response = await fetch('/api/youtube/generate-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jokeText }),
+      });
+
+      const data = await response.json();
+      if (data.title) {
+        addLog('✅ Название успешно сгенерировано!');
+        addLog(`📌 Название: "${data.title}"`);
+        setVideoTitle(data.title);
+        setGenerationComplete(true);
+
+        // Автозакрытие через 2 секунды
+        setTimeout(() => {
+          setShowLogsModal(false);
+        }, 2000);
+      } else {
+        addLog(`❌ Ошибка: ${data.error || 'Неизвестная ошибка'}`);
+        setGenerationError(true);
+      }
+    } catch (error) {
+      console.error('Error generating title:', error);
+      addLog(`❌ Произошла ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+      setGenerationError(true);
+    } finally {
+      setGenerationComplete(true);
+    }
+  };
+
+  // Генерация только описания
+  const handleGenerateDescription = async () => {
+    const jokeText = textElements.map(el => el.text).join(' ');
+    if (!jokeText.trim()) {
+      alert('Добавьте текст шутки сначала');
+      return;
+    }
+
+    // Открываем модальное окно и сбрасываем логи
+    resetLogsModal();
+    setLogsModalTitle("Генерация описания");
+    setShowLogsModal(true);
+
+    try {
+      addLog('🤖 Генерируем описание для видео...');
+      addLog(`📝 Текст шутки: "${jokeText.substring(0, 100)}${jokeText.length > 100 ? '...' : ''}"`);
+      addLog('🔄 Отправка запроса к AI...');
+
+      const response = await fetch('/api/youtube/generate-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jokeText }),
+      });
+
+      const data = await response.json();
+      if (data.description) {
+        addLog('✅ Описание успешно сгенерировано!');
+        addLog(`📝 Описание: "${data.description.substring(0, 150)}${data.description.length > 150 ? '...' : ''}"`);
+        setVideoDescription(data.description);
+        setGenerationComplete(true);
+
+        // Автозакрытие через 2 секунды
+        setTimeout(() => {
+          setShowLogsModal(false);
+        }, 2000);
+      } else {
+        addLog(`❌ Ошибка: ${data.error || 'Неизвестная ошибка'}`);
+        setGenerationError(true);
+      }
+    } catch (error) {
+      console.error('Error generating description:', error);
+      addLog(`❌ Произошла ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+      setGenerationError(true);
+    } finally {
+      setGenerationComplete(true);
+    }
+  };
+
   // Рендерить видео
   const handleRender = async () => {
     if (!backgroundUrl) {
@@ -780,8 +876,16 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       let title: string;
       let description: string;
 
-      // Используем AI для генерации названия и описания, если включено
-      if (useAITitle && allText) {
+      // Проверяем, заполнены ли уже название и описание
+      const hasTitleAndDescription = videoTitle.trim() && videoDescription.trim();
+
+      if (hasTitleAndDescription) {
+        // Если уже заполнены - используем их (не генерируем заново)
+        title = videoTitle;
+        description = videoDescription;
+        console.log("Using pre-filled title and description");
+      } else if (useAITitle && allText) {
+        // Если пусто и AI включен - генерируем
         try {
           const aiResponse = await fetch("/api/youtube/generate-title", {
             method: "POST",
@@ -798,19 +902,21 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             const aiData = await aiResponse.json();
             title = aiData.title;
             description = aiData.description;
+            console.log("Generated title and description with AI");
           } else {
             throw new Error("AI generation failed");
           }
         } catch (aiError) {
-          console.warn("AI title generation failed, using custom title:", aiError);
-          // Fallback к пользовательскому названию
+          console.warn("AI title generation failed, using fallback:", aiError);
+          // Fallback к базовому названию
           title = videoTitle || "Video from Constructor";
           description = videoDescription || allText;
         }
       } else {
-        // Используем пользовательское название
+        // Используем то что есть или fallback
         title = videoTitle || "Video from Constructor";
         description = videoDescription || allText;
+        console.log("Using manual title or fallback");
       }
 
       // Теги
@@ -1109,27 +1215,43 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             {/* Настройки публикации */}
             <div className="mb-4 space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-900">
-                  Название видео (опционально)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-900">
+                    Название видео (опционально)
+                  </label>
+                  <button
+                    onClick={handleGenerateTitle}
+                    className="text-xs bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded transition-colors"
+                  >
+                    ✨ Сгенерировать
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={videoTitle}
                   onChange={(e) => setVideoTitle(e.target.value)}
                   placeholder="Оставьте пустым для генерации AI"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900  h-44"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-900">
-                  Описание (опционально)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-900">
+                    Описание (опционально)
+                  </label>
+                  <button
+                    onClick={handleGenerateDescription}
+                    className="text-xs bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded transition-colors"
+                  >
+                    ✨ Сгенерировать
+                  </button>
+                </div>
                 <textarea
                   value={videoDescription}
                   onChange={(e) => setVideoDescription(e.target.value)}
                   placeholder="Оставьте пустым для генерации AI"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 h-44"
                   rows={2}
                 />
               </div>
