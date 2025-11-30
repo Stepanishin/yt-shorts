@@ -40,26 +40,8 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-300 min-h-screen fixed left-0">
+      <aside className="w-64 bg-white border-r border-gray-300 min-h-screen left-0">
         <nav className="p-4">
-          {/* Credits Balance in Sidebar */}
-          {/* <Link
-            href="/dashboard/settings"
-            className="flex items-center gap-3 px-3 py-2 mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg hover:from-blue-100 hover:to-indigo-100 transition-colors"
-          >
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="flex-1">
-              <div className="text-xs text-gray-600">Баланс</div>
-              <div className="text-sm font-semibold text-blue-900">
-                {session.user?.credits !== undefined ? `${session.user.credits} кредитов` : 'Загрузка...'}
-              </div>
-            </div>
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link> */}
 
           <div className="space-y-1">
             <Link
@@ -170,7 +152,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 ml-64 pt-0">
+      <main className="flex-1 pt-0">
         {children}
       </main>
     </div>
