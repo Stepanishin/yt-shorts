@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import GenerationLogsModal from "./GenerationLogsModal";
+import EmojiElement from "./VideoConstructor/EmojiElement";
+import AddElementsPanel from "./VideoConstructor/AddElementsPanel";
+import BackgroundSettings from "./VideoConstructor/BackgroundSettings";
 
 interface TextElement {
   id: string;
@@ -46,8 +49,6 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [renderedVideoUrl, setRenderedVideoUrl] = useState<string>("");
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [selectedEmojiId, setSelectedEmojiId] = useState<string | null>(null);
-  const [openEmojiDropdown, setOpenEmojiDropdown] = useState<string | null>(null);
-  const [editingEmojiId, setEditingEmojiId] = useState<string | null>(null);
   const [uploadingToYouTube, setUploadingToYouTube] = useState(false);
   const [youtubeVideoUrl, setYoutubeVideoUrl] = useState<string | null>(null);
   const [useAITitle, setUseAITitle] = useState(true);
@@ -736,29 +737,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     };
   }, []);
 
-  // Закрытие dropdown и edit панелей при клике вне их
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-
-      // Проверяем, что клик был не по dropdown или edit панели
-      if (!target.closest('[data-emoji-dropdown]') &&
-          !target.closest('[data-emoji-edit]') &&
-          !target.closest('[data-emoji-element]')) {
-        setOpenEmojiDropdown(null);
-        setEditingEmojiId(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
   const selectedText = textElements.find((el) => el.id === selectedTextId);
-  const selectedEmoji = emojiElements.find((el) => el.id === selectedEmojiId);
 
   return (
     <div className="space-y-4">
@@ -766,237 +745,97 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Панель управления */}
         <div className="lg:col-span-1 space-y-6">
-        {/* Фон */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-lg font-semibold mb-3 text-gray-900">Фон и настройки</h2>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-900">Длительность видео</label>
-              <select
-                value={videoDuration}
-                onChange={(e) => setVideoDuration(parseInt(e.target.value))}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
-              >
-                <option value={5}>5 секунд</option>
-                <option value={10}>10 секунд</option>
-                <option value={15}>15 секунд</option>
-                <option value={20}>20 секунд</option>
-                <option value={30}>30 секунд</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-900">Тип фона</label>
-              <select
-                value={backgroundType}
-                onChange={(e) => setBackgroundType(e.target.value as "video" | "image")}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
-              >
-                <option value="video">Видео</option>
-                <option value="image">Изображение</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-900">URL фона</label>
-              <div className="flex gap-2 mb-2">
-                <select
-                  value={backgroundModel}
-                  onChange={(e) => setBackgroundModel(e.target.value as "ray-v1" | "hailuo-t2v-01" | "luma-direct")}
-                  className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-900"
-                  title="Модель для генерации фона"
-                >
-                  <option value="luma-direct">⚡ Luma Flash (25 кредитов / $0.25) - БЫСТРО</option>
-                  <option value="ray-v1">Luma Ray v1 (35 кредитов / $0.35)</option>
-                  <option value="hailuo-t2v-01">Hailuo T2V-01 (35 кредитов / $0.35)</option>
-                </select>
-              </div>
-
-              {/* Промпт для генерации фона */}
-              <div className="mb-2">
-                <textarea
-                  value={backgroundPrompt}
-                  onChange={(e) => setBackgroundPrompt(e.target.value)}
-                  placeholder="Опционально: описание фона для AI (если пусто, используется текст из элементов)"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none text-gray-900"
-                  rows={2}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={backgroundUrl}
-                  onChange={(e) => setBackgroundUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-900"
-                />
-                <button
-                  onClick={handleGenerateBackground}
-                  disabled={generatingBackground}
-                  className="px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:bg-gray-400 text-sm whitespace-nowrap"
-                  title="Генерировать через AI"
-                >
-                  {generatingBackground ? "⏳" : "🤖 AI"}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-900">URL аудио (опционально)</label>
-              <div className="flex gap-2 mb-2">
-                <select
-                  value={audioModel}
-                  onChange={(e) => setAudioModel(e.target.value as "llm")}
-                  className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-900"
-                  title="Модель для генерации аудио"
-                >
-                  <option value="llm">Udio (10 кредитов)</option>
-                </select>
-              </div>
-
-              {/* Промпт для генерации аудио */}
-              <div className="mb-2">
-                <textarea
-                  value={audioPrompt}
-                  onChange={(e) => setAudioPrompt(e.target.value)}
-                  placeholder="Опционально: описание музыки для AI (если пусто, используется текст из элементов)"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none text-gray-900"
-                  rows={2}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={audioUrl}
-                  onChange={(e) => setAudioUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-900"
-                />
-                <button
-                  onClick={handleGenerateAudio}
-                  disabled={generatingAudio}
-                  className="px-3 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:bg-gray-400 text-sm whitespace-nowrap"
-                  title="Генерировать через AI"
-                >
-                  {generatingAudio ? "⏳" : "🎵 AI"}
-                </button>
-              </div>
-              <p className="text-xs text-gray-700 mt-1">
-                MP3 или другой аудио формат
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Фон и настройки */}
+        <BackgroundSettings
+          videoDuration={videoDuration}
+          backgroundType={backgroundType}
+          backgroundUrl={backgroundUrl}
+          backgroundModel={backgroundModel}
+          backgroundPrompt={backgroundPrompt}
+          audioUrl={audioUrl}
+          audioModel={audioModel}
+          audioPrompt={audioPrompt}
+          generatingBackground={generatingBackground}
+          generatingAudio={generatingAudio}
+          onVideoDurationChange={setVideoDuration}
+          onBackgroundTypeChange={setBackgroundType}
+          onBackgroundUrlChange={setBackgroundUrl}
+          onBackgroundModelChange={setBackgroundModel}
+          onBackgroundPromptChange={setBackgroundPrompt}
+          onAudioUrlChange={setAudioUrl}
+          onAudioModelChange={setAudioModel}
+          onAudioPromptChange={setAudioPrompt}
+          onGenerateBackground={handleGenerateBackground}
+          onGenerateAudio={handleGenerateAudio}
+        />
 
         {/* Добавить элементы */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-semibold text-gray-900">Добавить элементы</h2>
-            <button
-              onClick={() => {
-                if (confirm("Очистить все элементы и начать заново?")) {
-                  setTextElements([]);
-                  setEmojiElements([]);
-                  setBackgroundUrl("");
-                  setAudioUrl("");
-                  setRenderedVideoUrl("");
-                  setVideoTitle("");
-                  setVideoDescription("");
-                  setSelectedTextId(null);
-                  setSelectedEmojiId(null);
-                  localStorage.removeItem("videoConstructorState");
-                }
-              }}
-              className="text-xs text-red-600 hover:text-red-800 underline"
-            >
-              Очистить все
-            </button>
-          </div>
-          <div className="space-y-3">
-            {/* Add Text Button */}
-            <button
-              onClick={addTextElement}
-              className="w-full bg-blue-500 text-white rounded-lg px-4 py-3 hover:bg-blue-600 font-medium transition-colors shadow-sm hover:shadow-md"
-            >
-              + Добавить текст
-            </button>
+        <AddElementsPanel
+          onAddText={addTextElement}
+          onAddEmoji={() => addEmojiElement("😂")}
+          onAddSubscribeEN={() => {
+            const newElement: TextElement = {
+              id: Math.random().toString(36).substr(2, 9),
+              text: "SUBSCRIBE",
+              x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
+              y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 300),
+              fontSize: 40,
+              color: "white@1",
+              backgroundColor: "red@0.8",
+              boxPadding: 15,
+              fontWeight: "bold",
+            };
+            setTextElements([...textElements, newElement]);
+            setSelectedTextId(newElement.id);
 
-            {/* Add Emoji Button - Beautiful Square 40x40 */}
-            <button
-              onClick={() => addEmojiElement("😂")}
-              className="w-20 h-20 border-2 border-purple-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center justify-center hover:scale-110 bg-gradient-to-br from-purple-50 to-pink-50 shadow-sm hover:shadow-md"
-              title="Add Emoji"
-            >
-              <span className="text-2xl">😊</span>
-            </button>
+            const arrowElement: EmojiElement = {
+              id: Math.random().toString(36).substr(2, 9),
+              emoji: "👇",
+              x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2),
+              y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 240),
+              size: 60,
+              animation: "bounce",
+            };
+            setEmojiElements([...emojiElements, arrowElement]);
+          }}
+          onAddSubscribeES={() => {
+            const newElement: TextElement = {
+              id: Math.random().toString(36).substr(2, 9),
+              text: "SUSCRIBETE",
+              x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
+              y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 300),
+              fontSize: 40,
+              color: "white@1",
+              backgroundColor: "red@0.8",
+              boxPadding: 15,
+              fontWeight: "bold",
+            };
+            setTextElements([...textElements, newElement]);
+            setSelectedTextId(newElement.id);
 
-            {/* Quick Subscribe Text Buttons */}
-            <div className="border-t pt-2 mt-2 space-y-1">
-              <p className="text-xs text-gray-800 mb-1 font-medium">Quick Actions:</p>
-              <button
-                onClick={() => {
-                  const newElement: TextElement = {
-                    id: Math.random().toString(36).substr(2, 9),
-                    text: "SUBSCRIBE",
-                    x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
-                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 300), // Поднято на 150px (было -150)
-                    fontSize: 40,
-                    color: "white@1",
-                    backgroundColor: "red@0.8",
-                    boxPadding: 15,
-                    fontWeight: "bold",
-                  };
-                  setTextElements([...textElements, newElement]);
-                  setSelectedTextId(newElement.id);
-
-                  // Добавляем стрелку вниз как эмодзи отдельно
-                  const arrowElement: EmojiElement = {
-                    id: Math.random().toString(36).substr(2, 9),
-                    emoji: "👇",
-                    x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2),
-                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 240), // Поднято на 150px (было -90)
-                    size: 60,
-                    animation: "bounce",
-                  };
-                  setEmojiElements([...emojiElements, arrowElement]);
-                }}
-                className="w-full bg-red-600 text-white rounded px-3 py-1.5 text-sm hover:bg-red-700 font-medium"
-              >
-                + SUBSCRIBE 👇
-              </button>
-              <button
-                onClick={() => {
-                  const newElement: TextElement = {
-                    id: Math.random().toString(36).substr(2, 9),
-                    text: "SUSCRIBETE",
-                    x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
-                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 300), // Поднято на 150px (было -150)
-                    fontSize: 40,
-                    color: "white@1",
-                    backgroundColor: "red@0.8",
-                    boxPadding: 15,
-                    fontWeight: "bold",
-                  };
-                  setTextElements([...textElements, newElement]);
-                  setSelectedTextId(newElement.id);
-
-                  // Добавляем стрелку вниз как эмодзи отдельно
-                  const arrowElement: EmojiElement = {
-                    id: Math.random().toString(36).substr(2, 9),
-                    emoji: "👇",
-                    x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2),
-                    y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 240), // Поднято на 150px (было -90)
-                    size: 60,
-                    animation: "bounce",
-                  };
-                  setEmojiElements([...emojiElements, arrowElement]);
-                }}
-                className="w-full bg-red-600 text-white rounded px-3 py-1.5 text-sm hover:bg-red-700 font-medium"
-              >
-                + SUSCRÍBETE 👇
-              </button>
-            </div>
-          </div>
-        </div>
+            const arrowElement: EmojiElement = {
+              id: Math.random().toString(36).substr(2, 9),
+              emoji: "👇",
+              x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2),
+              y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 240),
+              size: 60,
+              animation: "bounce",
+            };
+            setEmojiElements([...emojiElements, arrowElement]);
+          }}
+          onClearAll={() => {
+            setTextElements([]);
+            setEmojiElements([]);
+            setBackgroundUrl("");
+            setAudioUrl("");
+            setRenderedVideoUrl("");
+            setVideoTitle("");
+            setVideoDescription("");
+            setSelectedTextId(null);
+            setSelectedEmojiId(null);
+            localStorage.removeItem("videoConstructorState");
+          }}
+        />
 
         {/* Редактирование выбранного текста */}
         {selectedText && (
@@ -1079,10 +918,6 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                 height: VIDEO_HEIGHT * PREVIEW_SCALE,
                 overflow: "visible",
               }}
-              onClick={() => {
-                setOpenEmojiDropdown(null);
-                setEditingEmojiId(null);
-              }}
             >
               {/* Clipped background and safe zone area */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -1149,158 +984,16 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
               {/* Эмодзи элементы */}
               {emojiElements.map((el) => (
-                <div
+                <EmojiElement
                   key={el.id}
-                  className="absolute"
-                  style={{
-                    left: el.x * PREVIEW_SCALE,
-                    top: el.y * PREVIEW_SCALE,
-                  }}
-                  data-emoji-element
-                >
-                  <div
-                    className={`cursor-move relative ${
-                      selectedEmojiId === el.id ? "ring-2 ring-green-500 rounded" : ""
-                    }`}
-                    style={{
-                      fontSize: el.size * PREVIEW_SCALE,
-                      lineHeight: 1,
-                    }}
-                    onMouseDown={(e) => handleDragStart(e, el.id, "emoji")}
-                    onTouchStart={(e) => handleDragStart(e, el.id, "emoji")}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenEmojiDropdown(openEmojiDropdown === el.id ? null : el.id);
-                      setSelectedEmojiId(el.id);
-                    }}
-                  >
-                    {el.emoji}
-                  </div>
-
-                  {/* Dropdown Menu */}
-                  {openEmojiDropdown === el.id && (
-                    <div
-                      data-emoji-dropdown
-                      className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 min-w-[120px]"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        onClick={() => {
-                          setEditingEmojiId(el.id);
-                          setOpenEmojiDropdown(null);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-800 hover:bg-blue-50 flex items-center gap-2 rounded-t-lg"
-                      >
-                        <span>✏️</span> Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          deleteEmojiElement(el.id);
-                          setOpenEmojiDropdown(null);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-200 rounded-b-lg"
-                      >
-                        <span>🗑️</span> Delete
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Edit Settings Panel */}
-                  {editingEmojiId === el.id && (
-                    <div
-                      data-emoji-edit
-                      className="absolute top-full left-0 mt-2 bg-white border-2 border-blue-500 rounded-lg shadow-xl z-50 p-4 min-w-[280px] max-h-[400px] overflow-y-auto"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-sm font-semibold text-gray-900">Edit Emoji</h3>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingEmojiId(null);
-                          }}
-                          className="text-gray-500 hover:text-gray-700 text-xl leading-none"
-                        >
-                          ×
-                        </button>
-                      </div>
-
-                      <div className="space-y-3">
-                        {/* Emoji Select */}
-                        <div>
-                          <label className="block text-xs font-medium mb-1 text-gray-700">Emoji</label>
-                          <select
-                            value={el.emoji}
-                            onChange={(e) =>
-                              updateEmojiElement(el.id, { emoji: e.target.value })
-                            }
-                            className="w-full border border-gray-300 rounded px-2 py-2 text-2xl text-center"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <optgroup label="Main Emojis">
-                              {["😂", "❤️", "🔥", "👍", "🎉", "⭐", "💯", "✨"].map((emoji) => (
-                                <option key={emoji} value={emoji}>
-                                  {emoji}
-                                </option>
-                              ))}
-                            </optgroup>
-                            <optgroup label="Subscribe Actions">
-                              {["👇", "☝️", "👉", "👈", "🔔", "▶️", "📺", "🎬"].map((emoji) => (
-                                <option key={emoji} value={emoji}>
-                                  {emoji}
-                                </option>
-                              ))}
-                            </optgroup>
-                          </select>
-                        </div>
-
-                        {/* Size Slider */}
-                        <div>
-                          <label className="block text-xs font-medium mb-1 text-gray-700">
-                            Size: {el.size}px
-                          </label>
-                          <input
-                            type="range"
-                            min="40"
-                            max="200"
-                            value={el.size}
-                            onChange={(e) =>
-                              updateEmojiElement(el.id, { size: parseInt(e.target.value) })
-                            }
-                            className="w-full"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-
-                        {/* Animation Select */}
-                        <div>
-                          <label className="block text-xs font-medium mb-1 text-gray-700">Animation</label>
-                          <select
-                            value={el.animation}
-                            onChange={(e) =>
-                              updateEmojiElement(el.id, {
-                                animation: e.target.value as EmojiElement["animation"],
-                              })
-                            }
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-gray-900"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <option value="none">No Animation</option>
-                            <option value="pulse">Pulse</option>
-                            <option value="rotate">Rotate</option>
-                            <option value="bounce">Bounce</option>
-                            <option value="fade">Fade In</option>
-                          </select>
-                        </div>
-
-                        {/* Position Info */}
-                        <div className="text-xs text-gray-600 pt-2 border-t">
-                          Position: X: {el.x.toFixed(0)}, Y: {el.y.toFixed(0)}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  element={el}
+                  previewScale={PREVIEW_SCALE}
+                  isSelected={selectedEmojiId === el.id}
+                  onDragStart={(e, id) => handleDragStart(e, id, "emoji")}
+                  onSelect={setSelectedEmojiId}
+                  onUpdate={updateEmojiElement}
+                  onDelete={deleteEmojiElement}
+                />
               ))}
             </div>
           </div>
