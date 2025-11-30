@@ -1,0 +1,212 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+
+interface TextElementData {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  color: string;
+  backgroundColor?: string;
+  boxPadding?: number;
+  fontWeight?: "normal" | "bold";
+}
+
+interface TextElementProps {
+  element: TextElementData;
+  previewScale: number;
+  isSelected: boolean;
+  onDragStart: (e: React.MouseEvent | React.TouchEvent, id: string) => void;
+  onSelect: (id: string) => void;
+  onUpdate: (id: string, updates: Partial<TextElementData>) => void;
+  onDelete: (id: string) => void;
+}
+
+export default function TextElement({
+  element,
+  previewScale,
+  isSelected,
+  onDragStart,
+  onSelect,
+  onUpdate,
+  onDelete,
+}: TextElementProps) {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Закрытие при клике вне компонента
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+
+      // Проверяем, что клик был вне нашего контейнера
+      if (containerRef.current && !containerRef.current.contains(target)) {
+        setShowDropdown(false);
+        setShowEdit(false);
+      }
+    };
+
+    // Добавляем обработчик только если открыт dropdown или edit
+    if (showDropdown || showEdit) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [showDropdown, showEdit]);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDropdown(!showDropdown);
+    onSelect(element.id);
+  };
+
+  const handleEdit = () => {
+    setShowEdit(true);
+    setShowDropdown(false);
+  };
+
+  const handleDelete = () => {
+    onDelete(element.id);
+    setShowDropdown(false);
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute"
+      style={{
+        left: element.x * previewScale,
+        top: element.y * previewScale,
+      }}
+      data-text-element
+    >
+      <div
+        className={`cursor-move relative ${
+          isSelected ? "ring-2 ring-blue-500 rounded" : ""
+        }`}
+        style={{
+          fontSize: element.fontSize * previewScale,
+          fontWeight: element.fontWeight || "bold",
+          backgroundColor: element.backgroundColor
+            ? `rgba(255, 255, 255, 0.6)`
+            : "transparent",
+          padding: element.boxPadding
+            ? element.boxPadding * previewScale
+            : undefined,
+          borderRadius: "4px",
+          whiteSpace: "pre-wrap",
+        }}
+        onMouseDown={(e) => onDragStart(e, element.id)}
+        onTouchStart={(e) => onDragStart(e, element.id)}
+        onClick={handleClick}
+      >
+        {element.text}
+      </div>
+
+      {/* Dropdown Menu */}
+      {showDropdown && (
+        <div
+          data-text-dropdown
+          className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 min-w-[120px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={handleEdit}
+            className="w-full px-4 py-2 text-left text-sm text-gray-800 hover:bg-blue-50 flex items-center gap-2 rounded-t-lg"
+          >
+            <span>✏️</span> Edit
+          </button>
+          <button
+            onClick={handleDelete}
+            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-200 rounded-b-lg"
+          >
+            <span>🗑️</span> Delete
+          </button>
+        </div>
+      )}
+
+      {/* Edit Settings Panel */}
+      {showEdit && (
+        <div
+          data-text-edit
+          className="absolute top-full left-0 mt-2 bg-white border-2 border-blue-500 rounded-lg shadow-xl z-50 p-4 min-w-[280px] max-h-[500px] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-semibold text-gray-900">Edit Text</h3>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowEdit(false);
+              }}
+              className="text-gray-500 hover:text-gray-700 text-xl leading-none"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {/* Text Input */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700">
+                Text
+              </label>
+              <textarea
+                value={element.text}
+                onChange={(e) => onUpdate(element.id, { text: e.target.value })}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 h-80"
+                rows={4}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+
+            {/* Font Size Slider */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700">
+                Font Size: {element.fontSize}px
+              </label>
+              <input
+                type="range"
+                min="16"
+                max="72"
+                value={element.fontSize}
+                onChange={(e) =>
+                  onUpdate(element.id, { fontSize: parseInt(e.target.value) })
+                }
+                className="w-full"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+
+            {/* Font Weight Checkbox */}
+            <div>
+              <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={element.fontWeight === "bold"}
+                  onChange={(e) =>
+                    onUpdate(element.id, {
+                      fontWeight: e.target.checked ? "bold" : "normal",
+                    })
+                  }
+                  className="w-4 h-4"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                Bold Font
+              </label>
+            </div>
+
+            {/* Position Info */}
+            <div className="text-xs text-gray-600 pt-2 border-t">
+              Position: X: {element.x.toFixed(0)}, Y: {element.y.toFixed(0)}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

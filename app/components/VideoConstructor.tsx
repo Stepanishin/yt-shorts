@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import GenerationLogsModal from "./GenerationLogsModal";
 import EmojiElement from "./VideoConstructor/EmojiElement";
+import TextElement from "./VideoConstructor/TextElement";
+import SubscribeElement from "./VideoConstructor/SubscribeElement";
 import AddElementsPanel from "./VideoConstructor/AddElementsPanel";
 import BackgroundSettings from "./VideoConstructor/BackgroundSettings";
 
@@ -16,6 +18,20 @@ interface TextElement {
   backgroundColor?: string;
   boxPadding?: number;
   fontWeight?: "normal" | "bold";
+  isDragging?: boolean;
+}
+
+interface SubscribeElement {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  color: string;
+  backgroundColor?: string;
+  boxPadding?: number;
+  fontWeight?: "normal" | "bold";
+  language: "en" | "es";
   isDragging?: boolean;
 }
 
@@ -40,6 +56,7 @@ interface VideoConstructorProps {
 
 export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [textElements, setTextElements] = useState<TextElement[]>([]);
+  const [subscribeElements, setSubscribeElements] = useState<SubscribeElement[]>([]);
   const [emojiElements, setEmojiElements] = useState<EmojiElement[]>([]);
   const [backgroundUrl, setBackgroundUrl] = useState<string>("");
   const [backgroundType, setBackgroundType] = useState<"video" | "image">("video");
@@ -48,6 +65,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [isRendering, setIsRendering] = useState(false);
   const [renderedVideoUrl, setRenderedVideoUrl] = useState<string>("");
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
+  const [selectedSubscribeId, setSelectedSubscribeId] = useState<string | null>(null);
   const [selectedEmojiId, setSelectedEmojiId] = useState<string | null>(null);
   const [uploadingToYouTube, setUploadingToYouTube] = useState(false);
   const [youtubeVideoUrl, setYoutubeVideoUrl] = useState<string | null>(null);
@@ -248,10 +266,28 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       color: "black@1",
       backgroundColor: "white@0.6",
       boxPadding: 10,
-      fontWeight: "bold", // Жирный шрифт по умолчанию
+      fontWeight: "bold",
     };
     setTextElements([...textElements, newElement]);
     setSelectedTextId(newElement.id);
+  };
+
+  // Добавить новый subscribe элемент
+  const addSubscribeElement = () => {
+    const newElement: SubscribeElement = {
+      id: Math.random().toString(36).substr(2, 9),
+      text: "SUBSCRIBE",
+      x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
+      y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 300),
+      fontSize: 40,
+      color: "white@1",
+      backgroundColor: "red@0.8",
+      boxPadding: 15,
+      fontWeight: "bold",
+      language: "en",
+    };
+    setSubscribeElements([...subscribeElements, newElement]);
+    setSelectedSubscribeId(newElement.id);
   };
 
   // Добавить новый эмодзи
@@ -272,7 +308,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const handleDragStart = (
     e: React.MouseEvent | React.TouchEvent,
     id: string,
-    type: "text" | "emoji"
+    type: "text" | "subscribe" | "emoji"
   ) => {
     e.preventDefault();
     const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
@@ -287,6 +323,13 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         )
       );
       setSelectedTextId(id);
+    } else if (type === "subscribe") {
+      setSubscribeElements((prev) =>
+        prev.map((el) =>
+          el.id === id ? { ...el, isDragging: true } : el
+        )
+      );
+      setSelectedSubscribeId(id);
     } else {
       setEmojiElements((prev) =>
         prev.map((el) =>
@@ -322,6 +365,18 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       )
     );
 
+    setSubscribeElements((prev) =>
+      prev.map((el) =>
+        el.isDragging
+          ? {
+              ...el,
+              x: Math.max(SAFE_PADDING, Math.min(VIDEO_WIDTH - SAFE_PADDING, el.x + deltaX)),
+              y: Math.max(SAFE_PADDING, Math.min(VIDEO_HEIGHT - SAFE_PADDING, el.y + deltaY)),
+            }
+          : el
+      )
+    );
+
     setEmojiElements((prev) =>
       prev.map((el) =>
         el.isDragging
@@ -341,6 +396,9 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     setTextElements((prev) =>
       prev.map((el) => ({ ...el, isDragging: false }))
     );
+    setSubscribeElements((prev) =>
+      prev.map((el) => ({ ...el, isDragging: false }))
+    );
     setEmojiElements((prev) =>
       prev.map((el) => ({ ...el, isDragging: false }))
     );
@@ -349,6 +407,13 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   // Обновить текстовый элемент
   const updateTextElement = (id: string, updates: Partial<TextElement>) => {
     setTextElements((prev) =>
+      prev.map((el) => (el.id === id ? { ...el, ...updates } : el))
+    );
+  };
+
+  // Обновить subscribe элемент
+  const updateSubscribeElement = (id: string, updates: Partial<SubscribeElement>) => {
+    setSubscribeElements((prev) =>
       prev.map((el) => (el.id === id ? { ...el, ...updates } : el))
     );
   };
@@ -364,6 +429,11 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const deleteTextElement = (id: string) => {
     setTextElements((prev) => prev.filter((el) => el.id !== id));
     if (selectedTextId === id) setSelectedTextId(null);
+  };
+
+  const deleteSubscribeElement = (id: string) => {
+    setSubscribeElements((prev) => prev.filter((el) => el.id !== id));
+    if (selectedSubscribeId === id) setSelectedSubscribeId(null);
   };
 
   const deleteEmojiElement = (id: string) => {
@@ -737,8 +807,6 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     };
   }, []);
 
-  const selectedText = textElements.find((el) => el.id === selectedTextId);
-
   return (
     <div className="space-y-4">
 
@@ -772,59 +840,11 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         {/* Добавить элементы */}
         <AddElementsPanel
           onAddText={addTextElement}
+          onAddSubscribe={addSubscribeElement}
           onAddEmoji={() => addEmojiElement("😂")}
-          onAddSubscribeEN={() => {
-            const newElement: TextElement = {
-              id: Math.random().toString(36).substr(2, 9),
-              text: "SUBSCRIBE",
-              x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
-              y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 300),
-              fontSize: 40,
-              color: "white@1",
-              backgroundColor: "red@0.8",
-              boxPadding: 15,
-              fontWeight: "bold",
-            };
-            setTextElements([...textElements, newElement]);
-            setSelectedTextId(newElement.id);
-
-            const arrowElement: EmojiElement = {
-              id: Math.random().toString(36).substr(2, 9),
-              emoji: "👇",
-              x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2),
-              y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 240),
-              size: 60,
-              animation: "bounce",
-            };
-            setEmojiElements([...emojiElements, arrowElement]);
-          }}
-          onAddSubscribeES={() => {
-            const newElement: TextElement = {
-              id: Math.random().toString(36).substr(2, 9),
-              text: "SUSCRIBETE",
-              x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
-              y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 300),
-              fontSize: 40,
-              color: "white@1",
-              backgroundColor: "red@0.8",
-              boxPadding: 15,
-              fontWeight: "bold",
-            };
-            setTextElements([...textElements, newElement]);
-            setSelectedTextId(newElement.id);
-
-            const arrowElement: EmojiElement = {
-              id: Math.random().toString(36).substr(2, 9),
-              emoji: "👇",
-              x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2),
-              y: Math.max(SAFE_PADDING, VIDEO_HEIGHT - 240),
-              size: 60,
-              animation: "bounce",
-            };
-            setEmojiElements([...emojiElements, arrowElement]);
-          }}
           onClearAll={() => {
             setTextElements([]);
+            setSubscribeElements([]);
             setEmojiElements([]);
             setBackgroundUrl("");
             setAudioUrl("");
@@ -832,76 +852,11 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             setVideoTitle("");
             setVideoDescription("");
             setSelectedTextId(null);
+            setSelectedSubscribeId(null);
             setSelectedEmojiId(null);
             localStorage.removeItem("videoConstructorState");
           }}
         />
-
-        {/* Редактирование выбранного текста */}
-        {selectedText && (
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-semibold text-gray-900">Редактировать текст</h2>
-              <button
-                onClick={() => deleteTextElement(selectedText.id)}
-                className="text-red-500 hover:text-red-700"
-              >
-                Удалить
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-900">Текст</label>
-                <textarea
-                  value={selectedText.text}
-                  onChange={(e) =>
-                    updateTextElement(selectedText.id, { text: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
-                  style={{ height: '500px' }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-900">
-                  Размер шрифта: {selectedText.fontSize}
-                </label>
-                <input
-                  type="range"
-                  min="16"
-                  max="72"
-                  value={selectedText.fontSize}
-                  onChange={(e) =>
-                    updateTextElement(selectedText.id, {
-                      fontSize: parseInt(e.target.value),
-                    })
-                  }
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-900">
-                  <input
-                    type="checkbox"
-                    checked={selectedText.fontWeight === "bold"}
-                    onChange={(e) =>
-                      updateTextElement(selectedText.id, {
-                        fontWeight: e.target.checked ? "bold" : "normal",
-                      })
-                    }
-                    className="w-4 h-4"
-                  />
-                  Жирный шрифт
-                </label>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-900">
-                  X: {selectedText.x.toFixed(0)} Y: {selectedText.y.toFixed(0)}
-                </label>
-              </div>
-            </div>
-          </div>
-        )}
-
 
       </div>
 
@@ -956,30 +911,30 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
               {/* Текстовые элементы */}
               {textElements.map((el) => (
-                <div
+                <TextElement
                   key={el.id}
-                  className={`absolute cursor-move ${
-                    selectedTextId === el.id ? "ring-2 ring-blue-500" : ""
-                  }`}
-                  style={{
-                    left: el.x * PREVIEW_SCALE,
-                    top: el.y * PREVIEW_SCALE,
-                    fontSize: el.fontSize * PREVIEW_SCALE,
-                    fontWeight: el.fontWeight || "bold",
-                    backgroundColor: el.backgroundColor
-                      ? `rgba(255, 255, 255, 0.6)`
-                      : "transparent",
-                    padding: el.boxPadding
-                      ? el.boxPadding * PREVIEW_SCALE
-                      : undefined,
-                    borderRadius: "4px",
-                    whiteSpace: "pre-wrap",
-                  }}
-                  onMouseDown={(e) => handleDragStart(e, el.id, "text")}
-                  onTouchStart={(e) => handleDragStart(e, el.id, "text")}
-                >
-                  {el.text}
-                </div>
+                  element={el}
+                  previewScale={PREVIEW_SCALE}
+                  isSelected={selectedTextId === el.id}
+                  onDragStart={(e, id) => handleDragStart(e, id, "text")}
+                  onSelect={setSelectedTextId}
+                  onUpdate={updateTextElement}
+                  onDelete={deleteTextElement}
+                />
+              ))}
+
+              {/* Subscribe элементы */}
+              {subscribeElements.map((el) => (
+                <SubscribeElement
+                  key={el.id}
+                  element={el}
+                  previewScale={PREVIEW_SCALE}
+                  isSelected={selectedSubscribeId === el.id}
+                  onDragStart={(e, id) => handleDragStart(e, id, "subscribe")}
+                  onSelect={setSelectedSubscribeId}
+                  onUpdate={updateSubscribeElement}
+                  onDelete={deleteSubscribeElement}
+                />
               ))}
 
               {/* Эмодзи элементы */}

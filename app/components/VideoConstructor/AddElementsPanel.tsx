@@ -2,17 +2,15 @@
 
 interface AddElementsPanelProps {
   onAddText: () => void;
+  onAddSubscribe: () => void;
   onAddEmoji: () => void;
-  onAddSubscribeEN: () => void;
-  onAddSubscribeES: () => void;
   onClearAll: () => void;
 }
 
 export default function AddElementsPanel({
   onAddText,
+  onAddSubscribe,
   onAddEmoji,
-  onAddSubscribeEN,
-  onAddSubscribeES,
   onClearAll,
 }: AddElementsPanelProps) {
   const handleClearAll = () => {
@@ -35,13 +33,23 @@ export default function AddElementsPanel({
         </button>
       </div>
 
-      <div className="space-y-3">
-        {/* Add Text Button */}
+      <div className="flex gap-3 flex-wrap">
+        {/* Add Text Button - Beautiful Square */}
         <button
           onClick={onAddText}
-          className="w-full bg-blue-500 text-white rounded-lg px-4 py-3 hover:bg-blue-600 font-medium transition-colors shadow-sm hover:shadow-md"
+          className="w-20 h-20 border-2 border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center hover:scale-110 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-sm hover:shadow-md"
+          title="Add Text"
         >
-          + Добавить текст
+          <span className="text-3xl font-bold">A</span>
+        </button>
+
+        {/* Add Subscribe Button - Beautiful Square */}
+        <button
+          onClick={onAddSubscribe}
+          className="w-20 h-20 border-2 border-red-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-all flex flex-col items-center justify-center hover:scale-110 bg-gradient-to-br from-red-50 to-orange-50 shadow-sm hover:shadow-md gap-0.5"
+          title="Add Subscribe"
+        >
+          <span className="text-2xl">🔔</span>
         </button>
 
         {/* Add Emoji Button - Beautiful Square */}
@@ -52,23 +60,6 @@ export default function AddElementsPanel({
         >
           <span className="text-2xl">😊</span>
         </button>
-
-        {/* Quick Subscribe Text Buttons */}
-        <div className="border-t pt-2 mt-2 space-y-1">
-          <p className="text-xs text-gray-800 mb-1 font-medium">Quick Actions:</p>
-          <button
-            onClick={onAddSubscribeEN}
-            className="w-full bg-red-600 text-white rounded px-3 py-1.5 text-sm hover:bg-red-700 font-medium"
-          >
-            + SUBSCRIBE 👇
-          </button>
-          <button
-            onClick={onAddSubscribeES}
-            className="w-full bg-red-600 text-white rounded px-3 py-1.5 text-sm hover:bg-red-700 font-medium"
-          >
-            + SUSCRÍBETE 👇
-          </button>
-        </div>
       </div>
     </div>
   );
