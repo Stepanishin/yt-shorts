@@ -46,7 +46,7 @@ export default function HeaderNew() {
 
   return (
     <header className="bg-white border-b border-gray-300 shadow-sm">
-      <div className="container mx-auto px-4 py-4 max-w-7xl">
+      <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="text-2xl">🎬</div>
