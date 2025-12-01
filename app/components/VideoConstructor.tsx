@@ -8,6 +8,7 @@ import TextElement from "./VideoConstructor/TextElement";
 import SubscribeElement from "./VideoConstructor/SubscribeElement";
 import AddElementsPanel from "./VideoConstructor/AddElementsPanel";
 import BackgroundSettings from "./VideoConstructor/BackgroundSettings";
+import ProgressIndicator from "./VideoConstructor/ProgressIndicator";
 
 interface TextElement {
   id: string;
@@ -583,8 +584,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   // Рендерить видео
   const handleRender = async () => {
     if (!backgroundUrl) {
-      alert("Пожалуйста, добавьте фон");
-      return;
+      return; // Кнопка уже заблокирована, но на всякий случай
     }
 
     // Открываем модальное окно и сбрасываем логи
@@ -1161,6 +1161,19 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
       {/* Область предпросмотра */}
       <div className="lg:col-span-2">
+        {/* Индикатор прогресса */}
+        <ProgressIndicator
+          backgroundUrl={backgroundUrl}
+          audioUrl={audioUrl}
+          hasElements={textElements.length > 0 || subscribeElements.length > 0 || emojiElements.length > 0}
+          elementsCount={{
+            text: textElements.length,
+            subscribe: subscribeElements.length,
+            emoji: emojiElements.length,
+          }}
+          renderedVideoUrl={renderedVideoUrl}
+        />
+
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-3 text-gray-900">Предпросмотр</h2>
           <div className="flex justify-center">
@@ -1254,10 +1267,15 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
           {/* Кнопка рендеринга под preview */}
           <div className="mt-4 space-y-2">
+            {!backgroundUrl && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                <span className="font-medium">⚠️ Требуется фон:</span> Сначала добавьте или сгенерируйте фон для видео
+              </div>
+            )}
             <button
               onClick={handleRender}
-              disabled={isRendering}
-              className="w-full bg-green-500 text-white rounded px-4 py-3 font-semibold hover:bg-green-600 disabled:bg-gray-400"
+              disabled={isRendering || !backgroundUrl}
+              className="w-full bg-green-500 text-white rounded px-4 py-3 font-semibold hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {isRendering ? "Создание shorts..." : "Создать shorts"}
             </button>

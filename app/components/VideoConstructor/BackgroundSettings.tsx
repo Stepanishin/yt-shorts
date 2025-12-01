@@ -87,11 +87,35 @@ export default function BackgroundSettings({
         </div>
 
         {/* Background URL */}
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-900">
-            URL фона
+        <div className="border-2 border-purple-200 rounded-lg p-3 bg-purple-50">
+          <label className="block text-sm font-bold mb-2 text-purple-900">
+            📹 Шаг 1: Добавить фон (обязательно)
           </label>
-          <div className="flex gap-2 mb-2">
+
+          {/* AI Generation Button - Prominent */}
+          <button
+            onClick={onGenerateBackground}
+            disabled={generatingBackground}
+            className="w-full mb-3 px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+          >
+            {generatingBackground ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                Генерация фона...
+              </>
+            ) : (
+              <>
+                <span className="text-lg">🤖</span>
+                Сгенерировать фон через AI
+              </>
+            )}
+          </button>
+
+          {/* Model Selection */}
+          <div className="mb-2">
+            <label className="block text-xs font-medium mb-1 text-gray-700">
+              Модель AI:
+            </label>
             <select
               value={backgroundModel}
               onChange={(e) =>
@@ -99,8 +123,7 @@ export default function BackgroundSettings({
                   e.target.value as "ray-v1" | "hailuo-t2v-01" | "luma-direct"
                 )
               }
-              className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-900"
-              title="Модель для генерации фона"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="luma-direct">
                 ⚡ Luma Flash (25 кредитов / $0.25) - БЫСТРО
@@ -114,81 +137,101 @@ export default function BackgroundSettings({
             </select>
           </div>
 
-          <div className="mb-2">
+          {/* Prompt */}
+          <div className="mb-3">
+            <label className="block text-xs font-medium mb-1 text-gray-700">
+              Описание фона (опционально):
+            </label>
             <textarea
               value={backgroundPrompt}
               onChange={(e) => onBackgroundPromptChange(e.target.value)}
-              placeholder="Опционально: описание фона для AI (если пусто, используется текст из элементов)"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none text-gray-900"
+              placeholder="Например: 'Красивый закат на пляже' (если пусто, используется текст из элементов)"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none text-gray-900 bg-white"
               rows={2}
             />
           </div>
 
-          <div className="flex gap-2">
+          {/* Manual URL - Less Prominent */}
+          <details className="text-xs text-gray-600">
+            <summary className="cursor-pointer hover:text-gray-800 font-medium mb-2">
+              Или вставить готовый URL фона
+            </summary>
             <input
               type="text"
               value={backgroundUrl}
               onChange={(e) => onBackgroundUrlChange(e.target.value)}
               placeholder="https://..."
-              className="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-900"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 bg-white"
             />
-            <button
-              onClick={onGenerateBackground}
-              disabled={generatingBackground}
-              className="px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:bg-gray-400 text-sm whitespace-nowrap"
-              title="Генерировать через AI"
-            >
-              {generatingBackground ? "⏳" : "🤖 AI"}
-            </button>
-          </div>
+          </details>
         </div>
 
         {/* Audio URL */}
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-900">
-            URL аудио (опционально)
+        <div className="border-2 border-indigo-200 rounded-lg p-3 bg-indigo-50">
+          <label className="block text-sm font-bold mb-2 text-indigo-900">
+            🎵 Шаг 2: Добавить аудио (опционально)
           </label>
-          <div className="flex gap-2 mb-2">
+
+          {/* AI Generation Button - Prominent */}
+          <button
+            onClick={onGenerateAudio}
+            disabled={generatingAudio}
+            className="w-full mb-3 px-4 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg hover:from-indigo-600 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-400 font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+          >
+            {generatingAudio ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                Генерация аудио...
+              </>
+            ) : (
+              <>
+                <span className="text-lg">🎵</span>
+                Сгенерировать аудио через AI
+              </>
+            )}
+          </button>
+
+          {/* Model Selection */}
+          <div className="mb-2">
+            <label className="block text-xs font-medium mb-1 text-gray-700">
+              Модель AI:
+            </label>
             <select
               value={audioModel}
               onChange={(e) => onAudioModelChange(e.target.value as "llm")}
-              className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-900"
-              title="Модель для генерации аудио"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 bg-white"
             >
-              <option value="llm">Udio (10 кредитов)</option>
+              <option value="llm">Udio (10 кредитов / $0.10)</option>
             </select>
           </div>
 
-          <div className="mb-2">
+          {/* Prompt */}
+          <div className="mb-3">
+            <label className="block text-xs font-medium mb-1 text-gray-700">
+              Описание музыки (опционально):
+            </label>
             <textarea
               value={audioPrompt}
               onChange={(e) => onAudioPromptChange(e.target.value)}
-              placeholder="Опционально: описание музыки для AI (если пусто, используется текст из элементов)"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none text-gray-900"
+              placeholder="Например: 'Веселая энергичная музыка' (если пусто, используется текст из элементов)"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none text-gray-900 bg-white"
               rows={2}
             />
           </div>
 
-          <div className="flex gap-2">
+          {/* Manual URL - Less Prominent */}
+          <details className="text-xs text-gray-600">
+            <summary className="cursor-pointer hover:text-gray-800 font-medium mb-2">
+              Или вставить готовый URL аудио
+            </summary>
             <input
               type="text"
               value={audioUrl}
               onChange={(e) => onAudioUrlChange(e.target.value)}
-              placeholder="https://..."
-              className="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-900"
+              placeholder="https://... (MP3 или другой аудио формат)"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 bg-white"
             />
-            <button
-              onClick={onGenerateAudio}
-              disabled={generatingAudio}
-              className="px-3 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:bg-gray-400 text-sm whitespace-nowrap"
-              title="Генерировать через AI"
-            >
-              {generatingAudio ? "⏳" : "🎵 AI"}
-            </button>
-          </div>
-          <p className="text-xs text-gray-700 mt-1">
-            MP3 или другой аудио формат
-          </p>
+          </details>
         </div>
       </div>
     </div>
