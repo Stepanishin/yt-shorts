@@ -1143,7 +1143,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               disabled={isRendering}
               className="w-full bg-green-500 text-white rounded px-4 py-3 font-semibold hover:bg-green-600 disabled:bg-gray-400"
             >
-              {isRendering ? "Создание видео..." : "Создать видео"}
+              {isRendering ? "Создание shorts..." : "Создать shorts"}
             </button>
           </div>
         </div>
@@ -1151,7 +1151,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         {/* Готовое видео */}
         {renderedVideoUrl && (
           <div className="bg-white rounded-lg shadow p-4 mt-6">
-            <h2 className="text-lg font-semibold mb-3 text-gray-900">Готовое видео</h2>
+            <h2 className="text-lg font-semibold mb-3 text-gray-900">Готовый shorts</h2>
 
             {/* Кнопки действий сверху */}
             <div className="flex gap-2 mb-3">
@@ -1176,7 +1176,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                 download
                 className="flex-1 text-center bg-green-500 text-white rounded px-4 py-2 hover:bg-green-600 font-medium"
               >
-                ⬇ Скачать видео
+                ⬇ Скачать shorts
               </a>
             </div>
 
@@ -1184,7 +1184,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             {youtubeVideoUrl && (
               <div className="mb-3 rounded-lg border border-green-200 bg-green-50 p-3">
                 <div className="font-medium mb-1 text-green-800 text-sm">
-                  ✅ Видео опубликовано на YouTube!
+                  ✅ Shorts опубликован на YouTube!
                 </div>
                 <a
                   href={youtubeVideoUrl}
@@ -1217,7 +1217,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-sm font-medium text-gray-900">
-                    Название видео (опционально)
+                    Название shorts (опционально)
                   </label>
                   <button
                     onClick={handleGenerateTitle}
