@@ -116,6 +116,7 @@ export interface EmojiElement {
 export interface RenderVideoNewOptions {
   backgroundVideoUrl?: string; // URL или путь к видео-фону
   backgroundImageUrl?: string; // URL или путь к изображению-фону (альтернатива видео)
+  imageEffect?: "none" | "zoom-in" | "zoom-in-out" | "pan-right-left"; // Ken Burns эффект для изображения
   textElements: TextElement[];
   emojiElements: EmojiElement[];
   audioUrl?: string; // URL аудио для наложения
@@ -127,6 +128,46 @@ export interface RenderVideoNewResult {
   videoUrl: string;
   filePath: string;
   duration: number;
+}
+
+/**
+ * Создает Ken Burns эффект для изображения
+ * @param effect - тип эффекта
+ * @param duration - длительность видео в секундах
+ * @returns строка фильтра для FFmpeg
+ */
+function createKenBurnsFilter(
+  effect: "none" | "zoom-in" | "zoom-in-out" | "pan-right-left" | undefined,
+  duration: number
+): string {
+  if (!effect || effect === "none") {
+    return "";
+  }
+
+  // Базовые параметры для Ken Burns эффекта
+  // zoompan фильтр: z - zoom, x/y - позиция, d - длительность в кадрах, s - размер выходного кадра
+  const fps = 25;
+  const totalFrames = duration * fps;
+  const halfFrames = totalFrames / 2;
+
+  switch (effect) {
+    case "zoom-in":
+      // Плавное приближение от 1.0x до 1.3x
+      return `zoompan=z='min(zoom+0.0015,1.3)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${totalFrames}:s=720x1280:fps=${fps}`;
+
+    case "zoom-in-out":
+      // Приближение первую половину, отдаление вторую половину (эффект дыхания)
+      // Используем синусоидальную функцию для плавного перехода
+      return `zoompan=z='1.15+0.15*sin(2*PI*on/${totalFrames})':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${totalFrames}:s=720x1280:fps=${fps}`;
+
+    case "pan-right-left":
+      // Панорама вправо первую половину, влево вторую половину
+      // Используем синусоидальную функцию для плавного движения туда-обратно
+      return `zoompan=z='1.2':x='iw/2-(iw/zoom/2)+80*sin(2*PI*on/${totalFrames})':y='ih/2-(ih/zoom/2)':d=${totalFrames}:s=720x1280:fps=${fps}`;
+
+    default:
+      return "";
+  }
 }
 
 /**
@@ -338,6 +379,7 @@ export async function renderVideoNew(
   const {
     backgroundVideoUrl,
     backgroundImageUrl,
+    imageEffect,
     textElements,
     emojiElements,
     audioUrl,
@@ -470,8 +512,16 @@ export async function renderVideoNew(
         // Это предотвращает черные полосы и обрезку сверху/снизу
         filterChain.push(`[0:v]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280[base]`);
       } else {
-        // Для изображения создаем видео нужной длительности
-        filterChain.push(`[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280[base]`);
+        // Для изображения создаем видео нужной длительности с Ken Burns эффектом
+        const kenBurnsFilter = createKenBurnsFilter(imageEffect, targetDuration);
+
+        if (kenBurnsFilter) {
+          // Если есть Ken Burns эффект, применяем zoompan который уже включает fps и scale
+          filterChain.push(`[0:v]scale=1440:2560:force_original_aspect_ratio=decrease,${kenBurnsFilter}[base]`);
+        } else {
+          // Без эффекта - просто статичное изображение
+          filterChain.push(`[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280[base]`);
+        }
       }
 
       let currentLayer = "[base]";

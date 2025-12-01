@@ -64,6 +64,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [emojiElements, setEmojiElements] = useState<EmojiElement[]>([]);
   const [backgroundUrl, setBackgroundUrl] = useState<string>("");
   const [backgroundType, setBackgroundType] = useState<"video" | "image">("video");
+  const [imageEffect, setImageEffect] = useState<"none" | "zoom-in" | "zoom-in-out" | "pan-right-left">("none");
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [videoDuration, setVideoDuration] = useState<number>(10);
   const [isRendering, setIsRendering] = useState(false);
@@ -128,6 +129,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         setEmojiElements(state.emojiElements || []);
         setBackgroundUrl(state.backgroundUrl || "");
         setBackgroundType(state.backgroundType || "video");
+        setImageEffect(state.imageEffect || "none");
         setAudioUrl(state.audioUrl || "");
         setVideoDuration(state.videoDuration || 10);
         setVideoTitle(state.videoTitle || "");
@@ -160,6 +162,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       emojiElements,
       backgroundUrl,
       backgroundType,
+      imageEffect,
       audioUrl,
       videoDuration,
       videoTitle,
@@ -177,6 +180,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     emojiElements,
     backgroundUrl,
     backgroundType,
+    imageEffect,
     audioUrl,
     videoDuration,
     videoTitle,
@@ -202,6 +206,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         setEmojiElements([]);
         setBackgroundUrl("");
         setBackgroundType("video");
+        setImageEffect("none");
         setAudioUrl("");
         setVideoDuration(10);
         setVideoTitle("");
@@ -659,6 +664,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         body: JSON.stringify({
           backgroundVideoUrl: backgroundType === "video" ? backgroundUrl : undefined,
           backgroundImageUrl: backgroundType === "image" ? backgroundUrl : undefined,
+          imageEffect: backgroundType === "image" ? imageEffect : undefined,
           textElements: allTextElements,
           emojiElements: emojiElements.map((el) => ({
             emoji: el.emoji,
@@ -1119,6 +1125,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           backgroundUrl={backgroundUrl}
           backgroundModel={backgroundModel}
           backgroundPrompt={backgroundPrompt}
+          imageEffect={imageEffect}
           audioUrl={audioUrl}
           audioModel={audioModel}
           audioPrompt={audioPrompt}
@@ -1129,6 +1136,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           onBackgroundUrlChange={setBackgroundUrl}
           onBackgroundModelChange={setBackgroundModel}
           onBackgroundPromptChange={setBackgroundPrompt}
+          onImageEffectChange={setImageEffect}
           onAudioUrlChange={setAudioUrl}
           onAudioModelChange={setAudioModel}
           onAudioPromptChange={setAudioPrompt}
@@ -1146,6 +1154,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             setSubscribeElements([]);
             setEmojiElements([]);
             setBackgroundUrl("");
+            setImageEffect("none");
             setAudioUrl("");
             setRenderedVideoUrl("");
             setVideoTitle("");

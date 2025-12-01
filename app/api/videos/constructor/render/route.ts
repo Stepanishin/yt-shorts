@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
     const {
       backgroundVideoUrl,
       backgroundImageUrl,
+      imageEffect,
       textElements,
       emojiElements,
       audioUrl,
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
     const options: RenderVideoNewOptions = {
       backgroundVideoUrl,
       backgroundImageUrl,
+      imageEffect,
       textElements,
       emojiElements,
       audioUrl,
