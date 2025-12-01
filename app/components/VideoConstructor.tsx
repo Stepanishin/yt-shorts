@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import GenerationLogsModal from "./GenerationLogsModal";
 import EmojiElement from "./VideoConstructor/EmojiElement";
 import TextElement from "./VideoConstructor/TextElement";
@@ -56,6 +57,7 @@ interface VideoConstructorProps {
 }
 
 export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
+  const { data: session } = useSession();
   const [textElements, setTextElements] = useState<TextElement[]>([]);
   const [subscribeElements, setSubscribeElements] = useState<SubscribeElement[]>([]);
   const [emojiElements, setEmojiElements] = useState<EmojiElement[]>([]);
@@ -79,6 +81,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [audioModel, setAudioModel] = useState<"llm">("llm");
   const [backgroundPrompt, setBackgroundPrompt] = useState<string>("");
   const [audioPrompt, setAudioPrompt] = useState<string>("");
+  const [generatingFull, setGeneratingFull] = useState(false);
 
   // Состояния для модального окна с логами
   const [showLogsModal, setShowLogsModal] = useState(false);
@@ -862,6 +865,119 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     }
   };
 
+  // Полная генерация: фон + аудио + рендеринг (только для админов)
+  const handleFullGeneration = async () => {
+    // Определяем стоимость на основе моделей
+    const backgroundModelCosts: Record<string, number> = {
+      "ray-v1": 35,
+      "hailuo-t2v-01": 35,
+      "luma-direct": 25,
+    };
+    const audioModelCosts: Record<string, number> = {
+      "llm": 10,
+    };
+
+    const backgroundCost = backgroundModelCosts[backgroundModel];
+    const audioCost = audioModelCosts[audioModel];
+    const totalCost = backgroundCost + audioCost;
+
+    const confirmMessage = `Полная генерация (фон: ${backgroundModel} + аудио: ${audioModel} + рендеринг) стоит ${totalCost} кредитов (€${(totalCost / 100).toFixed(2)}). Продолжить?`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    // Открываем модальное окно и сбрасываем логи
+    resetLogsModal();
+    setLogsModalTitle("Полная генерация shorts");
+    setShowLogsModal(true);
+    setGeneratingFull(true);
+
+    try {
+      addLog("🚀 Начинаем полную генерацию shorts...");
+      addLog(`💰 Общая стоимость: ${totalCost} кредитов (€${(totalCost / 100).toFixed(2)})`);
+      addLog(`🎬 Фон: ${backgroundModel} (${backgroundCost} кредитов)`);
+      addLog(`🎵 Аудио: ${audioModel} (${audioCost} кредитов)`);
+      addLog("📝 Передаем текстовые элементы и настройки...");
+      addLog("🔄 Отправка запроса на сервер...");
+
+      const response = await fetch("/api/videos/constructor/generate-full", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          textElements: textElements.map((el) => ({
+            text: el.text,
+            x: el.x,
+            y: el.y,
+            fontSize: el.fontSize,
+            color: el.color,
+            backgroundColor: el.backgroundColor,
+            boxPadding: el.boxPadding,
+            fontWeight: el.fontWeight || "bold",
+            width: el.width || 400,
+          })),
+          emojiElements: emojiElements.map((el) => ({
+            emoji: el.emoji,
+            x: el.x,
+            y: el.y,
+            size: el.size,
+            animation: el.animation,
+          })),
+          duration: videoDuration,
+          backgroundModel,
+          audioModel,
+          backgroundPrompt,
+          audioPrompt,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        addLog("✅ Полная генерация завершена успешно!");
+        addLog(`🎬 Фон сгенерирован: ${data.backgroundUrl.substring(0, 50)}...`);
+        addLog(`🎵 Аудио сгенерировано: ${data.audioUrl.substring(0, 50)}...`);
+        addLog(`📹 Видео отрендерено: ${data.videoUrl.substring(0, 50)}...`);
+        addLog(`💳 Списано кредитов: ${data.creditsUsed}`);
+
+        // Обновляем состояние
+        setBackgroundUrl(data.backgroundUrl);
+        setBackgroundType("video");
+        setAudioUrl(data.audioUrl);
+        setRenderedVideoUrl(data.videoUrl);
+        setGenerationComplete(true);
+
+        // Автозакрытие через 3 секунды
+        setTimeout(() => {
+          setShowLogsModal(false);
+        }, 3000);
+      } else {
+        // Проверяем на ошибку недостатка кредитов
+        if (response.status === 402) {
+          addLog(`❌ Недостаточно кредитов!`);
+          addLog(`💰 Требуется: ${data.requiredCredits} кредитов`);
+          addLog(`💰 Доступно: ${data.currentCredits} кредитов`);
+          addLog("⚠️ Пожалуйста, пополните баланс");
+        } else if (response.status === 403) {
+          addLog(`❌ Доступ запрещен!`);
+          addLog("⚠️ Эта функция доступна только администраторам");
+        } else {
+          addLog(`❌ Ошибка: ${data.error}`);
+        }
+        setGenerationError(true);
+      }
+    } catch (error) {
+      console.error("Full generation error:", error);
+      addLog(`❌ Произошла ошибка: ${error instanceof Error ? error.message : "Неизвестная ошибка"}`);
+      setGenerationError(true);
+    } finally {
+      setGeneratingFull(false);
+      setGenerationComplete(true);
+    }
+  };
+
   // Публикация на YouTube
   const handleUploadToYouTube = async () => {
     if (!renderedVideoUrl) {
@@ -1137,7 +1253,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           </div>
 
           {/* Кнопка рендеринга под preview */}
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
             <button
               onClick={handleRender}
               disabled={isRendering}
@@ -1145,6 +1261,27 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             >
               {isRendering ? "Создание shorts..." : "Создать shorts"}
             </button>
+
+            {/* Кнопка полной генерации (только для админов) */}
+            {session?.user?.isAdmin && (
+              <button
+                onClick={handleFullGeneration}
+                disabled={generatingFull || isRendering}
+                className="w-full bg-purple-600 text-white rounded px-4 py-3 font-semibold hover:bg-purple-700 disabled:bg-gray-400 flex items-center justify-center gap-2"
+              >
+                {generatingFull ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                    Полная генерация...
+                  </>
+                ) : (
+                  <>
+                    <span className="text-lg">⚡</span>
+                    Фон + Аудио + Рендеринг
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
