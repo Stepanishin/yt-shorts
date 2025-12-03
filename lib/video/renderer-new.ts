@@ -599,17 +599,26 @@ export async function renderVideoNew(
         // По умолчанию используем жирный шрифт (если не указано normal)
         const fontWeight = te.fontWeight ?? "bold";
 
-        // Используем Liberation Sans (аналог Arial) который есть на большинстве Linux систем
-        // Для macOS используем Arial
-        const fontFamily = process.platform === 'darwin' ? 'Arial' : 'Liberation Sans';
+        // Используем fontfile для точного указания файла шрифта
+        const isMac = process.platform === 'darwin';
 
         let fontParam = "";
         if (fontWeight === "bold") {
-          // Для жирного шрифта используем style=Bold
-          fontParam = `:font='${fontFamily}':style=Bold`;
+          // Для жирного шрифта используем прямой путь к файлу
+          if (isMac) {
+            fontParam = `:fontfile='/System/Library/Fonts/Supplemental/Arial Bold.ttf'`;
+          } else {
+            // На Linux используем Liberation Sans Bold
+            // FFmpeg ищет шрифты через fontconfig, поэтому используем имя
+            fontParam = `:font='Liberation Sans':bold=1`;
+          }
         } else {
           // Обычный шрифт
-          fontParam = `:font='${fontFamily}'`;
+          if (isMac) {
+            fontParam = `:fontfile='/System/Library/Fonts/Supplemental/Arial.ttf'`;
+          } else {
+            fontParam = `:font='Liberation Sans'`;
+          }
         }
 
         let drawtextFilter = `drawtext=textfile='${escapedFilePath}'${fontParam}:fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
