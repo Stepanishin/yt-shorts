@@ -23,11 +23,11 @@ export async function POST(req: NextRequest) {
     console.log("💰 Requested amount:", amount);
 
     // amount - это количество кредитов (1 кредит = 1 евро цент)
-    // Минимум Stripe: €0.50 (50 центов)
-    if (!amount || amount < 50) {
+    // Минимум пополнения: €5.00 (500 кредитов)
+    if (!amount || amount < 500) {
       console.error("❌ Invalid amount:", amount);
       return NextResponse.json(
-        { error: "Minimum amount is 50 credits (€0.50)" },
+        { error: "Minimum amount is 500 credits (€5.00)" },
         { status: 400 }
       );
     }

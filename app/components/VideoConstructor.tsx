@@ -53,6 +53,12 @@ const VIDEO_HEIGHT = 1280;
 const PREVIEW_SCALE = 0.3; // 30% от оригинального размера для предпросмотра
 const SAFE_PADDING = 15; // Безопасный отступ от краев видео в пикселях
 
+const normalizeTextElements = (elements: TextElement[] = []) =>
+  elements.map((el) => ({
+    ...el,
+    fontWeight: el.fontWeight ?? "bold",
+  }));
+
 interface VideoConstructorProps {
   jokeId?: string;
 }
@@ -124,7 +130,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     if (savedState) {
       try {
         const state = JSON.parse(savedState);
-        setTextElements(state.textElements || []);
+        setTextElements(normalizeTextElements(state.textElements || []));
         setSubscribeElements(state.subscribeElements || []);
         setEmojiElements(state.emojiElements || []);
         setBackgroundUrl(state.backgroundUrl || "");
@@ -258,6 +264,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           color: "black@1",
           backgroundColor: "white@0.6",
           boxPadding: 15,
+          fontWeight: "bold",
         };
 
         setTextElements([newTextElement]);

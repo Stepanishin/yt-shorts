@@ -8,7 +8,7 @@ export default function CreditsBalance() {
   const { data: session, update: updateSession } = useSession();
   const [credits, setCredits] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [topUpAmount, setTopUpAmount] = useState<number>(50); // По умолчанию 0.50 евро (минимум Stripe)
+  const [topUpAmount, setTopUpAmount] = useState<number>(500); // По умолчанию €5.00 (минимум Stripe)
   const [processing, setProcessing] = useState(false);
   const [paymentProcessed, setPaymentProcessed] = useState(false); // Флаг для предотвращения повторной обработки
 
@@ -56,8 +56,8 @@ export default function CreditsBalance() {
   };
 
   const handleTopUp = async () => {
-    if (topUpAmount < 50) {
-      alert("Минимальная сумма пополнения: €0.50 (50 кредитов) - ограничение Stripe");
+    if (topUpAmount < 500) {
+      alert("Минимальная сумма пополнения: €5.00 (500 кредитов)");
       return;
     }
 
@@ -126,26 +126,6 @@ export default function CreditsBalance() {
           </label>
           <div className="flex gap-2 mb-2">
             <button
-              onClick={() => setTopUpAmount(50)}
-              className={`px-3 py-2 rounded ${
-                topUpAmount === 50
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-800"
-              }`}
-            >
-              50 (€0.50)
-            </button>
-            <button
-              onClick={() => setTopUpAmount(100)}
-              className={`px-3 py-2 rounded ${
-                topUpAmount === 100
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-800"
-              }`}
-            >
-              100 (€1)
-            </button>
-            <button
               onClick={() => setTopUpAmount(500)}
               className={`px-3 py-2 rounded ${
                 topUpAmount === 500
@@ -155,18 +135,38 @@ export default function CreditsBalance() {
             >
               500 (€5)
             </button>
+            <button
+              onClick={() => setTopUpAmount(1000)}
+              className={`px-3 py-2 rounded ${
+                topUpAmount === 1000
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-800"
+              }`}
+            >
+              1000 (€10)
+            </button>
+            <button
+              onClick={() => setTopUpAmount(2000)}
+              className={`px-3 py-2 rounded ${
+                topUpAmount === 2000
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-800"
+              }`}
+            >
+              2000 (€20)
+            </button>
           </div>
 
           <input
             type="number"
-            min="50"
+            min="500"
             step="10"
             value={topUpAmount}
-            onChange={(e) => setTopUpAmount(parseInt(e.target.value) || 50)}
+            onChange={(e) => setTopUpAmount(parseInt(e.target.value) || 500)}
             className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
           />
           <p className="text-xs text-gray-700 mt-1">
-            ≈ €{(topUpAmount / 100).toFixed(2)} (минимум €0.50)
+            ≈ €{(topUpAmount / 100).toFixed(2)} (минимум €5.00)
           </p>
         </div>
 
