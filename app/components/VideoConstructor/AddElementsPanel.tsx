@@ -1,5 +1,7 @@
 "use client";
 
+import { useModal } from "@/app/contexts/ModalContext";
+
 interface AddElementsPanelProps {
   onAddText: () => void;
   onAddSubscribe: () => void;
@@ -13,10 +15,16 @@ export default function AddElementsPanel({
   onAddEmoji,
   onClearAll,
 }: AddElementsPanelProps) {
+  const { showModal } = useModal();
+
   const handleClearAll = () => {
-    if (confirm("Очистить все элементы и начать заново?")) {
-      onClearAll();
-    }
+    showModal({
+      title: "Подтверждение",
+      message: "Очистить все элементы и начать заново?",
+      type: "warning",
+      isConfirmDialog: true,
+      onConfirm: onClearAll,
+    });
   };
 
   return (

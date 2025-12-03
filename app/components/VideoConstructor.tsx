@@ -777,9 +777,19 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     const requiredCredits = modelCosts[backgroundModel];
     const confirmMessage = `Генерация фона (${backgroundModel}) стоит ${requiredCredits} кредитов (€${(requiredCredits / 100).toFixed(2)}). Продолжить?`;
 
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+    // Создаем промис для ожидания ответа пользователя
+    await new Promise<void>((resolve, reject) => {
+      showModal({
+        title: "Подтверждение генерации",
+        message: confirmMessage,
+        type: "warning",
+        isConfirmDialog: true,
+        onConfirm: () => resolve(),
+        onCancel: () => reject(new Error("Cancelled")),
+      });
+    }).catch(() => {
+      return; // Если пользователь отменил, просто выходим
+    });
 
     // Открываем модальное окно и сбрасываем логи
     resetLogsModal();
@@ -860,9 +870,19 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     const requiredCredits = modelCosts[audioModel];
     const confirmMessage = `Генерация аудио (${audioModel}) стоит ${requiredCredits} кредитов (€${(requiredCredits / 100).toFixed(2)}). Продолжить?`;
 
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+    // Создаем промис для ожидания ответа пользователя
+    await new Promise<void>((resolve, reject) => {
+      showModal({
+        title: "Подтверждение генерации",
+        message: confirmMessage,
+        type: "warning",
+        isConfirmDialog: true,
+        onConfirm: () => resolve(),
+        onCancel: () => reject(new Error("Cancelled")),
+      });
+    }).catch(() => {
+      return; // Если пользователь отменил, просто выходим
+    });
 
     // Открываем модальное окно и сбрасываем логи
     resetLogsModal();
@@ -950,9 +970,19 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
     const confirmMessage = `Полная генерация (фон: ${backgroundModel} + аудио: ${audioModel} + рендеринг) стоит ${totalCost} кредитов (€${(totalCost / 100).toFixed(2)}). Продолжить?`;
 
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+    // Создаем промис для ожидания ответа пользователя
+    await new Promise<void>((resolve, reject) => {
+      showModal({
+        title: "Подтверждение полной генерации",
+        message: confirmMessage,
+        type: "warning",
+        isConfirmDialog: true,
+        onConfirm: () => resolve(),
+        onCancel: () => reject(new Error("Cancelled")),
+      });
+    }).catch(() => {
+      return; // Если пользователь отменил, просто выходим
+    });
 
     // Открываем модальное окно и сбрасываем логи
     resetLogsModal();
@@ -1134,12 +1164,22 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
         // Если ошибка авторизации
         if (response.status === 401) {
-          const shouldAuth = confirm(
-            "Необходима авторизация YouTube. Открыть страницу авторизации?"
-          );
-          if (shouldAuth) {
-            window.open("/api/youtube/auth", "_blank");
-          }
+          // Создаем промис для ожидания ответа пользователя
+          await new Promise<void>((resolve, reject) => {
+            showModal({
+              title: "Авторизация YouTube",
+              message: "Необходима авторизация YouTube. Открыть страницу авторизации?",
+              type: "warning",
+              isConfirmDialog: true,
+              onConfirm: () => {
+                window.open("/api/youtube/auth", "_blank");
+                resolve();
+              },
+              onCancel: () => reject(new Error("Cancelled")),
+            });
+          }).catch(() => {
+            throw new Error("Необходима авторизация YouTube");
+          });
           throw new Error("Необходима авторизация YouTube");
         }
 

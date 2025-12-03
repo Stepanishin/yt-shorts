@@ -559,11 +559,23 @@ export default function JokeDetailPage() {
 
         // Если ошибка авторизации, предлагаем авторизоваться
         if (response.status === 401) {
-          const shouldAuth = confirm(
-            "Необходима авторизация YouTube. Открыть страницу авторизации?"
-          );
-          if (shouldAuth) {
-            handleAuthorizeYouTube();
+          // Создаем промис для ожидания ответа пользователя
+          try {
+            await new Promise<void>((resolve, reject) => {
+              showModal({
+                title: "Авторизация YouTube",
+                message: "Необходима авторизация YouTube. Открыть страницу авторизации?",
+                type: "warning",
+                isConfirmDialog: true,
+                onConfirm: () => {
+                  handleAuthorizeYouTube();
+                  resolve();
+                },
+                onCancel: () => reject(new Error("Cancelled")),
+              });
+            });
+          } catch {
+            throw new Error("Необходима авторизация YouTube");
           }
           throw new Error("Необходима авторизация YouTube");
         }
@@ -612,8 +624,22 @@ export default function JokeDetailPage() {
   const handleDelete = async () => {
     if (!joke?._id) return;
 
-    const confirmed = confirm("Вы уверены, что хотите удалить этот анекдот? Он будет помечен как удаленный и не будет отображаться в списке.");
-    if (!confirmed) return;
+    // Создаем промис для ожидания ответа пользователя
+    try {
+      await new Promise<void>((resolve, reject) => {
+        showModal({
+          title: "Подтверждение удаления",
+          message: "Вы уверены, что хотите удалить этот анекдот? Он будет помечен как удаленный и не будет отображаться в списке.",
+          type: "warning",
+          isConfirmDialog: true,
+          confirmText: "Удалить",
+          onConfirm: () => resolve(),
+          onCancel: () => reject(new Error("Cancelled")),
+        });
+      });
+    } catch {
+      return; // Если пользователь отменил, просто выходим
+    }
 
     setDeleting(true);
     setError(null);

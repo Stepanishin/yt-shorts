@@ -70,11 +70,25 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (!joke._id) return;
 
-    const confirmed = confirm("Вы уверены, что хотите удалить этот анекдот? Он будет помечен как удаленный и не будет отображаться в списке.");
-    if (!confirmed) return;
+    // Создаем промис для ожидания ответа пользователя
+    try {
+      await new Promise<void>((resolve, reject) => {
+        showModal({
+          title: "Подтверждение удаления",
+          message: "Вы уверены, что хотите удалить этот анекдот? Он будет помечен как удаленный и не будет отображаться в списке.",
+          type: "warning",
+          isConfirmDialog: true,
+          confirmText: "Удалить",
+          onConfirm: () => resolve(),
+          onCancel: () => reject(new Error("Cancelled")),
+        });
+      });
+    } catch {
+      return; // Если пользователь отменил, просто выходим
+    }
 
     setDeleting(true);
     try {

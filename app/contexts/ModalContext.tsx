@@ -9,7 +9,10 @@ export interface ModalOptions {
   message: string;
   type?: ModalVariant;
   confirmText?: string;
+  cancelText?: string;
   onConfirm?: () => void;
+  onCancel?: () => void;
+  isConfirmDialog?: boolean;
 }
 
 interface ModalContextValue {
@@ -38,18 +41,32 @@ export function ModalProvider({ children }: { children: ReactNode }) {
       title: options.title,
       message: options.message,
       type: options.type ?? "info",
-      confirmText: options.confirmText ?? "Понятно",
+      confirmText: options.confirmText ?? (options.isConfirmDialog ? "Да" : "Понятно"),
+      cancelText: options.cancelText ?? "Отмена",
       onConfirm: options.onConfirm,
+      onCancel: options.onCancel,
+      isConfirmDialog: options.isConfirmDialog ?? false,
       isOpen: true,
     });
   }, []);
 
-  const handleClose = () => {
+  const handleConfirm = () => {
     if (modalState?.onConfirm) {
       try {
         modalState.onConfirm();
       } catch (error) {
         console.error("Modal onConfirm handler failed:", error);
+      }
+    }
+    hideModal();
+  };
+
+  const handleCancel = () => {
+    if (modalState?.onCancel) {
+      try {
+        modalState.onCancel();
+      } catch (error) {
+        console.error("Modal onCancel handler failed:", error);
       }
     }
     hideModal();
@@ -80,12 +97,30 @@ export function ModalProvider({ children }: { children: ReactNode }) {
               <h3 className="mb-3 text-lg font-semibold text-gray-900">{modalState.title}</h3>
             )}
             <p className="text-gray-800 whitespace-pre-line">{modalState.message}</p>
-            <button
-              onClick={handleClose}
-              className={`mt-6 w-full rounded-xl px-4 py-3 text-white font-semibold transition-colors ${variantClass}`}
-            >
-              {modalState.confirmText}
-            </button>
+
+            {modalState.isConfirmDialog ? (
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={handleCancel}
+                  className="flex-1 rounded-xl px-4 py-3 text-gray-700 font-semibold transition-colors bg-gray-200 hover:bg-gray-300"
+                >
+                  {modalState.cancelText}
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  className={`flex-1 rounded-xl px-4 py-3 text-white font-semibold transition-colors ${variantClass}`}
+                >
+                  {modalState.confirmText}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleConfirm}
+                className={`mt-6 w-full rounded-xl px-4 py-3 text-white font-semibold transition-colors ${variantClass}`}
+              >
+                {modalState.confirmText}
+              </button>
+            )}
           </div>
         </div>
       )}
