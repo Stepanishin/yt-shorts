@@ -23,10 +23,11 @@ export async function POST(req: NextRequest) {
     console.log("💰 Requested amount:", amount);
 
     // amount - это количество кредитов (1 кредит = 1 евро цент)
-    if (!amount || amount < 100) {
+    // Временно разрешаем минимум 1 цент для тестирования
+    if (!amount || amount < 1) {
       console.error("❌ Invalid amount:", amount);
       return NextResponse.json(
-        { error: "Minimum amount is 100 credits (€1.00)" },
+        { error: "Minimum amount is 1 credit (€0.01)" },
         { status: 400 }
       );
     }
