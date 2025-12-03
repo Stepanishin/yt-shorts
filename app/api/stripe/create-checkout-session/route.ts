@@ -4,16 +4,27 @@ import { stripe } from "@/lib/stripe/stripe-client";
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("🛒 Creating checkout session");
+
     const session = await auth();
 
     if (!session?.user?.id) {
+      console.error("❌ Unauthorized checkout attempt");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    console.log("👤 User:", {
+      userId: session.user.id,
+      email: session.user.email
+    });
+
     const { amount } = await req.json();
+
+    console.log("💰 Requested amount:", amount);
 
     // amount - это количество кредитов (1 кредит = 1 евро цент)
     if (!amount || amount < 100) {
+      console.error("❌ Invalid amount:", amount);
       return NextResponse.json(
         { error: "Minimum amount is 100 credits (€1.00)" },
         { status: 400 }
@@ -45,9 +56,19 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    console.log("✅ Checkout session created:", {
+      sessionId: checkoutSession.id,
+      amount: amount,
+      userId: session.user.id,
+      metadata: checkoutSession.metadata
+    });
+
     return NextResponse.json({ sessionId: checkoutSession.id, url: checkoutSession.url });
   } catch (error) {
-    console.error("Error creating checkout session:", error);
+    console.error("❌ Error creating checkout session:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json(
       { error: "Failed to create checkout session" },
       { status: 500 }
