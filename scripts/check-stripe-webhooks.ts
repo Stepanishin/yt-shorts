@@ -16,7 +16,7 @@ if (!stripeSecretKey) {
   process.exit(1);
 }
 
-const stripe = new Stripe(stripeSecretKey, {
+const stripe = new Stripe(stripeSecretKey!, {
   apiVersion: '2025-11-17.clover',
   typescript: true,
 });

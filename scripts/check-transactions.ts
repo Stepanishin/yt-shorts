@@ -15,7 +15,7 @@ if (!MONGODB_URI) {
 async function checkTransactions() {
   console.log('🔍 Checking database transactions...\n');
 
-  const client = new MongoClient(MONGODB_URI);
+  const client = new MongoClient(MONGODB_URI!);
 
   try {
     await client.connect();
