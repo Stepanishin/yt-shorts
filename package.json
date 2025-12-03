@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "bash scripts/install-ffmpeg.sh || true",
+    "postinstall": "bash scripts/install-ffmpeg.sh || true && bash scripts/install-fonts.sh || true",
     "check:stripe": "tsx scripts/check-stripe-webhooks.ts",
     "check:transactions": "tsx scripts/check-transactions.ts"
   },

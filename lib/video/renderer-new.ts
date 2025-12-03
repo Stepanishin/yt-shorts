@@ -599,15 +599,17 @@ export async function renderVideoNew(
         // По умолчанию используем жирный шрифт (если не указано normal)
         const fontWeight = te.fontWeight ?? "bold";
 
-        // Используем fontfile для точного указания файла шрифта
+        // Используем Liberation Sans (аналог Arial) который есть на большинстве Linux систем
+        // Для macOS используем Arial
+        const fontFamily = process.platform === 'darwin' ? 'Arial' : 'Liberation Sans';
+
         let fontParam = "";
         if (fontWeight === "bold") {
-          // Путь к жирному шрифту Arial
-          const arialBoldPath = "/System/Library/Fonts/Supplemental/Arial Bold.ttf";
-          fontParam = `:fontfile='${arialBoldPath}'`;
+          // Для жирного шрифта используем style=Bold
+          fontParam = `:font='${fontFamily}':style=Bold`;
         } else {
-          // Обычный Arial (можно указать путь или использовать системное имя)
-          fontParam = `:font=Arial`;
+          // Обычный шрифт
+          fontParam = `:font='${fontFamily}'`;
         }
 
         let drawtextFilter = `drawtext=textfile='${escapedFilePath}'${fontParam}:fontcolor=${te.color}:fontsize=${te.fontSize}:x=${textX}:y=${textY}`;
