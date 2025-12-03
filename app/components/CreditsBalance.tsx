@@ -8,8 +8,9 @@ export default function CreditsBalance() {
   const { data: session, update: updateSession } = useSession();
   const [credits, setCredits] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [topUpAmount, setTopUpAmount] = useState<number>(100); // По умолчанию 1 евро
+  const [topUpAmount, setTopUpAmount] = useState<number>(50); // По умолчанию 0.50 евро (минимум Stripe)
   const [processing, setProcessing] = useState(false);
+  const [paymentProcessed, setPaymentProcessed] = useState(false); // Флаг для предотвращения повторной обработки
 
   useEffect(() => {
     // Используем кредиты из сессии если есть
@@ -19,17 +20,26 @@ export default function CreditsBalance() {
     } else {
       fetchCredits();
     }
+  }, [session]);
 
-    // Проверяем URL параметры для успешной оплаты
+  useEffect(() => {
+    // Проверяем URL параметры для успешной оплаты (только один раз)
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('payment') === 'success') {
+    if (urlParams.get('payment') === 'success' && !paymentProcessed) {
+      setPaymentProcessed(true);
+
       // Обновляем баланс после успешной оплаты
       setTimeout(() => {
         fetchCredits();
         updateSession(); // Обновляем сессию
+
+        // Убираем параметр payment из URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('payment');
+        window.history.replaceState({}, '', url);
       }, 1000);
     }
-  }, [session]);
+  }, [paymentProcessed]);
 
   const fetchCredits = async () => {
     try {
@@ -46,8 +56,8 @@ export default function CreditsBalance() {
   };
 
   const handleTopUp = async () => {
-    if (topUpAmount < 1) {
-      alert("Минимальная сумма пополнения: €0.01 (1 кредит)");
+    if (topUpAmount < 50) {
+      alert("Минимальная сумма пополнения: €0.50 (50 кредитов) - ограничение Stripe");
       return;
     }
 
@@ -116,6 +126,16 @@ export default function CreditsBalance() {
           </label>
           <div className="flex gap-2 mb-2">
             <button
+              onClick={() => setTopUpAmount(50)}
+              className={`px-3 py-2 rounded ${
+                topUpAmount === 50
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-800"
+              }`}
+            >
+              50 (€0.50)
+            </button>
+            <button
               onClick={() => setTopUpAmount(100)}
               className={`px-3 py-2 rounded ${
                 topUpAmount === 100
@@ -135,28 +155,18 @@ export default function CreditsBalance() {
             >
               500 (€5)
             </button>
-            <button
-              onClick={() => setTopUpAmount(1000)}
-              className={`px-3 py-2 rounded ${
-                topUpAmount === 1000
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-800"
-              }`}
-            >
-              1000 (€10)
-            </button>
           </div>
 
           <input
             type="number"
-            min="1"
-            step="1"
+            min="50"
+            step="10"
             value={topUpAmount}
-            onChange={(e) => setTopUpAmount(parseInt(e.target.value) || 1)}
+            onChange={(e) => setTopUpAmount(parseInt(e.target.value) || 50)}
             className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
           />
           <p className="text-xs text-gray-700 mt-1">
-            ≈ €{(topUpAmount / 100).toFixed(2)} (минимум €0.01)
+            ≈ €{(topUpAmount / 100).toFixed(2)} (минимум €0.50)
           </p>
         </div>
 

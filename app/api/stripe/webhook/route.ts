@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe/stripe-client";
-import { addCredits } from "@/lib/db/users";
+import { addCredits, getUserByGoogleId } from "@/lib/db/users";
 import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -83,12 +83,25 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      console.log(`💎 Adding ${credits} credits to user ${userId}`);
+      console.log(`💎 Adding ${credits} credits to user with Google ID: ${userId}`);
 
-      // Добавляем кредиты пользователю
+      // userId в metadata - это Google ID, нужно найти пользователя по нему
+      const user = await getUserByGoogleId(userId);
+
+      if (!user || !user._id) {
+        console.error(`❌ User not found with Google ID: ${userId}`);
+        return NextResponse.json(
+          { error: "User not found" },
+          { status: 404 }
+        );
+      }
+
+      console.log(`👤 Found user: ${user.email}, MongoDB _id: ${user._id.toString()}`);
+
+      // Добавляем кредиты пользователю используя MongoDB _id
       const creditsAmount = parseInt(credits, 10);
       const result = await addCredits(
-        userId,
+        user._id.toString(),
         creditsAmount,
         "purchase",
         `Purchase via Stripe (Session: ${session.id})`,
@@ -101,13 +114,13 @@ export async function POST(req: NextRequest) {
       );
 
       if (result) {
-        console.log(`✅ Successfully added ${credits} credits to user ${userId}`);
+        console.log(`✅ Successfully added ${credits} credits to user ${user.email}`);
         console.log(`📊 New balance: ${result.credits} credits`);
       } else {
-        console.error(`❌ Failed to add credits - user not found: ${userId}`);
+        console.error(`❌ Failed to add credits - addCredits returned null`);
         return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 }
+          { error: "Failed to add credits" },
+          { status: 500 }
         );
       }
     } catch (error) {

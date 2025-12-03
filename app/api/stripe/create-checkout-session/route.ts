@@ -23,14 +23,19 @@ export async function POST(req: NextRequest) {
     console.log("💰 Requested amount:", amount);
 
     // amount - это количество кредитов (1 кредит = 1 евро цент)
-    // Временно разрешаем минимум 1 цент для тестирования
-    if (!amount || amount < 1) {
+    // Минимум Stripe: €0.50 (50 центов)
+    if (!amount || amount < 50) {
       console.error("❌ Invalid amount:", amount);
       return NextResponse.json(
-        { error: "Minimum amount is 1 credit (€0.01)" },
+        { error: "Minimum amount is 50 credits (€0.50)" },
         { status: 400 }
       );
     }
+
+    // Определяем базовый URL для редиректов
+    const baseUrl = process.env.NEXTAUTH_URL || req.nextUrl.origin;
+
+    console.log("🌐 Base URL for redirects:", baseUrl);
 
     // Создаем Stripe checkout session
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -49,8 +54,8 @@ export async function POST(req: NextRequest) {
         },
       ],
       mode: 'payment',
-      success_url: `${req.nextUrl.origin}/dashboard/settings?payment=success`,
-      cancel_url: `${req.nextUrl.origin}/dashboard/settings?payment=cancelled`,
+      success_url: `${baseUrl}/dashboard/settings?payment=success`,
+      cancel_url: `${baseUrl}/dashboard/settings?payment=cancelled`,
       metadata: {
         userId: session.user.id,
         credits: amount.toString(),
