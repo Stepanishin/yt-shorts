@@ -8,7 +8,7 @@ export default function CreditsBalance() {
   const { data: session, update: updateSession } = useSession();
   const [credits, setCredits] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [topUpAmount, setTopUpAmount] = useState<number>(500); // По умолчанию 5 евро
+  const [topUpAmount, setTopUpAmount] = useState<number>(100); // По умолчанию 1 евро
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -46,8 +46,8 @@ export default function CreditsBalance() {
   };
 
   const handleTopUp = async () => {
-    if (topUpAmount < 100) {
-      alert("Минимальная сумма пополнения: €1.00 (100 кредитов)");
+    if (topUpAmount < 1) {
+      alert("Минимальная сумма пополнения: €0.01 (1 кредит)");
       return;
     }
 
@@ -116,6 +116,16 @@ export default function CreditsBalance() {
           </label>
           <div className="flex gap-2 mb-2">
             <button
+              onClick={() => setTopUpAmount(100)}
+              className={`px-3 py-2 rounded ${
+                topUpAmount === 100
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-800"
+              }`}
+            >
+              100 (€1)
+            </button>
+            <button
               onClick={() => setTopUpAmount(500)}
               className={`px-3 py-2 rounded ${
                 topUpAmount === 500
@@ -135,28 +145,18 @@ export default function CreditsBalance() {
             >
               1000 (€10)
             </button>
-            <button
-              onClick={() => setTopUpAmount(2000)}
-              className={`px-3 py-2 rounded ${
-                topUpAmount === 2000
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-800"
-              }`}
-            >
-              2000 (€20)
-            </button>
           </div>
 
           <input
             type="number"
-            min="100"
-            step="100"
+            min="1"
+            step="1"
             value={topUpAmount}
-            onChange={(e) => setTopUpAmount(parseInt(e.target.value) || 100)}
+            onChange={(e) => setTopUpAmount(parseInt(e.target.value) || 1)}
             className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
           />
           <p className="text-xs text-gray-700 mt-1">
-            ≈ €{(topUpAmount / 100).toFixed(2)} (минимум €1.00)
+            ≈ €{(topUpAmount / 100).toFixed(2)} (минимум €0.01)
           </p>
         </div>
 
