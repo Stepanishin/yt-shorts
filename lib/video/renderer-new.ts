@@ -8,6 +8,58 @@ import { uploadVideoToSpaces, isSpacesConfigured } from "@/lib/storage/spaces-cl
 
 const execAsync = promisify(exec);
 
+const LINUX_FONT_CANDIDATES: Record<"bold" | "normal", string[]> = {
+  bold: [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+  ],
+  normal: [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+  ],
+};
+
+const linuxFontCache: Record<"bold" | "normal", string | null | undefined> = {
+  bold: undefined,
+  normal: undefined,
+};
+
+function findLinuxFontFile(weight: "bold" | "normal"): string | null {
+  const cached = linuxFontCache[weight];
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  for (const candidate of LINUX_FONT_CANDIDATES[weight]) {
+    try {
+      if (fsSync.existsSync(candidate)) {
+        linuxFontCache[weight] = candidate;
+        return candidate;
+      }
+    } catch {
+      // ignore fs errors and try next candidate
+    }
+  }
+
+  linuxFontCache[weight] = null;
+  return null;
+}
+
+function escapeFilterPath(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/:/g, "\\:")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;")
+    .replace(/'/g, "\\'");
+}
+
 /**
  * Выполняет команду с правильными переменными окружения для FFmpeg
  * Устанавливает LD_LIBRARY_PATH для загрузки библиотек FFmpeg
@@ -572,7 +624,7 @@ export async function renderVideoNew(
         };
 
         // Обрабатываем текст: сохраняем только явные переносы строк (Enter), убираем автоматические
-        let processedText = te.text
+        const processedText = te.text
           .replace(/\r\n/g, '\n')  // Нормализуем Windows переносы
           .replace(/\r/g, '\n')    // Нормализуем старые Mac переносы
           .trim();                 // Убираем лишние пробелы по краям
@@ -588,36 +640,38 @@ export async function renderVideoNew(
 
         // Используем textfile вместо text для поддержки многострочного текста
         // Экранируем путь к файлу для использования в filter_complex
-        const escapedFilePath = textFilePath
-          .replace(/\\/g, '\\\\')   // \ -> \\
-          .replace(/:/g, '\\:')      // : -> \:
-          .replace(/\[/g, '\\[')     // [ -> \[
-          .replace(/\]/g, '\\]')     // ] -> \]
-          .replace(/,/g, '\\,')      // , -> \,
-          .replace(/;/g, '\\;');     // ; -> \;
+        const escapedFilePath = escapeFilterPath(textFilePath);
 
         // По умолчанию используем жирный шрифт (если не указано normal)
-        const fontWeight = te.fontWeight ?? "bold";
+        const fontWeight: "normal" | "bold" = te.fontWeight ?? "bold";
 
         // Используем fontfile для точного указания файла шрифта
-        const isMac = process.platform === 'darwin';
+        const isMac = process.platform === "darwin";
 
         let fontParam = "";
         if (fontWeight === "bold") {
-          // Для жирного шрифта используем прямой путь к файлу
           if (isMac) {
             fontParam = `:fontfile='/System/Library/Fonts/Supplemental/Arial Bold.ttf'`;
           } else {
-            // На Linux используем Liberation Sans Bold через имя семейства
-            // FFmpeg найдет жирное начертание автоматически если добавить " Bold" к имени
-            fontParam = `:font='Liberation Sans Bold'`;
+            const linuxFontFile = findLinuxFontFile("bold");
+            if (linuxFontFile) {
+              const escapedFontPath = escapeFilterPath(linuxFontFile);
+              fontParam = `:fontfile='${escapedFontPath}'`;
+            } else {
+              fontParam = `:font='Liberation Sans Bold'`;
+            }
           }
         } else {
-          // Обычный шрифт
           if (isMac) {
             fontParam = `:fontfile='/System/Library/Fonts/Supplemental/Arial.ttf'`;
           } else {
-            fontParam = `:font='Liberation Sans'`;
+            const linuxFontFile = findLinuxFontFile("normal");
+            if (linuxFontFile) {
+              const escapedFontPath = escapeFilterPath(linuxFontFile);
+              fontParam = `:fontfile='${escapedFontPath}'`;
+            } else {
+              fontParam = `:font='Liberation Sans'`;
+            }
           }
         }
 

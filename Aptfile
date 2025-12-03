@@ -5,4 +5,7 @@ libgfortran5
 libquadmath0
 libatlas3-base
 libgomp1
+fonts-liberation
+fonts-liberation2
+fontconfig
 
