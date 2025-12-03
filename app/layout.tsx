@@ -4,6 +4,7 @@ import "./globals.css";
 import HeaderNew from "./components/HeaderNew";
 import Footer from "./components/Footer";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { ModalProvider } from "./contexts/ModalContext";
 import SessionProvider from "./components/SessionProvider";
 
 const geistSans = Geist({
@@ -33,11 +34,13 @@ export default function RootLayout({
       >
         <SessionProvider>
           <LanguageProvider>
-            <HeaderNew />
-            <main className="flex-grow">
-              {children}
-            </main>
-            <Footer />
+            <ModalProvider>
+              <HeaderNew />
+              <main className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+            </ModalProvider>
           </LanguageProvider>
         </SessionProvider>
       </body>

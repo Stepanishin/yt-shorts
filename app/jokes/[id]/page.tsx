@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useModal } from "../../contexts/ModalContext";
 
 interface JokeData {
   _id?: string;
@@ -32,6 +33,7 @@ interface VideoJob {
 
 export default function JokeDetailPage() {
   const params = useParams();
+  const { showModal } = useModal();
   const [joke, setJoke] = useState<JokeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -581,7 +583,11 @@ export default function JokeDetailPage() {
       }
 
       // Показываем успешное сообщение
-      alert(`Видео успешно загружено на YouTube!\n${result.videoUrl}\n\nАнекдот помечен как "Использован" и больше не будет отображаться в списке.`);
+      showModal({
+        title: "Видео успешно загружено на YouTube!",
+        message: `Видео успешно загружено на YouTube!\n${result.videoUrl}\n\nАнекдот помечен как "Использован" и больше не будет отображаться в списке.`,
+        type: "success",
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Произошла ошибка");
       console.error("Failed to upload to YouTube:", err);
@@ -609,14 +615,22 @@ export default function JokeDetailPage() {
       }
 
       console.log("Joke deleted successfully");
-      alert("Анекдот успешно удален и больше не будет отображаться в списке.");
+      showModal({
+        title: "Анекдот успешно удален!",
+        message: "Анекдот успешно удален и больше не будет отображаться в списке.",
+        type: "success",
+      });
 
       // Перенаправляем на главную страницу
       window.location.href = "/";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Произошла ошибка");
       console.error("Failed to delete joke:", err);
-      alert(`Ошибка удаления: ${err instanceof Error ? err.message : "Произошла ошибка"}`);
+      showModal({
+        title: "Ошибка",
+        message: `Ошибка удаления: ${err instanceof Error ? err.message : "Произошла ошибка"}`,
+        type: "error",
+      });
     } finally {
       setDeleting(false);
     }

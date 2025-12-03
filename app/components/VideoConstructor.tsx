@@ -9,6 +9,7 @@ import SubscribeElement from "./VideoConstructor/SubscribeElement";
 import AddElementsPanel from "./VideoConstructor/AddElementsPanel";
 import BackgroundSettings from "./VideoConstructor/BackgroundSettings";
 import ProgressIndicator from "./VideoConstructor/ProgressIndicator";
+import { useModal } from "@/app/contexts/ModalContext";
 
 interface TextElement {
   id: string;
@@ -65,6 +66,7 @@ interface VideoConstructorProps {
 
 export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const { data: session } = useSession();
+  const { showModal } = useModal();
   const [textElements, setTextElements] = useState<TextElement[]>([]);
   const [subscribeElements, setSubscribeElements] = useState<SubscribeElement[]>([]);
   const [emojiElements, setEmojiElements] = useState<EmojiElement[]>([]);
@@ -246,7 +248,11 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
         const response = await fetch(`/api/jokes/${jokeId}`);
         if (!response.ok) {
-          alert("Не удалось загрузить анекдот");
+          showModal({
+            title: "Ошибка",
+            message: "Не удалось загрузить анекдот",
+            type: "error",
+          });
           return;
         }
 
@@ -291,7 +297,11 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         console.log("Joke loaded successfully:", joke.title || jokeText.substring(0, 50));
       } catch (error) {
         console.error("Failed to load joke:", error);
-        alert("Произошла ошибка при загрузке анекдота");
+        showModal({
+          title: "Ошибка",
+          message: "Произошла ошибка при загрузке анекдота",
+          type: "error",
+        });
       }
     };
 
@@ -523,7 +533,11 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const handleGenerateTitle = async () => {
     const jokeText = textElements.map(el => el.text).join(' ');
     if (!jokeText.trim()) {
-      alert('Добавьте текст шутки сначала');
+      showModal({
+        title: "Текст не найден",
+        message: "Добавьте текст шутки прежде чем продолжить.",
+        type: "warning",
+      });
       return;
     }
 
@@ -571,7 +585,11 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const handleGenerateDescription = async () => {
     const jokeText = textElements.map(el => el.text).join(' ');
     if (!jokeText.trim()) {
-      alert('Добавьте текст шутки сначала');
+      showModal({
+        title: "Текст не найден",
+        message: "Добавьте текст шутки прежде чем продолжить.",
+        type: "warning",
+      });
       return;
     }
 
@@ -1016,7 +1034,11 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   // Публикация на YouTube
   const handleUploadToYouTube = async () => {
     if (!renderedVideoUrl) {
-      alert("Сначала создайте видео");
+      showModal({
+        title: "Ошибка",
+        message: "Сначала создайте видео",
+        type: "error",
+      });
       return;
     }
 
@@ -1112,10 +1134,18 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
       const result = await response.json();
       setYoutubeVideoUrl(result.videoUrl);
-      alert(`Видео успешно загружено на YouTube!\n${result.videoUrl}`);
+      showModal({
+        title: "Видео успешно загружено на YouTube!",
+        message: result.videoUrl,
+        type: "success",
+      });
     } catch (error) {
       console.error("Upload to YouTube error:", error);
-      alert(`Ошибка публикации: ${error instanceof Error ? error.message : "Произошла ошибка"}`);
+      showModal({
+        title: "Ошибка",
+        message: `Ошибка публикации: ${error instanceof Error ? error.message : "Произошла ошибка"}`,
+        type: "error",
+      });
     } finally {
       setUploadingToYouTube(false);
     }

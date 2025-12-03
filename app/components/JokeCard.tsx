@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useModal } from "../contexts/ModalContext";
 
 interface JokeCardProps {
   joke: {
@@ -47,6 +48,7 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
   const status = joke.status ?? "pending";
   const sourceLabel = sourceLabels[joke.source] ?? joke.source;
   const [deleting, setDeleting] = useState(false);
+  const { showModal } = useModal();
 
   if (!joke._id) {
     return (
@@ -93,7 +95,11 @@ export default function JokeCard({ joke, selectable = false, selected = false, o
         window.location.reload();
       }
     } catch (err) {
-      alert(`Ошибка удаления: ${err instanceof Error ? err.message : "Произошла ошибка"}`);
+      showModal({
+        title: "Ошибка",
+        message: `Ошибка удаления: ${err instanceof Error ? err.message : "Произошла ошибка"}`,
+        type: "error",
+      });
       console.error("Failed to delete joke:", err);
     } finally {
       setDeleting(false);

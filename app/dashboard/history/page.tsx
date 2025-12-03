@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useModal } from "../../contexts/ModalContext";
 
 interface Transaction {
   _id?: string;
@@ -54,6 +55,7 @@ const reasonIcons: Record<string, string> = {
 
 export default function HistoryPage() {
   const { data: session } = useSession();
+  const { showModal } = useModal();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<TransactionStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,7 +107,11 @@ export default function HistoryPage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert("URL скопирован в буфер обмена!");
+    showModal({
+      title: "URL скопирован в буфер обмена!",
+      message: "URL скопирован в буфер обмена!",
+      type: "success",
+    });
   };
 
   if (loading) {

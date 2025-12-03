@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { loadStripe } from "@stripe/stripe-js";
+import { useModal } from "../contexts/ModalContext";
 
 export default function CreditsBalance() {
+  const { showModal } = useModal();
   const { data: session, update: updateSession } = useSession();
   const [credits, setCredits] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,11 @@ export default function CreditsBalance() {
 
   const handleTopUp = async () => {
     if (topUpAmount < 500) {
-      alert("Минимальная сумма пополнения: €5.00 (500 кредитов)");
+      showModal({
+        title: "Ошибка",
+        message: "Минимальная сумма пополнения: €5.00 (500 кредитов)",
+        type: "error",
+      });
       return;
     }
 
@@ -83,7 +89,11 @@ export default function CreditsBalance() {
       window.location.href = url;
     } catch (error) {
       console.error("Error creating checkout session:", error);
-      alert("Ошибка при создании сессии оплаты");
+      showModal({
+        title: "Ошибка",
+        message: "Ошибка при создании сессии оплаты",
+        type: "error",
+      });
     } finally {
       setProcessing(false);
     }
