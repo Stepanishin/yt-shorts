@@ -196,25 +196,47 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
 
     const loadJoke = async () => {
       try {
-        // ВСЕГДА очищаем localStorage и state когда заходим через jokeId
-        console.log("Loading joke from library, clearing all state...");
-        localStorage.removeItem("videoConstructorState");
+        // Загружаем текущее состояние из localStorage чтобы сохранить фон, аудио и настройки
+        console.log("Loading joke from library, preserving background/audio...");
+        let savedBackground = "";
+        let savedBackgroundType: "video" | "image" = "video";
+        let savedImageEffect = "none";
+        let savedAudio = "";
+        let savedBackgroundPrompt = "";
+        let savedAudioPrompt = "";
 
-        // Очищаем весь state перед загрузкой новой шутки
+        const savedState = localStorage.getItem("videoConstructorState");
+        if (savedState) {
+          try {
+            const state = JSON.parse(savedState);
+            savedBackground = state.backgroundUrl || "";
+            savedBackgroundType = state.backgroundType || "video";
+            savedImageEffect = state.imageEffect || "none";
+            savedAudio = state.audioUrl || "";
+            savedBackgroundPrompt = state.backgroundPrompt || "";
+            savedAudioPrompt = state.audioPrompt || "";
+            console.log("Preserved background and audio from localStorage");
+          } catch (e) {
+            console.error("Failed to parse saved state:", e);
+          }
+        }
+
+        // Очищаем только текстовые элементы, подписки и эмодзи
         setTextElements([]);
         setSubscribeElements([]);
         setEmojiElements([]);
-        setBackgroundUrl("");
-        setBackgroundType("video");
-        setImageEffect("none");
-        setAudioUrl("");
-        setVideoDuration(10);
-        setVideoTitle("");
-        setVideoDescription("");
-        setBackgroundPrompt("");
-        setAudioPrompt("");
+
+        // Очищаем рендер и YouTube
         setRenderedVideoUrl("");
         setYoutubeVideoUrl(null);
+
+        // Сохраняем фон, аудио и промпты если они были
+        setBackgroundUrl(savedBackground);
+        setBackgroundType(savedBackgroundType);
+        setImageEffect(savedImageEffect as "none" | "zoom-in" | "zoom-in-out" | "pan-right-left");
+        setAudioUrl(savedAudio);
+        setBackgroundPrompt(savedBackgroundPrompt);
+        setAudioPrompt(savedAudioPrompt);
 
         const response = await fetch(`/api/jokes/${jokeId}`);
         if (!response.ok) {
