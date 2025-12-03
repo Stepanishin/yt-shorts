@@ -608,9 +608,9 @@ export async function renderVideoNew(
           if (isMac) {
             fontParam = `:fontfile='/System/Library/Fonts/Supplemental/Arial Bold.ttf'`;
           } else {
-            // На Linux используем Liberation Sans Bold
-            // FFmpeg ищет шрифты через fontconfig, поэтому используем имя
-            fontParam = `:font='Liberation Sans':bold=1`;
+            // На Linux используем Liberation Sans Bold через имя семейства
+            // FFmpeg найдет жирное начертание автоматически если добавить " Bold" к имени
+            fontParam = `:font='Liberation Sans Bold'`;
           }
         } else {
           // Обычный шрифт
