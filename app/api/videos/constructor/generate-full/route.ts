@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const {
       textElements,
       emojiElements,
-      duration = 10,
+      duration = 5,
       backgroundModel = "luma-direct",
       audioModel = "llm",
       backgroundPrompt = "",

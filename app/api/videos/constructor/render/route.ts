@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       textElements,
       emojiElements,
       audioUrl,
-      duration = 10,
+      duration = 5,
     } = body;
 
     // Валидация

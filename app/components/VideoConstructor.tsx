@@ -74,7 +74,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [backgroundType, setBackgroundType] = useState<"video" | "image">("video");
   const [imageEffect, setImageEffect] = useState<"none" | "zoom-in" | "zoom-in-out" | "pan-right-left">("none");
   const [audioUrl, setAudioUrl] = useState<string>("");
-  const [videoDuration, setVideoDuration] = useState<number>(10);
+  const [videoDuration, setVideoDuration] = useState<number>(5);
   const [isRendering, setIsRendering] = useState(false);
   const [renderedVideoUrl, setRenderedVideoUrl] = useState<string>("");
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -120,11 +120,9 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   // НО только если НЕ передан jokeId (иначе загрузим анекдот из библиотеки)
   useEffect(() => {
     // Если передан jokeId - не загружаем из localStorage, ждем загрузки анекдота
+    // hasLoadedFromStorage будет установлен после загрузки анекдота
     if (jokeId) {
       console.log("Skipping localStorage load - jokeId provided");
-      setTimeout(() => {
-        hasLoadedFromStorage.current = true;
-      }, 100);
       return;
     }
 
@@ -139,7 +137,9 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         setBackgroundType(state.backgroundType || "video");
         setImageEffect(state.imageEffect || "none");
         setAudioUrl(state.audioUrl || "");
-        setVideoDuration(state.videoDuration || 10);
+        // Сохраняем videoDuration из localStorage, если оно есть и является числом, иначе используем 5
+        const loadedVideoDuration = typeof state.videoDuration === 'number' && state.videoDuration > 0 ? state.videoDuration : 5;
+        setVideoDuration(loadedVideoDuration);
         setVideoTitle(state.videoTitle || "");
         setVideoDescription(state.videoDescription || "");
         setUseAITitle(state.useAITitle ?? true);
@@ -212,6 +212,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         let savedAudio = "";
         let savedBackgroundPrompt = "";
         let savedAudioPrompt = "";
+        let savedVideoDuration = 5; // Значение по умолчанию 5 секунд
 
         const savedState = localStorage.getItem("videoConstructorState");
         if (savedState) {
@@ -223,6 +224,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             savedAudio = state.audioUrl || "";
             savedBackgroundPrompt = state.backgroundPrompt || "";
             savedAudioPrompt = state.audioPrompt || "";
+            // Сохраняем videoDuration из localStorage, если оно есть, иначе используем 5
+            savedVideoDuration = typeof state.videoDuration === 'number' && state.videoDuration > 0 ? state.videoDuration : 5;
             console.log("Preserved background and audio from localStorage");
           } catch (e) {
             console.error("Failed to parse saved state:", e);
@@ -238,13 +241,14 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         setRenderedVideoUrl("");
         setYoutubeVideoUrl(null);
 
-        // Сохраняем фон, аудио и промпты если они были
+        // Сохраняем фон, аудио, промпты и длительность если они были
         setBackgroundUrl(savedBackground);
         setBackgroundType(savedBackgroundType);
         setImageEffect(savedImageEffect as "none" | "zoom-in" | "zoom-in-out" | "pan-right-left");
         setAudioUrl(savedAudio);
         setBackgroundPrompt(savedBackgroundPrompt);
         setAudioPrompt(savedAudioPrompt);
+        setVideoDuration(savedVideoDuration);
 
         const response = await fetch(`/api/jokes/${jokeId}`);
         if (!response.ok) {
@@ -295,6 +299,12 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         }
 
         console.log("Joke loaded successfully:", joke.title || jokeText.substring(0, 50));
+        
+        // После полной загрузки анекдота и установки всех состояний помечаем что данные загружены
+        // Используем setTimeout чтобы дать React время обновить все state
+        setTimeout(() => {
+          hasLoadedFromStorage.current = true;
+        }, 100);
       } catch (error) {
         console.error("Failed to load joke:", error);
         showModal({
@@ -302,11 +312,15 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           message: "Произошла ошибка при загрузке анекдота",
           type: "error",
         });
+        // Даже при ошибке помечаем что попытка загрузки завершена
+        setTimeout(() => {
+          hasLoadedFromStorage.current = true;
+        }, 100);
       }
     };
 
     loadJoke();
-  }, [jokeId]);
+  }, [jokeId, showModal]);
 
   // Добавить новый текстовый элемент
   const addTextElement = () => {
