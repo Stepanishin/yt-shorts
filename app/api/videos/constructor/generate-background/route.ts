@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
           modelName,
           style,
           generationId: result.generationId,
+          videoUrl: result.videoUrl, // URL сгенерированного видео
+          prompt: style, // Промпт/стиль использованный для генерации
         }
       );
       console.log("✅ Credits deducted after successful generation");

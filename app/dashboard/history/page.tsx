@@ -10,7 +10,17 @@ interface Transaction {
   amount: number;
   reason: string;
   description?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: {
+    videoUrl?: string;
+    audioUrl?: string;
+    renderedVideoUrl?: string;
+    prompt?: string;
+    modelName?: string;
+    stripeSessionId?: string;
+    amountPaid?: number;
+    currency?: string;
+    [key: string]: unknown;
+  };
   balanceBefore: number;
   balanceAfter: number;
   createdAt: string;
@@ -91,6 +101,11 @@ export default function HistoryPage() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert("URL скопирован в буфер обмена!");
   };
 
   if (loading) {
@@ -217,6 +232,95 @@ export default function HistoryPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Медиа-контент и метаданные */}
+                  {transaction.metadata && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                      {/* Промпт */}
+                      {transaction.metadata.prompt && (
+                        <div className="text-sm">
+                          <span className="font-medium text-gray-900">Промпт: </span>
+                          <span className="text-gray-700">{transaction.metadata.prompt}</span>
+                        </div>
+                      )}
+
+                      {/* Модель */}
+                      {transaction.metadata.modelName && (
+                        <div className="text-xs text-gray-600">
+                          Модель: {transaction.metadata.modelName}
+                        </div>
+                      )}
+
+                      {/* Видео */}
+                      {transaction.metadata.videoUrl && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              Сгенерированное видео:
+                            </span>
+                            <button
+                              onClick={() => copyToClipboard(transaction.metadata!.videoUrl!)}
+                              className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                            >
+                              Копировать URL
+                            </button>
+                            <a
+                              href={transaction.metadata.videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
+                            >
+                              Открыть
+                            </a>
+                          </div>
+                          <video
+                            src={transaction.metadata.videoUrl}
+                            controls
+                            className="w-full max-w-md rounded border border-gray-300"
+                            style={{ maxHeight: "300px" }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Аудио */}
+                      {transaction.metadata.audioUrl && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              Сгенерированное аудио:
+                            </span>
+                            <button
+                              onClick={() => copyToClipboard(transaction.metadata!.audioUrl!)}
+                              className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                            >
+                              Копировать URL
+                            </button>
+                            <a
+                              href={transaction.metadata.audioUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
+                            >
+                              Открыть
+                            </a>
+                          </div>
+                          <audio
+                            src={transaction.metadata.audioUrl}
+                            controls
+                            className="w-full max-w-md"
+                          />
+                        </div>
+                      )}
+
+                      {/* Информация о покупке */}
+                      {transaction.metadata.amountPaid && (
+                        <div className="text-sm text-gray-800">
+                          Оплачено: €{transaction.metadata.amountPaid.toFixed(2)}{" "}
+                          {transaction.metadata.currency?.toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

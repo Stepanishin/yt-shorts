@@ -23,6 +23,11 @@ export interface CreditTransaction {
     stripeSessionId?: string; // Для покупок через Stripe
     videoJobId?: string; // Для операций с видео
     jokeId?: string; // ID шутки, если применимо
+    // Медиа URL для генерации контента
+    videoUrl?: string; // URL сгенерированного видео (для background_generation)
+    audioUrl?: string; // URL сгенерированного аудио (для audio_generation)
+    renderedVideoUrl?: string; // URL финального отрендеренного видео (для video_rendering)
+    prompt?: string; // Промпт использованный для генерации
     [key: string]: unknown;
   };
   balanceBefore: number; // Баланс до транзакции

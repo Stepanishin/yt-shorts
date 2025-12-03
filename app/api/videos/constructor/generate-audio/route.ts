@@ -73,6 +73,8 @@ export async function POST(request: NextRequest) {
           modelName,
           lyricsType,
           generationId: result.generationId,
+          audioUrl: result.audioUrl, // URL сгенерированного аудио
+          prompt: lyricsType, // Тип лирики использованный для генерации
         }
       );
       console.log("✅ Credits deducted after successful generation");
