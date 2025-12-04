@@ -379,8 +379,8 @@ export async function renderFinalVideo(
       videoDuration = 5;
     }
 
-    // Зацикливаем видео для получения ровно 10 секунд
-    const targetDuration = 10; // Всегда 10 секунд
+    // Зацикливаем видео для получения ровно 5 секунд
+    const targetDuration = 5; // Всегда 5 секунд для shorts
     console.log(`Target video duration: ${targetDuration} seconds (video will be looped)`);
 
     // Количество циклов видео (округление вверх)

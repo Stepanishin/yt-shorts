@@ -13,8 +13,8 @@ import { processVideoJob } from "@/lib/video/processor";
 
 // Стоимость генерации (фон + аудио)
 const BACKGROUND_COST = 25; // 25 кредитов за luma-direct
-const AUDIO_COST = 10; // 10 кредитов за аудио
-const TOTAL_COST = BACKGROUND_COST + AUDIO_COST; // 35 кредитов всего
+const AUDIO_COST = 3; // 3 кредита за аудио (Ace-Step 5 сек)
+const TOTAL_COST = BACKGROUND_COST + AUDIO_COST; // 28 кредитов всего
 
 export async function POST(request: Request) {
   try {

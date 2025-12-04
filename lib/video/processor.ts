@@ -5,7 +5,7 @@ import { deductCredits } from "@/lib/db/users";
 
 // Стоимость генерации
 const BACKGROUND_COST = 25; // 25 кредитов за luma-direct
-const AUDIO_COST = 10; // 10 кредитов за аудио
+const AUDIO_COST = 3; // 3 кредита за аудио (Ace-Step 5 сек)
 
 /**
  * Обрабатывает видео джобу
@@ -70,14 +70,16 @@ export async function processVideoJob(jobId: unknown, userId?: string): Promise<
       }
     }
 
-    // 2. Генерируем аудио через Udio API
+    // 2. Генерируем аудио через Ace-Step API
     console.log("Generating audio for video job:", jobId);
     try {
       const audioResult = await generateAudio({
         jokeText: job.jokeText,
         jokeTitle: job.jokeTitle,
-        taskType: "generate_music", // Используем стандартную генерацию Udio
-        lyricsType: "instrumental", // Инструментальная музыка (без слов)
+        modelName: "ace-step", // Используем Ace-Step (дешевле)
+        taskType: "txt2audio",
+        lyricsType: "instrumental",
+        duration: 5, // 5 секунд для shorts
       });
 
       // Сохраняем URL аудио в джобу
@@ -96,10 +98,11 @@ export async function processVideoJob(jobId: unknown, userId?: string): Promise<
             userId,
             AUDIO_COST,
             "audio_generation",
-            "Audio generation (llm, instrumental)",
+            "Audio generation (ace-step, 5 sec)",
             {
-              modelName: "llm",
+              modelName: "ace-step",
               lyricsType: "instrumental",
+              duration: 5,
               generationId: audioResult.generationId,
               audioUrl: audioResult.audioUrl,
               jobId: jobId?.toString(),
