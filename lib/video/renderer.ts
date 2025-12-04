@@ -393,8 +393,8 @@ export async function renderFinalVideo(
         }
         
         filterComplex = [
-          // Обрабатываем фоновое видео: зацикливаем, масштабируем, добавляем padding, накладываем текст
-          `[0:v]loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=text='${escapedText}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2-${verticalOffset}:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=1:bordercolor=black[v0]`,
+          // Обрабатываем фоновое видео: зацикливаем, масштабируем на полный экран (без черных полос), накладываем текст
+          `[0:v]loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,drawtext=text='${escapedText}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2-${verticalOffset}:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=1:bordercolor=black[v0]`,
           // Применяем анимацию к эмодзи
           emojiFilter,
           // Накладываем эмодзи поверх видео с текстом с анимированными координатами
@@ -450,8 +450,8 @@ export async function renderFinalVideo(
         }
         
         filterComplex = [
-          // Обрабатываем фоновое видео: зацикливаем, масштабируем, добавляем padding, накладываем текст и эмодзи
-          `loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=text='${escapedText}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2-${verticalOffset}:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=2:bordercolor=black,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiSizeExpression}:x=${emojiXExpression}:y=${emojiYExpression}`
+          // Обрабатываем фоновое видео: зацикливаем, масштабируем на полный экран (без черных полос), накладываем текст и эмодзи
+          `loop=loop=${videoLoops}:size=32767:start=0,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,drawtext=text='${escapedText}':fontcolor=black@1:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2-${verticalOffset}:box=1:boxcolor=white@0.6:boxborderw=${textBoxPadding}:line_spacing=${lineSpacing}:borderw=2:bordercolor=black,drawtext=text='${escapedEmoji}':fontfile='${escapedFontPath}':fontcolor=black@1:fontsize=${emojiSizeExpression}:x=${emojiXExpression}:y=${emojiYExpression}`
         ].join(",");
         console.log("Using simple video filter with drawtext and animation");
         console.log("Emoji animation:", emojiAnimation);

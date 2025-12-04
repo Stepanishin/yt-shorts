@@ -22,7 +22,7 @@ export async function generateBackground(
   maxRetries = 3,
   retryDelayMs = 60000
 ): Promise<GenerateBackgroundResult> {
-  const { jokeText, jokeTitle, style = "nature", modelName = "ray-v1", useCustomPrompt = false } = options;
+  const { jokeText, jokeTitle, style = "nature", modelName = "luma-direct", useCustomPrompt = false } = options;
 
   // Если выбран прямой Luma API, используем отдельную функцию
   if (modelName === "luma-direct") {

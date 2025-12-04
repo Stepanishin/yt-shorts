@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
+import { auth } from "@/lib/auth";
+import { getUserByGoogleId } from "@/lib/db/users";
 
 import {
   findJokeCandidateById,
@@ -9,8 +11,52 @@ import {
 import { createVideoJob } from "@/lib/video/storage";
 import { processVideoJob } from "@/lib/video/processor";
 
+// Стоимость генерации (фон + аудио)
+const BACKGROUND_COST = 25; // 25 кредитов за luma-direct
+const AUDIO_COST = 10; // 10 кредитов за аудио
+const TOTAL_COST = BACKGROUND_COST + AUDIO_COST; // 35 кредитов всего
+
 export async function POST(request: Request) {
   try {
+    // Проверяем аутентификацию
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      console.error("❌ No user session found");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.log("✅ User authenticated:", { userId: session.user.id, email: session.user.email });
+
+    // Получаем пользователя по Google ID
+    const user = await getUserByGoogleId(session.user.id);
+    console.log("👤 User found:", {
+      googleId: session.user.id,
+      mongoId: user?._id?.toString(),
+      credits: user?.credits,
+    });
+
+    if (!user?._id) {
+      console.error("❌ User not found in database");
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Проверяем баланс пользователя
+    if ((user.credits || 0) < TOTAL_COST) {
+      console.error("❌ Insufficient credits:", { current: user.credits, required: TOTAL_COST });
+      return NextResponse.json(
+        {
+          error: "Insufficient credits",
+          requiredCredits: TOTAL_COST,
+          currentCredits: user.credits || 0,
+          message: `Недостаточно кредитов. Требуется: ${TOTAL_COST}, доступно: ${user.credits || 0}`,
+        },
+        { status: 402 } // 402 Payment Required
+      );
+    }
+
+    console.log("✅ User has sufficient credits:", { current: user.credits, required: TOTAL_COST });
+
     const body = (await request.json().catch(() => ({}))) as {
       jokeId?: string;
       language?: string;
@@ -41,8 +87,8 @@ export async function POST(request: Request) {
       status: "pending",
     });
 
-    // Запускаем обработку видео в фоне (не ждем завершения)
-    processVideoJob(job._id).catch((error) => {
+    // Запускаем обработку видео в фоне с userId для списания кредитов
+    processVideoJob(job._id, user._id.toString()).catch((error) => {
       console.error("Failed to process video job in background", error);
     });
 

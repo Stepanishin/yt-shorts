@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { getUserByGoogleId, deductCredits } from "@/lib/db/users";
 import { findVideoJobById, updateVideoJobStatus, VideoJobStatus } from "@/lib/video/storage";
 import { generateAudio } from "@/lib/video/audio-generator";
+
+// Стоимость генерации аудио
+const AUDIO_COST = 10; // 10 кредитов за аудио
 
 /**
  * API endpoint для генерации аудио для видео
@@ -13,6 +18,45 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Проверяем аутентификацию
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      console.error("❌ No user session found");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.log("✅ User authenticated:", { userId: session.user.id, email: session.user.email });
+
+    // Получаем пользователя по Google ID
+    const user = await getUserByGoogleId(session.user.id);
+    console.log("👤 User found:", {
+      googleId: session.user.id,
+      mongoId: user?._id?.toString(),
+      credits: user?.credits,
+    });
+
+    if (!user?._id) {
+      console.error("❌ User not found in database");
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Проверяем баланс пользователя
+    if ((user.credits || 0) < AUDIO_COST) {
+      console.error("❌ Insufficient credits:", { current: user.credits, required: AUDIO_COST });
+      return NextResponse.json(
+        {
+          error: "Insufficient credits",
+          requiredCredits: AUDIO_COST,
+          currentCredits: user.credits || 0,
+          message: `Недостаточно кредитов. Требуется: ${AUDIO_COST}, доступно: ${user.credits || 0}`,
+        },
+        { status: 402 } // 402 Payment Required
+      );
+    }
+
+    console.log("✅ User has sufficient credits:", { current: user.credits, required: AUDIO_COST });
+
     const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
@@ -35,8 +79,8 @@ export async function POST(
       status: job.status,
     };
 
-    // Запускаем генерацию аудио в фоне
-    generateAudioInBackground(jobData, taskType, lyricsType).catch((error) => {
+    // Запускаем генерацию аудио в фоне с userId для списания кредитов
+    generateAudioInBackground(jobData, taskType, lyricsType, user._id.toString()).catch((error) => {
       console.error("Failed to generate audio in background", error);
       updateVideoJobStatus({
         id,
@@ -64,7 +108,8 @@ export async function POST(
 async function generateAudioInBackground(
   job: { _id: string; jokeText: string; jokeTitle?: string; status: VideoJobStatus },
   taskType: "generate_music" | "generate_music_custom",
-  lyricsType: "generate" | "user" | "instrumental"
+  lyricsType: "generate" | "user" | "instrumental",
+  userId?: string
 ): Promise<void> {
   try {
     console.log("Starting Udio music generation for job:", job._id);
@@ -89,6 +134,30 @@ async function generateAudioInBackground(
 
     console.log("Udio music generated successfully:", audioResult.audioUrl);
     console.log("⚠️  Музыка хранится на PiAPI сервере 7 дней");
+
+    // Списываем кредиты ТОЛЬКО если userId передан и генерация успешна
+    if (userId) {
+      try {
+        await deductCredits(
+          userId,
+          AUDIO_COST,
+          "audio_generation",
+          `Audio generation (llm, ${lyricsType})`,
+          {
+            modelName: "llm",
+            lyricsType,
+            generationId: audioResult.generationId,
+            audioUrl: audioResult.audioUrl,
+            jobId: job._id,
+          }
+        );
+        console.log("✅ Credits deducted for audio generation:", AUDIO_COST);
+      } catch (deductError) {
+        console.error("⚠️ Failed to deduct credits for audio:", deductError);
+        // Генерация прошла успешно, но не удалось списать кредиты
+        // Продолжаем, логируем для расследования
+      }
+    }
   } catch (error) {
     console.error("Audio generation failed", error);
     throw error;

@@ -173,6 +173,27 @@ export default function JokeDetailPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        // Обработка ошибки недостаточности кредитов
+        if (response.status === 402) {
+          showModal({
+            title: "Недостаточно кредитов",
+            message: errorData.message || `Требуется: ${errorData.requiredCredits || 35} кредитов, доступно: ${errorData.currentCredits || 0} кредитов`,
+            type: "error",
+          });
+          throw new Error(errorData.message || "Недостаточно кредитов");
+        }
+
+        // Обработка ошибки аутентификации
+        if (response.status === 401) {
+          showModal({
+            title: "Требуется авторизация",
+            message: "Пожалуйста, войдите в систему для генерации видео",
+            type: "error",
+          });
+          throw new Error("Требуется авторизация");
+        }
+
         throw new Error(errorData.error || "Не удалось начать генерацию видео");
       }
 
@@ -395,6 +416,27 @@ export default function JokeDetailPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        // Обработка ошибки недостаточности кредитов
+        if (response.status === 402) {
+          showModal({
+            title: "Недостаточно кредитов",
+            message: errorData.message || `Требуется: ${errorData.requiredCredits || 10} кредитов, доступно: ${errorData.currentCredits || 0} кредитов`,
+            type: "error",
+          });
+          throw new Error(errorData.message || "Недостаточно кредитов");
+        }
+
+        // Обработка ошибки аутентификации
+        if (response.status === 401) {
+          showModal({
+            title: "Требуется авторизация",
+            message: "Пожалуйста, войдите в систему для генерации аудио",
+            type: "error",
+          });
+          throw new Error("Требуется авторизация");
+        }
+
         throw new Error(errorData.error || "Не удалось начать генерацию аудио");
       }
 
