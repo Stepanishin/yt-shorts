@@ -5,7 +5,8 @@ import { generateAudio } from "@/lib/video/audio-generator";
 
 // Стоимость в зависимости от модели
 const AUDIO_MODEL_COSTS: Record<string, number> = {
-  "llm": 10, // 10 кредитов (€0.10) за генерацию аудио
+  "llm": 10, // 10 кредитов (€0.10) за генерацию через Udio
+  "ace-step": 3, // 3 кредита (€0.03) за 10 секунд через Ace-Step
 };
 
 /**
@@ -21,9 +22,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { text, lyricsType = "instrumental", modelName = "llm" } = body;
+    const {
+      text,
+      lyricsType = "instrumental",
+      modelName = "ace-step", // По умолчанию используем Ace-Step (дешевле)
+      duration = 10
+    } = body;
 
-    console.log("Generating audio for constructor:", { text, lyricsType, modelName });
+    console.log("Generating audio for constructor:", { text, lyricsType, modelName, duration });
 
     // Определяем стоимость на основе модели
     const cost = AUDIO_MODEL_COSTS[modelName] || AUDIO_MODEL_COSTS["llm"];
@@ -55,9 +61,10 @@ export async function POST(request: NextRequest) {
     // Генерируем аудио
     const result = await generateAudio({
       jokeText: text || "Upbeat cheerful background music",
-      taskType: "generate_music",
+      taskType: modelName === "ace-step" ? "txt2audio" : "generate_music",
       lyricsType: lyricsType as "generate" | "user" | "instrumental",
-      modelName: modelName as "llm",
+      modelName: modelName as "llm" | "ace-step",
+      duration,
     });
 
     console.log("✅ Audio generated successfully:", result.audioUrl);

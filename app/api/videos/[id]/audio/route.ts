@@ -5,7 +5,7 @@ import { findVideoJobById, updateVideoJobStatus, VideoJobStatus } from "@/lib/vi
 import { generateAudio } from "@/lib/video/audio-generator";
 
 // Стоимость генерации аудио
-const AUDIO_COST = 10; // 10 кредитов за аудио
+const AUDIO_COST = 3; // 3 кредита за аудио (Ace-Step 5 сек для старого редактора)
 
 /**
  * API endpoint для генерации аудио для видео
@@ -63,8 +63,10 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
-    const taskType = body.taskType || "generate_music"; // По умолчанию стандартная генерация Udio
+    const modelName = body.modelName || "ace-step"; // По умолчанию Ace-Step (дешевле)
+    const taskType = modelName === "ace-step" ? "txt2audio" : (body.taskType || "generate_music");
     const lyricsType = body.lyricsType || "instrumental"; // По умолчанию инструментальная музыка
+    const duration = body.duration || 5; // По умолчанию 5 секунд для shorts
 
     const job = await findVideoJobById(id);
     if (!job) {
@@ -80,7 +82,7 @@ export async function POST(
     };
 
     // Запускаем генерацию аудио в фоне с userId для списания кредитов
-    generateAudioInBackground(jobData, taskType, lyricsType, user._id.toString()).catch((error) => {
+    generateAudioInBackground(jobData, modelName, taskType, lyricsType, duration, user._id.toString()).catch((error) => {
       console.error("Failed to generate audio in background", error);
       updateVideoJobStatus({
         id,
@@ -103,26 +105,30 @@ export async function POST(
 }
 
 /**
- * Асинхронная функция для генерации музыки через Udio
+ * Асинхронная функция для генерации музыки через AI (Ace-Step или Udio)
  */
 async function generateAudioInBackground(
   job: { _id: string; jokeText: string; jokeTitle?: string; status: VideoJobStatus },
-  taskType: "generate_music" | "generate_music_custom",
+  modelName: "llm" | "ace-step",
+  taskType: "txt2audio" | "generate_music" | "generate_music_custom",
   lyricsType: "generate" | "user" | "instrumental",
+  duration: number,
   userId?: string
 ): Promise<void> {
   try {
-    console.log("Starting Udio music generation for job:", job._id);
+    console.log("Starting AI music generation for job:", job._id);
+    console.log("Model:", modelName, "Task type:", taskType, "Lyrics type:", lyricsType, "Duration:", duration);
     console.log("Joke text:", job.jokeText);
     console.log("Joke title:", job.jokeTitle);
-    console.log("Task type:", taskType, "Lyrics type:", lyricsType);
 
-    // Генерируем музыку через Udio API
+    // Генерируем музыку через AI API
     const audioResult = await generateAudio({
       jokeText: job.jokeText,
       jokeTitle: job.jokeTitle,
+      modelName,
       taskType,
       lyricsType,
+      duration,
     });
 
     // Сохраняем URL аудио в job
@@ -132,8 +138,8 @@ async function generateAudioInBackground(
       audioUrl: audioResult.audioUrl,
     });
 
-    console.log("Udio music generated successfully:", audioResult.audioUrl);
-    console.log("⚠️  Музыка хранится на PiAPI сервере 7 дней");
+    console.log(`${modelName === "ace-step" ? "Ace-Step" : "Udio"} music generated successfully:`, audioResult.audioUrl);
+    console.log("⚠️  Музыка хранится на PiAPI сервере 3-7 дней");
 
     // Списываем кредиты ТОЛЬКО если userId передан и генерация успешна
     if (userId) {

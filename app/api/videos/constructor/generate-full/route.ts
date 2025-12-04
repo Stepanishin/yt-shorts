@@ -15,6 +15,7 @@ const BACKGROUND_MODEL_COSTS: Record<string, number> = {
 
 const AUDIO_MODEL_COSTS: Record<string, number> = {
   "llm": 10,
+  "ace-step": 3,
 };
 
 /**
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
       emojiElements,
       duration = 5,
       backgroundModel = "luma-direct",
-      audioModel = "llm",
+      audioModel = "ace-step", // По умолчанию Ace-Step (дешевле)
       backgroundPrompt = "",
       audioPrompt = "",
     } = body;
@@ -117,9 +118,10 @@ export async function POST(request: NextRequest) {
     console.log("🎵 Step 2: Generating audio...");
     const audioResult = await generateAudio({
       jokeText: audioPromptText,
-      taskType: "generate_music",
+      taskType: audioModel === "ace-step" ? "txt2audio" : "generate_music",
       lyricsType: "instrumental",
-      modelName: audioModel as "llm",
+      modelName: audioModel as "llm" | "ace-step",
+      duration: 10, // 30 секунд для shorts
     });
     console.log("✅ Audio generated:", audioResult.audioUrl);
 

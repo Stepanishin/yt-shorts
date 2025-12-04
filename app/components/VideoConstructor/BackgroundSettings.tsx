@@ -8,7 +8,7 @@ interface BackgroundSettingsProps {
   backgroundPrompt: string;
   imageEffect: "none" | "zoom-in" | "zoom-in-out" | "pan-right-left";
   audioUrl: string;
-  audioModel: "llm";
+  audioModel: "llm" | "ace-step";
   audioPrompt: string;
   generatingBackground: boolean;
   generatingAudio: boolean;
@@ -19,7 +19,7 @@ interface BackgroundSettingsProps {
   onBackgroundPromptChange: (prompt: string) => void;
   onImageEffectChange: (effect: "none" | "zoom-in" | "zoom-in-out" | "pan-right-left") => void;
   onAudioUrlChange: (url: string) => void;
-  onAudioModelChange: (model: "llm") => void;
+  onAudioModelChange: (model: "llm" | "ace-step") => void;
   onAudioPromptChange: (prompt: string) => void;
   onGenerateBackground: () => void;
   onGenerateAudio: () => void;
@@ -251,9 +251,10 @@ export default function BackgroundSettings({
             </label>
             <select
               value={audioModel}
-              onChange={(e) => onAudioModelChange(e.target.value as "llm")}
+              onChange={(e) => onAudioModelChange(e.target.value as "llm" | "ace-step")}
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 bg-white"
             >
+              <option value="ace-step">⚡ Ace-Step (3 кредита / $0.03 за 10 сек) - БЫСТРО и ДЁШЕВО</option>
               <option value="llm">Udio (10 кредитов / $0.10)</option>
             </select>
           </div>

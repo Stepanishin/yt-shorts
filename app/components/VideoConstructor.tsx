@@ -88,7 +88,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [generatingBackground, setGeneratingBackground] = useState(false);
   const [generatingAudio, setGeneratingAudio] = useState(false);
   const [backgroundModel, setBackgroundModel] = useState<"ray-v1" | "hailuo-t2v-01" | "luma-direct">("luma-direct");
-  const [audioModel, setAudioModel] = useState<"llm">("llm");
+  const [audioModel, setAudioModel] = useState<"llm" | "ace-step">("ace-step"); // По умолчанию Ace-Step (дешевле)
   const [backgroundPrompt, setBackgroundPrompt] = useState<string>("");
   const [audioPrompt, setAudioPrompt] = useState<string>("");
   const [generatingFull, setGeneratingFull] = useState(false);
@@ -865,10 +865,16 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const handleGenerateAudio = async () => {
     // Определяем стоимость на основе модели
     const modelCosts: Record<string, number> = {
-      "llm": 10,
+      "llm": 10, // Udio
+      "ace-step": 3, // Ace-Step (10 сек)
+    };
+    const modelNames: Record<string, string> = {
+      "llm": "Udio",
+      "ace-step": "Ace-Step",
     };
     const requiredCredits = modelCosts[audioModel];
-    const confirmMessage = `Генерация аудио (${audioModel}) стоит ${requiredCredits} кредитов (€${(requiredCredits / 100).toFixed(2)}). Продолжить?`;
+    const modelDisplayName = modelNames[audioModel];
+    const confirmMessage = `Генерация аудио (${modelDisplayName}) стоит ${requiredCredits} кредитов (€${(requiredCredits / 100).toFixed(2)}). Продолжить?`;
 
     // Создаем промис для ожидания ответа пользователя
     await new Promise<void>((resolve, reject) => {
@@ -893,7 +899,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     try {
       addLog("🎵 Начинаем генерацию аудио...");
       addLog(`💰 Стоимость: ${requiredCredits} кредитов (€${(requiredCredits / 100).toFixed(2)})`);
-      addLog(`🎨 Модель: ${audioModel} (Udio)`);
+      addLog(`🎨 Модель: ${modelDisplayName}`);
 
       // Используем пользовательский промпт или собираем весь текст для контекста
       const promptText = audioPrompt.trim() || textElements.map(el => el.text).join(" ") || "Upbeat cheerful background music";
@@ -962,13 +968,19 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     };
     const audioModelCosts: Record<string, number> = {
       "llm": 10,
+      "ace-step": 3,
+    };
+    const audioModelNames: Record<string, string> = {
+      "llm": "Udio",
+      "ace-step": "Ace-Step",
     };
 
     const backgroundCost = backgroundModelCosts[backgroundModel];
     const audioCost = audioModelCosts[audioModel];
     const totalCost = backgroundCost + audioCost;
+    const audioDisplayName = audioModelNames[audioModel];
 
-    const confirmMessage = `Полная генерация (фон: ${backgroundModel} + аудио: ${audioModel} + рендеринг) стоит ${totalCost} кредитов (€${(totalCost / 100).toFixed(2)}). Продолжить?`;
+    const confirmMessage = `Полная генерация (фон: ${backgroundModel} + аудио: ${audioDisplayName} + рендеринг) стоит ${totalCost} кредитов (€${(totalCost / 100).toFixed(2)}). Продолжить?`;
 
     // Создаем промис для ожидания ответа пользователя
     await new Promise<void>((resolve, reject) => {
@@ -994,7 +1006,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       addLog("🚀 Начинаем полную генерацию shorts...");
       addLog(`💰 Общая стоимость: ${totalCost} кредитов (€${(totalCost / 100).toFixed(2)})`);
       addLog(`🎬 Фон: ${backgroundModel} (${backgroundCost} кредитов)`);
-      addLog(`🎵 Аудио: ${audioModel} (${audioCost} кредитов)`);
+      addLog(`🎵 Аудио: ${audioDisplayName} (${audioCost} кредитов)`);
       addLog("📝 Передаем текстовые элементы и настройки...");
       addLog("🔄 Отправка запроса на сервер...");
 
