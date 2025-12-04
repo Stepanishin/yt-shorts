@@ -548,6 +548,61 @@ export async function renderFinalVideo(
         console.log("Filter:", filterComplex);
       }
 
+      // Настраиваем переменные окружения для fluent-ffmpeg
+      const basePaths = [
+        "/layers/digitalocean_apt/apt",
+        "/app/.apt",
+      ];
+
+      const libraryPaths: string[] = [];
+
+      for (const basePath of basePaths) {
+        const paths = [
+          `${basePath}/usr/lib/x86_64-linux-gnu`,
+          `${basePath}/usr/lib`,
+          `${basePath}/lib/x86_64-linux-gnu`,
+          `${basePath}/lib`,
+          `${basePath}/usr/lib/x86_64-linux-gnu/pulseaudio`,
+          `${basePath}/usr/lib/pulseaudio`,
+          `${basePath}/lib/x86_64-linux-gnu/pulseaudio`,
+          `${basePath}/lib/pulseaudio`,
+          `${basePath}/usr/lib/x86_64-linux-gnu/blas`,
+          `${basePath}/usr/lib/x86_64-linux-gnu/lapack`,
+          `${basePath}/usr/lib/blas`,
+          `${basePath}/usr/lib/lapack`,
+        ];
+
+        for (const p of paths) {
+          try {
+            if (fsSync.existsSync(p)) {
+              libraryPaths.push(p);
+            }
+          } catch {
+            // Игнорируем ошибки
+          }
+        }
+      }
+
+      const uniquePaths = [...new Set(libraryPaths)].sort();
+      const currentLdLibraryPath = process.env.LD_LIBRARY_PATH || "";
+      const systemPaths = [
+        "/usr/lib/x86_64-linux-gnu",
+        "/usr/lib",
+        "/lib/x86_64-linux-gnu",
+        "/lib",
+      ];
+
+      const newLdLibraryPath = [...uniquePaths, ...systemPaths, currentLdLibraryPath]
+        .filter(Boolean)
+        .filter((p, i, arr) => arr.indexOf(p) === i)
+        .join(":");
+
+      console.log("🔍 LD_LIBRARY_PATH for FFmpeg:", newLdLibraryPath);
+
+      // Сохраняем оригинальное значение и устанавливаем новое
+      const originalLdLibraryPath = process.env.LD_LIBRARY_PATH;
+      process.env.LD_LIBRARY_PATH = newLdLibraryPath;
+
       // Создаем базовую команду FFmpeg
       let command = ffmpeg(tempVideoPath);
       
@@ -676,10 +731,17 @@ export async function renderFinalVideo(
           }
         })
         .on("end", async () => {
+          // Восстанавливаем оригинальное значение LD_LIBRARY_PATH
+          if (originalLdLibraryPath !== undefined) {
+            process.env.LD_LIBRARY_PATH = originalLdLibraryPath;
+          } else {
+            delete process.env.LD_LIBRARY_PATH;
+          }
+
           try {
             // Получаем длительность видео
             const duration = await getVideoDuration(outputVideoPath);
-            
+
             // Удаляем временные файлы
             await fs.unlink(tempVideoPath).catch(() => {});
             await fs.unlink(textFilePath).catch(() => {});
@@ -699,6 +761,13 @@ export async function renderFinalVideo(
           }
         })
         .on("error", (error: Error) => {
+          // Восстанавливаем оригинальное значение LD_LIBRARY_PATH
+          if (originalLdLibraryPath !== undefined) {
+            process.env.LD_LIBRARY_PATH = originalLdLibraryPath;
+          } else {
+            delete process.env.LD_LIBRARY_PATH;
+          }
+
           console.error("FFmpeg error:", error);
           console.error("Error message:", error.message);
           // Удаляем временные файлы в случае ошибки
@@ -777,7 +846,7 @@ async function createEmojiImage(emoji: string, outputPath: string): Promise<void
  */
 async function getVideoDuration(videoPath: string): Promise<number> {
   try {
-    const { stdout } = await execAsync(
+    const { stdout } = await execWithFFmpegEnv(
       `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`
     );
     return parseFloat(stdout.trim()) || 0;
