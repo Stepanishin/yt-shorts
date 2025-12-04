@@ -2,9 +2,90 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
+import * as fsSync from "fs";
 import ffmpeg from "fluent-ffmpeg";
 
 const execAsync = promisify(exec);
+
+/**
+ * Выполняет команду с правильными переменными окружения для FFmpeg
+ * Устанавливает LD_LIBRARY_PATH для загрузки библиотек FFmpeg
+ */
+async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; stderr: string }> {
+  // Пути к библиотекам FFmpeg в DigitalOcean APT buildpack
+  // Добавляем все возможные пути, где могут быть библиотеки
+  const basePaths = [
+    "/layers/digitalocean_apt/apt",
+    "/app/.apt",
+  ];
+
+  const libraryPaths: string[] = [];
+
+  for (const basePath of basePaths) {
+    // Стандартные пути к библиотекам
+    const paths = [
+      `${basePath}/usr/lib/x86_64-linux-gnu`,
+      `${basePath}/usr/lib`,
+      `${basePath}/lib/x86_64-linux-gnu`,
+      `${basePath}/lib`,
+      // PulseAudio может быть в поддиректории
+      `${basePath}/usr/lib/x86_64-linux-gnu/pulseaudio`,
+      `${basePath}/usr/lib/pulseaudio`,
+      `${basePath}/lib/x86_64-linux-gnu/pulseaudio`,
+      `${basePath}/lib/pulseaudio`,
+      // BLAS и LAPACK могут быть в поддиректориях
+      `${basePath}/usr/lib/x86_64-linux-gnu/blas`,
+      `${basePath}/usr/lib/x86_64-linux-gnu/lapack`,
+      `${basePath}/usr/lib/blas`,
+      `${basePath}/usr/lib/lapack`,
+    ];
+
+    for (const p of paths) {
+      try {
+        if (fsSync.existsSync(p)) {
+          libraryPaths.push(p);
+        }
+      } catch {
+        // Игнорируем ошибки
+      }
+    }
+  }
+
+  // Убираем дубликаты и сортируем для консистентности
+  const uniquePaths = [...new Set(libraryPaths)].sort();
+
+  const currentLdLibraryPath = process.env.LD_LIBRARY_PATH || "";
+  // Добавляем системные пути в конец
+  const systemPaths = [
+    "/usr/lib/x86_64-linux-gnu",
+    "/usr/lib",
+    "/lib/x86_64-linux-gnu",
+    "/lib",
+  ];
+
+  const newLdLibraryPath = [...uniquePaths, ...systemPaths, currentLdLibraryPath]
+    .filter(Boolean)
+    .filter((p, i, arr) => arr.indexOf(p) === i) // Убираем дубликаты
+    .join(":");
+
+  console.log("🔍 LD_LIBRARY_PATH configured:", newLdLibraryPath);
+
+  const env = {
+    ...process.env,
+    LD_LIBRARY_PATH: newLdLibraryPath,
+    PATH: process.env.PATH || "",
+  };
+
+  return new Promise((resolve, reject) => {
+    exec(command, { env }, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve({ stdout, stderr });
+      }
+    });
+  });
+}
 
 /**
  * Рендерит финальное видео с текстом и эмодзи поверх видео-фона
@@ -93,13 +174,21 @@ function createEmojiAnimationExpression(
 }
 
 /**
- * Проверяет наличие FFmpeg в системе
+ * Проверяет наличие FFmpeg в системе (неблокирующая проверка)
+ * Просто логирует информацию, но не прерывает выполнение
  */
 async function checkFFmpegAvailable(): Promise<boolean> {
+  // Просто пытаемся выполнить ffmpeg -version для логирования
+  // Если не получится, ошибка будет видна в логах FFmpeg при выполнении команды
   try {
-    await execAsync("ffmpeg -version");
+    const { stdout } = await execWithFFmpegEnv("ffmpeg -version 2>&1");
+    const versionLine = stdout.split('\n')[0];
+    console.log("✅ FFmpeg found:", versionLine);
+
     return true;
-  } catch {
+  } catch (error) {
+    console.warn("⚠️ FFmpeg check failed:", error instanceof Error ? error.message : String(error));
+    // Возвращаем false, но не прерываем выполнение
     return false;
   }
 }
