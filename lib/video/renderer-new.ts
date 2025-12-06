@@ -172,6 +172,8 @@ export interface RenderVideoNewOptions {
   textElements: TextElement[];
   emojiElements: EmojiElement[];
   audioUrl?: string; // URL аудио для наложения
+  audioTrimStart?: number; // Начало обрезки аудио в секундах
+  audioTrimEnd?: number; // Конец обрезки аудио в секундах
   duration?: number; // Длительность видео в секундах (по умолчанию 10)
   jobId: string;
 }
@@ -435,6 +437,8 @@ export async function renderVideoNew(
     textElements,
     emojiElements,
     audioUrl,
+    audioTrimStart,
+    audioTrimEnd,
     duration = 10,
     jobId
   } = options;
@@ -864,11 +868,23 @@ export async function renderVideoNew(
         const audioInputIndex = 1 + emojiElements.length; // После фона и всех эмодзи
         let audioFilter: string;
 
-        if (targetDuration > audioDuration) {
-          const loops = Math.ceil(targetDuration / audioDuration);
-          audioFilter = `[${audioInputIndex}:a]aloop=${loops}:size=2e+09,asetpts=N/SR/TB[audio]`;
+        // Определяем начало и конец обрезки аудио
+        const trimStart = audioTrimStart || 0;
+        const trimEnd = audioTrimEnd || audioDuration;
+        const trimmedDuration = trimEnd - trimStart;
+
+        console.log(`Audio trim: ${trimStart}s - ${trimEnd}s (duration: ${trimmedDuration}s)`);
+
+        // Сначала обрезаем аудио согласно выбранному региону
+        let trimFilter = `[${audioInputIndex}:a]atrim=${trimStart}:${trimEnd},asetpts=PTS-STARTPTS`;
+
+        // Если обрезанное аудио короче целевой длительности - зацикливаем
+        if (trimmedDuration < targetDuration) {
+          const loops = Math.ceil(targetDuration / trimmedDuration);
+          audioFilter = `${trimFilter},aloop=${loops}:size=2e+09,atrim=0:${targetDuration},asetpts=PTS-STARTPTS[audio]`;
         } else {
-          audioFilter = `[${audioInputIndex}:a]atrim=0:${targetDuration},asetpts=PTS-STARTPTS[audio]`;
+          // Если обрезанное аудио длиннее или равно - просто обрезаем до нужной длины
+          audioFilter = `${trimFilter},atrim=0:${targetDuration},asetpts=PTS-STARTPTS[audio]`;
         }
 
         // Объединяем видео и аудио фильтры

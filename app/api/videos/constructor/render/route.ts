@@ -17,6 +17,8 @@ export async function POST(request: NextRequest) {
       textElements,
       emojiElements,
       audioUrl,
+      audioTrimStart,
+      audioTrimEnd,
       duration = 5,
     } = body;
 
@@ -61,6 +63,8 @@ export async function POST(request: NextRequest) {
       textElements,
       emojiElements,
       audioUrl,
+      audioTrimStart,
+      audioTrimEnd,
       duration,
       jobId,
     };

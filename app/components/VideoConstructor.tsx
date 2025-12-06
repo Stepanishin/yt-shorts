@@ -9,6 +9,7 @@ import SubscribeElement from "./VideoConstructor/SubscribeElement";
 import AddElementsPanel from "./VideoConstructor/AddElementsPanel";
 import BackgroundSettings from "./VideoConstructor/BackgroundSettings";
 import ProgressIndicator from "./VideoConstructor/ProgressIndicator";
+import AudioPlayer from "./AudioPlayer";
 import { useModal } from "@/app/contexts/ModalContext";
 
 interface TextElement {
@@ -74,6 +75,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [backgroundType, setBackgroundType] = useState<"video" | "image">("video");
   const [imageEffect, setImageEffect] = useState<"none" | "zoom-in" | "zoom-in-out" | "pan-right-left">("none");
   const [audioUrl, setAudioUrl] = useState<string>("");
+  const [audioTrimStart, setAudioTrimStart] = useState<number>(0);
+  const [audioTrimEnd, setAudioTrimEnd] = useState<number | null>(null);
   const [videoDuration, setVideoDuration] = useState<number>(5);
   const [isRendering, setIsRendering] = useState(false);
   const [renderedVideoUrl, setRenderedVideoUrl] = useState<string>("");
@@ -137,6 +140,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         setBackgroundType(state.backgroundType || "video");
         setImageEffect(state.imageEffect || "none");
         setAudioUrl(state.audioUrl || "");
+        setAudioTrimStart(state.audioTrimStart || 0);
+        setAudioTrimEnd(state.audioTrimEnd || null);
         // Сохраняем videoDuration из localStorage, если оно есть и является числом, иначе используем 5
         const loadedVideoDuration = typeof state.videoDuration === 'number' && state.videoDuration > 0 ? state.videoDuration : 5;
         setVideoDuration(loadedVideoDuration);
@@ -172,6 +177,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       backgroundType,
       imageEffect,
       audioUrl,
+      audioTrimStart,
+      audioTrimEnd,
       videoDuration,
       videoTitle,
       videoDescription,
@@ -190,6 +197,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     backgroundType,
     imageEffect,
     audioUrl,
+    audioTrimStart,
+    audioTrimEnd,
     videoDuration,
     videoTitle,
     videoDescription,
@@ -669,6 +678,10 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       addLog(`😀 Эмодзи элементов: ${emojiElements.length}`);
       if (audioUrl) {
         addLog("🎵 Аудио: добавлено");
+        if (audioTrimEnd !== null && audioTrimEnd !== undefined) {
+          const trimDuration = audioTrimEnd - audioTrimStart;
+          addLog(`✂️ Обрезка аудио: ${audioTrimStart.toFixed(1)}s - ${audioTrimEnd.toFixed(1)}s (${trimDuration.toFixed(1)}s)`);
+        }
       }
       addLog("🔄 Отправка на рендеринг...");
 
@@ -735,6 +748,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             animation: el.animation,
           })),
           audioUrl: audioUrl || undefined,
+          audioTrimStart: audioUrl ? audioTrimStart : undefined,
+          audioTrimEnd: audioUrl ? audioTrimEnd : undefined,
           duration: videoDuration,
         }),
       });
@@ -1281,6 +1296,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             setBackgroundUrl("");
             setImageEffect("none");
             setAudioUrl("");
+            setAudioTrimStart(0);
+            setAudioTrimEnd(null);
             setRenderedVideoUrl("");
             setVideoTitle("");
             setVideoDescription("");
@@ -1398,9 +1415,28 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               ))}
             </div>
           </div>
+        </div>
 
+        {/* Audio Player с превью и обрезкой */}
+        {audioUrl && (
+          <div className="mt-6">
+            <AudioPlayer
+              audioUrl={audioUrl}
+              onTrimChange={(start, end) => {
+                setAudioTrimStart(start);
+                setAudioTrimEnd(end);
+              }}
+              initialStartTime={audioTrimStart}
+              initialEndTime={audioTrimEnd || undefined}
+              maxDuration={videoDuration}
+            />
+          </div>
+        )}
+
+        {/* Блок с кнопками */}
+        <div className="bg-white rounded-lg shadow p-4 mt-6">
           {/* Кнопка рендеринга под preview */}
-          <div className="mt-4 space-y-2">
+          <div className="space-y-2">
             {!backgroundUrl && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
                 <span className="font-medium">⚠️ Требуется фон:</span> Сначала добавьте или сгенерируйте фон для видео
