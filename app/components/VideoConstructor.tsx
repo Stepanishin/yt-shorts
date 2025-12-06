@@ -10,6 +10,7 @@ import AddElementsPanel from "./VideoConstructor/AddElementsPanel";
 import BackgroundSettings from "./VideoConstructor/BackgroundSettings";
 import ProgressIndicator from "./VideoConstructor/ProgressIndicator";
 import AudioPlayer from "./AudioPlayer";
+import VideoPlayer from "./VideoPlayer";
 import { useModal } from "@/app/contexts/ModalContext";
 
 interface TextElement {
@@ -77,6 +78,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [audioTrimStart, setAudioTrimStart] = useState<number>(0);
   const [audioTrimEnd, setAudioTrimEnd] = useState<number | null>(null);
+  const [videoTrimStart, setVideoTrimStart] = useState<number>(0);
+  const [videoTrimEnd, setVideoTrimEnd] = useState<number | null>(null);
   const [videoDuration, setVideoDuration] = useState<number>(5);
   const [isRendering, setIsRendering] = useState(false);
   const [renderedVideoUrl, setRenderedVideoUrl] = useState<string>("");
@@ -142,6 +145,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         setAudioUrl(state.audioUrl || "");
         setAudioTrimStart(state.audioTrimStart || 0);
         setAudioTrimEnd(state.audioTrimEnd || null);
+        setVideoTrimStart(state.videoTrimStart || 0);
+        setVideoTrimEnd(state.videoTrimEnd || null);
         // Сохраняем videoDuration из localStorage, если оно есть и является числом, иначе используем 5
         const loadedVideoDuration = typeof state.videoDuration === 'number' && state.videoDuration > 0 ? state.videoDuration : 5;
         setVideoDuration(loadedVideoDuration);
@@ -179,6 +184,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       audioUrl,
       audioTrimStart,
       audioTrimEnd,
+      videoTrimStart,
+      videoTrimEnd,
       videoDuration,
       videoTitle,
       videoDescription,
@@ -199,6 +206,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     audioUrl,
     audioTrimStart,
     audioTrimEnd,
+    videoTrimStart,
+    videoTrimEnd,
     videoDuration,
     videoTitle,
     videoDescription,
@@ -673,6 +682,10 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       addLog("🎬 Начинаем создание видео...");
       addLog(`⏱️ Длительность: ${videoDuration} секунд`);
       addLog(`📹 Фон: ${backgroundType === "video" ? "видео" : "изображение"}`);
+      if (backgroundType === "video" && videoTrimEnd !== null && videoTrimEnd !== undefined) {
+        const trimDuration = videoTrimEnd - videoTrimStart;
+        addLog(`✂️ Обрезка видео: ${videoTrimStart.toFixed(1)}s - ${videoTrimEnd.toFixed(1)}s (${trimDuration.toFixed(1)}s)`);
+      }
       addLog(`📝 Текстовых элементов: ${textElements.length}`);
       addLog(`🔔 Subscribe элементов: ${subscribeElements.length}`);
       addLog(`😀 Эмодзи элементов: ${emojiElements.length}`);
@@ -739,6 +752,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           backgroundVideoUrl: backgroundType === "video" ? backgroundUrl : undefined,
           backgroundImageUrl: backgroundType === "image" ? backgroundUrl : undefined,
           imageEffect: backgroundType === "image" ? imageEffect : undefined,
+          videoTrimStart: backgroundType === "video" && backgroundUrl ? videoTrimStart : undefined,
+          videoTrimEnd: backgroundType === "video" && backgroundUrl ? videoTrimEnd : undefined,
           textElements: allTextElements,
           emojiElements: emojiElements.map((el) => ({
             emoji: el.emoji,
@@ -1298,6 +1313,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             setAudioUrl("");
             setAudioTrimStart(0);
             setAudioTrimEnd(null);
+            setVideoTrimStart(0);
+            setVideoTrimEnd(null);
             setRenderedVideoUrl("");
             setVideoTitle("");
             setVideoDescription("");
@@ -1416,6 +1433,22 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             </div>
           </div>
         </div>
+
+        {/* Video Player с превью и обрезкой - только для видео фонов */}
+        {backgroundUrl && backgroundType === "video" && (
+          <div className="mt-6">
+            <VideoPlayer
+              videoUrl={backgroundUrl}
+              onTrimChange={(start, end) => {
+                setVideoTrimStart(start);
+                setVideoTrimEnd(end);
+              }}
+              initialStartTime={videoTrimStart}
+              initialEndTime={videoTrimEnd || undefined}
+              maxDuration={videoDuration}
+            />
+          </div>
+        )}
 
         {/* Audio Player с превью и обрезкой */}
         {audioUrl && (

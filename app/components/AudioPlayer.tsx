@@ -55,8 +55,20 @@ export default function AudioPlayer({
 
     wavesurferRef.current = wavesurfer;
 
+    // Проверяем, нужно ли проксировать URL (если это внешний URL)
+    const isExternalUrl = audioUrl.startsWith('http://') || audioUrl.startsWith('https://');
+
+    let urlToLoad = audioUrl;
+
+    // Если это внешний URL (не локальный), проксируем через наш API
+    if (isExternalUrl && !audioUrl.includes(window.location.hostname)) {
+      // Передаем URL как есть - сервер попробует оба варианта (с кодированием и без)
+      urlToLoad = `/api/proxy/audio?url=${encodeURIComponent(audioUrl)}`;
+      console.log('Proxying external audio through:', urlToLoad);
+    }
+
     // Загружаем аудио
-    wavesurfer.load(audioUrl);
+    wavesurfer.load(urlToLoad);
 
     // События
     wavesurfer.on('ready', () => {

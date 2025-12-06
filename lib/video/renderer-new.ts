@@ -169,6 +169,8 @@ export interface RenderVideoNewOptions {
   backgroundVideoUrl?: string; // URL или путь к видео-фону
   backgroundImageUrl?: string; // URL или путь к изображению-фону (альтернатива видео)
   imageEffect?: "none" | "zoom-in" | "zoom-in-out" | "pan-right-left"; // Ken Burns эффект для изображения
+  videoTrimStart?: number; // Начало обрезки видео в секундах
+  videoTrimEnd?: number; // Конец обрезки видео в секундах
   textElements: TextElement[];
   emojiElements: EmojiElement[];
   audioUrl?: string; // URL аудио для наложения
@@ -434,6 +436,8 @@ export async function renderVideoNew(
     backgroundVideoUrl,
     backgroundImageUrl,
     imageEffect,
+    videoTrimStart,
+    videoTrimEnd,
     textElements,
     emojiElements,
     audioUrl,
@@ -816,19 +820,45 @@ export async function renderVideoNew(
 
       // Создаем FFmpeg команду
       let command = ffmpeg(tempBackgroundPath);
-      
+
       // Настраиваем путь к FFmpeg и переменные окружения
       if (ffmpegPath !== "ffmpeg") {
         command.setFfmpegPath(ffmpegPath);
       }
-      
+
       // Настраиваем переменные окружения перед выполнением команды
       process.env.LD_LIBRARY_PATH = newLdLibraryPath;
 
       // Для видео используем -stream_loop для зацикливания вместо фильтра loop
       // Используем -1 для бесконечного зацикливания, потом обрежем через trim
       if (isVideoBackground) {
-        command = command.inputOptions(["-stream_loop", "-1"]);
+        const inputOpts: string[] = [];
+
+        // Если указана обрезка видео, применяем -ss (seek start)
+        if (videoTrimStart !== undefined && videoTrimStart > 0) {
+          inputOpts.push("-ss", videoTrimStart.toString());
+          console.log(`Video trim start: ${videoTrimStart}s`);
+        }
+
+        // Если указан конец обрезки, вычисляем длительность
+        if (videoTrimEnd !== undefined && videoTrimEnd !== null) {
+          const trimDuration = videoTrimEnd - (videoTrimStart || 0);
+          inputOpts.push("-t", trimDuration.toString());
+          console.log(`Video trim duration: ${trimDuration}s (${videoTrimStart || 0}s - ${videoTrimEnd}s)`);
+        }
+
+        // Добавляем зацикливание только если не указана обрезка, либо если обрезанное видео короче целевой длительности
+        const trimmedDuration = videoTrimEnd !== undefined && videoTrimEnd !== null
+          ? videoTrimEnd - (videoTrimStart || 0)
+          : backgroundDuration;
+
+        if (trimmedDuration < targetDuration) {
+          inputOpts.push("-stream_loop", "-1");
+        }
+
+        if (inputOpts.length > 0) {
+          command = command.inputOptions(inputOpts);
+        }
       } else {
         // Для изображения используем -loop 1 для создания видео из статического изображения
         command = command.inputOptions(["-loop", "1"]);
