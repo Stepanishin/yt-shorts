@@ -883,11 +883,16 @@ export async function renderVideoNew(
       }
 
       // Настраиваем опции вывода
+
       const outputOpts = [
         "-c:v", "libx264",
-        "-preset", "medium",
+        // В продакшене используем ultrafast для уменьшения потребления памяти
+        // В разработке medium для лучшего качества
+        "-preset","ultrafast",
         "-crf", "23",
         "-pix_fmt", "yuv420p",
+        // Ограничиваем количество потоков в продакшене для экономии памяти
+        ...(["-threads", "2"]),
         "-c:a", "aac",
         "-b:a", "128k",
       ];
@@ -938,6 +943,14 @@ export async function renderVideoNew(
       // fluent-ffmpeg использует spawn, который наследует process.env
       const originalLdLibraryPath = process.env.LD_LIBRARY_PATH;
       process.env.LD_LIBRARY_PATH = newLdLibraryPath;
+
+      // Логируем информацию о памяти перед запуском
+      const memUsage = process.memoryUsage();
+      console.log("🧠 Memory before FFmpeg:", {
+        heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+        rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
+      });
 
       command
         .outputOptions(outputOpts)
@@ -1008,6 +1021,15 @@ export async function renderVideoNew(
         })
         .on("error", (error: Error) => {
           console.error("FFmpeg error:", error);
+          console.error("FFmpeg error stack:", error.stack);
+
+          // Восстанавливаем оригинальный LD_LIBRARY_PATH
+          if (originalLdLibraryPath !== undefined) {
+            process.env.LD_LIBRARY_PATH = originalLdLibraryPath;
+          } else {
+            delete process.env.LD_LIBRARY_PATH;
+          }
+
           // Очистка временных файлов
           fs.unlink(tempBackgroundPath).catch(() => {});
           if (tempAudioPath) {
