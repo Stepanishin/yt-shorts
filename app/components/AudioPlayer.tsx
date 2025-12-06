@@ -81,12 +81,20 @@ export default function AudioPlayer({
       setTrimEnd(Math.min(endTime, audioDuration));
 
       // Создаем регион для обрезки
-      regions.addRegion({
+      const region = regions.addRegion({
         start: initialStartTime,
         end: Math.min(endTime, audioDuration),
         color: 'rgba(34, 197, 94, 0.3)',
         drag: true,
         resize: true,
+      });
+
+      console.log('Audio region created:', {
+        id: region.id,
+        start: region.start,
+        end: region.end,
+        drag: region.drag,
+        resize: region.resize,
       });
     });
 
@@ -96,6 +104,17 @@ export default function AudioPlayer({
 
     // Обработка изменения региона
     regions.on('region-updated', (region) => {
+      console.log('Audio region updated:', { start: region.start, end: region.end });
+      setTrimStart(region.start);
+      setTrimEnd(region.end);
+      if (onTrimChange) {
+        onTrimChange(region.start, region.end);
+      }
+    });
+
+    // Добавляем обработчик для события region-update-end (когда пользователь отпускает регион)
+    regions.on('region-update-end', (region) => {
+      console.log('Audio region drag ended:', { start: region.start, end: region.end });
       setTrimStart(region.start);
       setTrimEnd(region.end);
       if (onTrimChange) {
