@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js';
 
@@ -22,6 +22,7 @@ export default function AudioPlayer({
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const regionsPluginRef = useRef<RegionsPlugin | null>(null);
+  const onTrimChangeRef = useRef(onTrimChange);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -30,6 +31,11 @@ export default function AudioPlayer({
   const [trimStart, setTrimStart] = useState(initialStartTime);
   const [trimEnd, setTrimEnd] = useState<number | null>(initialEndTime || null);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Обновляем ref при изменении onTrimChange
+  useEffect(() => {
+    onTrimChangeRef.current = onTrimChange;
+  }, [onTrimChange]);
 
   useEffect(() => {
     if (!waveformRef.current || !audioUrl) return;
@@ -107,19 +113,14 @@ export default function AudioPlayer({
       console.log('Audio region updated:', { start: region.start, end: region.end });
       setTrimStart(region.start);
       setTrimEnd(region.end);
-      if (onTrimChange) {
-        onTrimChange(region.start, region.end);
+      if (onTrimChangeRef.current) {
+        onTrimChangeRef.current(region.start, region.end);
       }
     });
 
-    // Добавляем обработчик для события region-update-end (когда пользователь отпускает регион)
-    regions.on('region-update-end', (region) => {
-      console.log('Audio region drag ended:', { start: region.start, end: region.end });
-      setTrimStart(region.start);
-      setTrimEnd(region.end);
-      if (onTrimChange) {
-        onTrimChange(region.start, region.end);
-      }
+    // Обработчик для начала обновления региона
+    regions.on('region-update', (region) => {
+      console.log('Audio region being dragged:', { start: region.start, end: region.end });
     });
 
     // Cleanup
@@ -130,19 +131,18 @@ export default function AudioPlayer({
 
   // Обновляем регион при изменении maxDuration
   useEffect(() => {
-    if (!wavesurferRef.current || !regionsPluginRef.current || !maxDuration) return;
+    if (!wavesurferRef.current || !regionsPluginRef.current || !maxDuration || duration === 0) return;
 
     const regions = regionsPluginRef.current.getRegions();
     if (regions.length > 0) {
       const region = regions[0];
       const newEnd = Math.min(trimStart + maxDuration, duration);
+
+      // Только обновляем регион WaveSurfer, не вызываем setState
+      // setState будет вызван автоматически через событие 'region-updated'
       region.setOptions({ end: newEnd });
-      setTrimEnd(newEnd);
-      if (onTrimChange) {
-        onTrimChange(trimStart, newEnd);
-      }
     }
-  }, [maxDuration]);
+  }, [maxDuration, duration, trimStart]);
 
   const handlePlayPause = () => {
     if (wavesurferRef.current) {
