@@ -356,6 +356,28 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     loadJoke();
   }, [jokeId, showModal]);
 
+  // Сбрасываем videoTrim при обновлении фонового видео
+  useEffect(() => {
+    if (!hasLoadedFromStorage.current) return;
+
+    if (backgroundUrl && backgroundType === "video") {
+      console.log("Background video changed, resetting video trim to 0 and duration:", videoDuration);
+      setVideoTrimStart(0);
+      setVideoTrimEnd(videoDuration);
+    }
+  }, [backgroundUrl, backgroundType, videoDuration]);
+
+  // Сбрасываем audioTrim при обновлении аудио
+  useEffect(() => {
+    if (!hasLoadedFromStorage.current) return;
+
+    if (audioUrl) {
+      console.log("Audio changed, resetting audio trim to 0 and duration:", videoDuration);
+      setAudioTrimStart(0);
+      setAudioTrimEnd(videoDuration);
+    }
+  }, [audioUrl, videoDuration]);
+
   // Добавить новый текстовый элемент
   const addTextElement = () => {
     const newElement: TextElement = {
