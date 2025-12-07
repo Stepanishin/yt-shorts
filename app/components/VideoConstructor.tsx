@@ -9,8 +9,7 @@ import SubscribeElement from "./VideoConstructor/SubscribeElement";
 import AddElementsPanel from "./VideoConstructor/AddElementsPanel";
 import BackgroundSettings from "./VideoConstructor/BackgroundSettings";
 import ProgressIndicator from "./VideoConstructor/ProgressIndicator";
-import AudioPlayer from "./AudioPlayer";
-import VideoPlayer from "./VideoPlayer";
+import MediaPlayer from "./MediaPlayer";
 import { useModal } from "@/app/contexts/ModalContext";
 
 interface TextElement {
@@ -109,6 +108,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragStartPos = useRef<{ x: number; y: number } | null>(null);
   const hasLoadedFromStorage = useRef(false);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
 
   // Вспомогательная функция для добавления логов
   const addLog = (message: string) => {
@@ -1361,11 +1361,13 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   <>
                     {backgroundType === "video" ? (
                       <video
+                        ref={previewVideoRef}
                         src={backgroundUrl}
                         className="absolute inset-0 w-full h-full object-cover"
                         autoPlay
                         loop
                         muted
+                        preload="metadata"
                       />
                     ) : (
                       <img
@@ -1432,39 +1434,43 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
               ))}
             </div>
           </div>
+
+          {/* Интегрированный Media Player под предпросмотром - компактный режим */}
+          <div className="mt-4" style={{ width: '100%', margin: '0 auto' }}>
+            {backgroundUrl && backgroundType === "video" && (
+              <MediaPlayer
+                type="video"
+                mediaUrl={backgroundUrl}
+                onTrimChange={(start, end) => {
+                  setVideoTrimStart(start);
+                  setVideoTrimEnd(end);
+                }}
+                initialStartTime={videoTrimStart}
+                initialEndTime={videoTrimEnd || undefined}
+                maxDuration={videoDuration}
+                compact={true}
+                externalVideoRef={previewVideoRef}
+              />
+            )}
+
+            {audioUrl && (
+              <div className={backgroundUrl && backgroundType === "video" ? "mt-3" : ""}>
+                <MediaPlayer
+                  type="audio"
+                  mediaUrl={audioUrl}
+                  onTrimChange={(start, end) => {
+                    setAudioTrimStart(start);
+                    setAudioTrimEnd(end);
+                  }}
+                  initialStartTime={audioTrimStart}
+                  initialEndTime={audioTrimEnd || undefined}
+                  maxDuration={videoDuration}
+                  compact={true}
+                />
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* Video Player с превью и обрезкой - только для видео фонов */}
-        {backgroundUrl && backgroundType === "video" && (
-          <div className="mt-6">
-            <VideoPlayer
-              videoUrl={backgroundUrl}
-              onTrimChange={(start, end) => {
-                setVideoTrimStart(start);
-                setVideoTrimEnd(end);
-              }}
-              initialStartTime={videoTrimStart}
-              initialEndTime={videoTrimEnd || undefined}
-              maxDuration={videoDuration}
-            />
-          </div>
-        )}
-
-        {/* Audio Player с превью и обрезкой */}
-        {audioUrl && (
-          <div className="mt-6">
-            <AudioPlayer
-              audioUrl={audioUrl}
-              onTrimChange={(start, end) => {
-                setAudioTrimStart(start);
-                setAudioTrimEnd(end);
-              }}
-              initialStartTime={audioTrimStart}
-              initialEndTime={audioTrimEnd || undefined}
-              maxDuration={videoDuration}
-            />
-          </div>
-        )}
 
         {/* Блок с кнопками */}
         <div className="bg-white rounded-lg shadow p-4 mt-6">
