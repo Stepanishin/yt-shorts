@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * GET /api/proxy/audio?url=<encoded_audio_url>
  * Проксирует аудио файлы для обхода CORS ограничений
+ * Поддерживает Range requests для перемотки (seek)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -18,12 +19,22 @@ export async function GET(request: NextRequest) {
 
     console.log("Proxying audio from (original):", audioUrl);
 
+    // Получаем Range заголовок из запроса браузера
+    const rangeHeader = request.headers.get("range");
+    console.log("Range header from browser:", rangeHeader);
+
+    // Формируем заголовки для внешнего запроса
+    const fetchHeaders: HeadersInit = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    };
+
+    // Передаем Range заголовок, если он есть
+    if (rangeHeader) {
+      fetchHeaders["Range"] = rangeHeader;
+    }
+
     // Сначала пробуем загрузить оригинальный URL как есть
-    let response = await fetch(audioUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-    });
+    let response = await fetch(audioUrl, { headers: fetchHeaders });
 
     // Если не получилось, пробуем декодировать URL
     if (!response.ok && response.status === 404) {
@@ -31,11 +42,7 @@ export async function GET(request: NextRequest) {
       const decodedUrl = decodeURIComponent(audioUrl);
       console.log("Trying decoded URL:", decodedUrl);
 
-      response = await fetch(decodedUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        },
-      });
+      response = await fetch(decodedUrl, { headers: fetchHeaders });
     }
 
     if (!response.ok) {
@@ -51,17 +58,42 @@ export async function GET(request: NextRequest) {
 
     // Определяем content-type
     const contentType = response.headers.get("content-type") || "audio/mpeg";
+    const contentLength = response.headers.get("content-length");
+    const contentRange = response.headers.get("content-range");
 
-    // Возвращаем аудио с правильными заголовками
+    console.log("Response headers:", {
+      contentType,
+      contentLength,
+      contentRange,
+      status: response.status,
+    });
+
+    // Формируем заголовки ответа
+    const responseHeaders: HeadersInit = {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Range",
+      "Accept-Ranges": "bytes", // КРИТИЧНО: указываем, что поддерживаем Range requests
+    };
+
+    // Добавляем Content-Length если есть
+    if (contentLength) {
+      responseHeaders["Content-Length"] = contentLength;
+    }
+
+    // Добавляем Content-Range если есть (для Range requests)
+    if (contentRange) {
+      responseHeaders["Content-Range"] = contentRange;
+    }
+
+    // Возвращаем правильный статус код
+    const statusCode = response.status === 206 ? 206 : 200;
+
     return new NextResponse(audioBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable", // Кэшируем на год
-        "Access-Control-Allow-Origin": "*", // Разрешаем CORS
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
+      status: statusCode,
+      headers: responseHeaders,
     });
   } catch (error) {
     console.error("Error proxying audio:", error);
@@ -81,7 +113,8 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, Range",
+      "Accept-Ranges": "bytes",
     },
   });
 }
