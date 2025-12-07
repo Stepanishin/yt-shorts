@@ -31,7 +31,6 @@ export default function AudioPlayer({
   const [trimStart, setTrimStart] = useState(initialStartTime);
   const [trimEnd, setTrimEnd] = useState<number | null>(initialEndTime || null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const playIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Обновляем ref при изменении onTrimChange
   useEffect(() => {
@@ -148,10 +147,6 @@ export default function AudioPlayer({
 
     // Cleanup
     return () => {
-      if (playIntervalRef.current) {
-        clearInterval(playIntervalRef.current);
-        playIntervalRef.current = null;
-      }
       wavesurfer.destroy();
     };
   }, [audioUrl, initialStartTime, initialEndTime, maxDuration]);
@@ -190,12 +185,6 @@ export default function AudioPlayer({
       return;
     }
 
-    // Очищаем предыдущий интервал, если он есть
-    if (playIntervalRef.current) {
-      clearInterval(playIntervalRef.current);
-      playIntervalRef.current = null;
-    }
-
     // Получаем актуальные значения региона напрямую из RegionsPlugin
     const regions = regionsPluginRef.current.getRegions();
     console.log('[PlayRegion] Total regions found:', regions.length);
@@ -206,46 +195,18 @@ export default function AudioPlayer({
     }
 
     const region = regions[0];
-    const start = region.start;
-    const end = region.end;
-    const duration = wavesurferRef.current.getDuration();
-
     console.log('[PlayRegion] Region details:', {
-      start,
-      end,
-      duration,
-      regionObject: region
+      start: region.start,
+      end: region.end,
+      duration: wavesurferRef.current.getDuration(),
     });
 
-    // Устанавливаем время и начинаем воспроизведение
-    console.log('[PlayRegion] Setting time to:', start);
-    wavesurferRef.current.setTime(start);
+    // Используем встроенный метод region.play() вместо ручного управления
+    // Этот метод автоматически устанавливает позицию и останавливает в конце региона
+    console.log('[PlayRegion] Using region.play() method');
+    region.play();
 
-    // Проверяем, что время установилось правильно
-    const actualTime = wavesurferRef.current.getCurrentTime();
-    console.log('[PlayRegion] Time after setTime:', actualTime);
-
-    console.log('[PlayRegion] Starting playback');
-    wavesurferRef.current.play();
-
-    // Останавливаем воспроизведение в конце региона
-    playIntervalRef.current = setInterval(() => {
-      if (wavesurferRef.current) {
-        const currentTime = wavesurferRef.current.getCurrentTime();
-        // Логируем только каждую секунду, чтобы не засорять консоль
-        if (Math.floor(currentTime * 10) % 10 === 0) {
-          console.log('[PlayRegion] Playback progress:', currentTime, '/', end);
-        }
-        if (currentTime >= end) {
-          console.log('[PlayRegion] Reached end of region, pausing');
-          wavesurferRef.current.pause();
-          if (playIntervalRef.current) {
-            clearInterval(playIntervalRef.current);
-            playIntervalRef.current = null;
-          }
-        }
-      }
-    }, 100);
+    console.log('[PlayRegion] Time after region.play():', wavesurferRef.current.getCurrentTime());
   };
 
   const formatTime = (seconds: number): string => {
