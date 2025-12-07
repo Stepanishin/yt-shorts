@@ -72,11 +72,17 @@ export default function AudioPlayer({
 
     let urlToLoad = audioUrl;
 
+    console.log('[AudioPlayer] Original audioUrl:', audioUrl);
+    console.log('[AudioPlayer] Is external URL:', isExternalUrl);
+    console.log('[AudioPlayer] Window hostname:', window.location.hostname);
+
     // Если это внешний URL (не локальный), проксируем через наш API
     if (isExternalUrl && !audioUrl.includes(window.location.hostname)) {
       // Передаем URL как есть - сервер попробует оба варианта (с кодированием и без)
       urlToLoad = `/api/proxy/audio?url=${encodeURIComponent(audioUrl)}`;
-      console.log('Proxying external audio through:', urlToLoad);
+      console.log('[AudioPlayer] Proxying external audio through:', urlToLoad);
+    } else {
+      console.log('[AudioPlayer] Loading audio directly:', urlToLoad);
     }
 
     // Обработчик ошибок (добавляем перед загрузкой)
@@ -90,13 +96,16 @@ export default function AudioPlayer({
     });
 
     // Загружаем аудио
+    console.log('[AudioPlayer] Starting to load audio from:', urlToLoad);
     wavesurfer.load(urlToLoad);
 
     // События
     wavesurfer.on('ready', () => {
+      console.log('[AudioPlayer] WaveSurfer ready event fired');
       setIsLoading(false);
       const audioDuration = wavesurfer.getDuration();
       setDuration(audioDuration);
+      console.log('[AudioPlayer] Audio duration:', audioDuration);
 
       // Устанавливаем начальную область обрезки
       const endTime = initialEndTime || maxDuration || audioDuration;
@@ -111,7 +120,7 @@ export default function AudioPlayer({
         resize: true,
       });
 
-      console.log('Audio region created:', {
+      console.log('[AudioPlayer] Audio region created:', {
         id: region.id,
         start: region.start,
         end: region.end,
@@ -185,6 +194,16 @@ export default function AudioPlayer({
       return;
     }
 
+    const ws = wavesurferRef.current;
+
+    console.log('[PlayRegion] WaveSurfer state:', {
+      isPlaying: ws.isPlaying(),
+      duration: ws.getDuration(),
+      currentTime: ws.getCurrentTime(),
+      // Проверяем состояние медиа элемента
+      mediaElement: ws.getMediaElement(),
+    });
+
     // Получаем актуальные значения региона напрямую из RegionsPlugin
     const regions = regionsPluginRef.current.getRegions();
     console.log('[PlayRegion] Total regions found:', regions.length);
@@ -195,18 +214,60 @@ export default function AudioPlayer({
     }
 
     const region = regions[0];
+    const start = region.start;
+    const end = region.end;
+
     console.log('[PlayRegion] Region details:', {
-      start: region.start,
-      end: region.end,
-      duration: wavesurferRef.current.getDuration(),
+      start,
+      end,
+      duration: ws.getDuration(),
     });
 
-    // Используем встроенный метод region.play() вместо ручного управления
-    // Этот метод автоматически устанавливает позицию и останавливает в конце региона
-    console.log('[PlayRegion] Using region.play() method');
-    region.play();
+    // НОВЫЙ ПОДХОД: Используем прямое управление через wavesurfer
+    // Сначала останавливаем, если играет
+    if (ws.isPlaying()) {
+      ws.pause();
+    }
 
-    console.log('[PlayRegion] Time after region.play():', wavesurferRef.current.getCurrentTime());
+    // Проверяем медиа элемент
+    const media = ws.getMediaElement();
+    if (media) {
+      console.log('[PlayRegion] Media element state:', {
+        readyState: media.readyState,
+        paused: media.paused,
+        currentTime: media.currentTime,
+        duration: media.duration,
+        seeking: media.seeking,
+      });
+    }
+
+    console.log('[PlayRegion] Setting time to:', start, 'via wavesurfer.setTime()');
+    ws.setTime(start);
+
+    // Проверяем сразу
+    const timeAfterSet = ws.getCurrentTime();
+    console.log('[PlayRegion] Time immediately after setTime():', timeAfterSet);
+
+    // Если время не установилось, пробуем через media element напрямую
+    if (media && Math.abs(timeAfterSet - start) > 0.1) {
+      console.warn('[PlayRegion] setTime() failed, trying media.currentTime directly');
+      media.currentTime = start;
+      const timeAfterMediaSet = media.currentTime;
+      console.log('[PlayRegion] Time after media.currentTime =', timeAfterMediaSet);
+    }
+
+    // Запускаем воспроизведение
+    console.log('[PlayRegion] Starting playback');
+    ws.play();
+
+    // Проверяем финальное состояние
+    setTimeout(() => {
+      console.log('[PlayRegion] Final check after 100ms:', {
+        currentTime: ws.getCurrentTime(),
+        isPlaying: ws.isPlaying(),
+        mediaCurrentTime: media?.currentTime,
+      });
+    }, 100);
   };
 
   const formatTime = (seconds: number): string => {
