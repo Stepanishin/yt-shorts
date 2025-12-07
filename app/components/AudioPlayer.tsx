@@ -31,6 +31,7 @@ export default function AudioPlayer({
   const [trimStart, setTrimStart] = useState(initialStartTime);
   const [trimEnd, setTrimEnd] = useState<number | null>(initialEndTime || null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const playIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Обновляем ref при изменении onTrimChange
   useEffect(() => {
@@ -39,6 +40,12 @@ export default function AudioPlayer({
 
   useEffect(() => {
     if (!waveformRef.current || !audioUrl) return;
+
+    // Очищаем предыдущий экземпляр WaveSurfer, если он есть
+    if (wavesurferRef.current) {
+      wavesurferRef.current.destroy();
+      wavesurferRef.current = null;
+    }
 
     // Создаем RegionsPlugin
     const regions = RegionsPlugin.create();
@@ -72,6 +79,16 @@ export default function AudioPlayer({
       urlToLoad = `/api/proxy/audio?url=${encodeURIComponent(audioUrl)}`;
       console.log('Proxying external audio through:', urlToLoad);
     }
+
+    // Обработчик ошибок (добавляем перед загрузкой)
+    wavesurfer.on('error', (error) => {
+      // Игнорируем AbortError, так как это нормальное поведение при смене URL или размонтировании
+      if (error.name === 'AbortError') {
+        console.log('Audio loading was cancelled (this is normal)');
+        return;
+      }
+      console.error('WaveSurfer error:', error);
+    });
 
     // Загружаем аудио
     wavesurfer.load(urlToLoad);
@@ -108,6 +125,13 @@ export default function AudioPlayer({
     wavesurfer.on('pause', () => setIsPlaying(false));
     wavesurfer.on('timeupdate', (time) => setCurrentTime(time));
 
+    // Обработчик клика по waveform - переходим к кликнутой позиции
+    wavesurfer.on('click', (relativeX) => {
+      const clickTime = relativeX * wavesurfer.getDuration();
+      console.log('Waveform clicked at time:', clickTime);
+      wavesurfer.setTime(clickTime);
+    });
+
     // Обработка изменения региона
     regions.on('region-updated', (region) => {
       console.log('Audio region updated:', { start: region.start, end: region.end });
@@ -125,9 +149,13 @@ export default function AudioPlayer({
 
     // Cleanup
     return () => {
+      if (playIntervalRef.current) {
+        clearInterval(playIntervalRef.current);
+        playIntervalRef.current = null;
+      }
       wavesurfer.destroy();
     };
-  }, [audioUrl]);
+  }, [audioUrl, initialStartTime, initialEndTime, maxDuration]);
 
   // Обновляем регион при изменении maxDuration
   useEffect(() => {
@@ -158,21 +186,44 @@ export default function AudioPlayer({
   };
 
   const handlePlayRegion = () => {
-    if (wavesurferRef.current && trimEnd !== null) {
-      wavesurferRef.current.setTime(trimStart);
-      wavesurferRef.current.play();
+    if (!wavesurferRef.current || !regionsPluginRef.current) return;
 
-      // Останавливаем воспроизведение в конце региона
-      const checkTime = setInterval(() => {
-        if (wavesurferRef.current) {
-          const currentTime = wavesurferRef.current.getCurrentTime();
-          if (currentTime >= trimEnd) {
-            wavesurferRef.current.pause();
-            clearInterval(checkTime);
+    // Очищаем предыдущий интервал, если он есть
+    if (playIntervalRef.current) {
+      clearInterval(playIntervalRef.current);
+      playIntervalRef.current = null;
+    }
+
+    // Получаем актуальные значения региона напрямую из RegionsPlugin
+    const regions = regionsPluginRef.current.getRegions();
+    if (regions.length === 0) {
+      console.warn('No region found to play');
+      return;
+    }
+
+    const region = regions[0];
+    const start = region.start;
+    const end = region.end;
+
+    console.log('Playing region:', { start, end });
+
+    // Устанавливаем время и начинаем воспроизведение
+    wavesurferRef.current.setTime(start);
+    wavesurferRef.current.play();
+
+    // Останавливаем воспроизведение в конце региона
+    playIntervalRef.current = setInterval(() => {
+      if (wavesurferRef.current) {
+        const currentTime = wavesurferRef.current.getCurrentTime();
+        if (currentTime >= end) {
+          wavesurferRef.current.pause();
+          if (playIntervalRef.current) {
+            clearInterval(playIntervalRef.current);
+            playIntervalRef.current = null;
           }
         }
-      }, 100);
-    }
+      }
+    }, 100);
   };
 
   const formatTime = (seconds: number): string => {
