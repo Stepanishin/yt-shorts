@@ -165,6 +165,14 @@ export interface EmojiElement {
   animation?: "none" | "pulse" | "rotate" | "bounce" | "fade";
 }
 
+export interface GifElement {
+  url: string;
+  x: number; // Позиция в пикселях (0-720)
+  y: number; // Позиция в пикселях (0-1280)
+  width: number; // Ширина в пикселях
+  height: number; // Высота в пикселях
+}
+
 export interface RenderVideoNewOptions {
   backgroundVideoUrl?: string; // URL или путь к видео-фону
   backgroundImageUrl?: string; // URL или путь к изображению-фону (альтернатива видео)
@@ -173,6 +181,7 @@ export interface RenderVideoNewOptions {
   videoTrimEnd?: number; // Конец обрезки видео в секундах
   textElements: TextElement[];
   emojiElements: EmojiElement[];
+  gifElements?: GifElement[]; // GIF элементы
   audioUrl?: string; // URL аудио для наложения
   audioTrimStart?: number; // Начало обрезки аудио в секундах
   audioTrimEnd?: number; // Конец обрезки аудио в секундах
@@ -440,6 +449,7 @@ export async function renderVideoNew(
     videoTrimEnd,
     textElements,
     emojiElements,
+    gifElements = [],
     audioUrl,
     audioTrimStart,
     audioTrimEnd,
@@ -479,8 +489,9 @@ export async function renderVideoNew(
     ? `/videos/final_${jobId}.mp4` // Временно, потом заменим на S3 URL
     : `/videos/final_${jobId}.mp4`;
 
-  // Массив для хранения путей к изображениям эмодзи
+  // Массив для хранения путей к изображениям эмодзи и GIF
   const emojiImagePaths: string[] = [];
+  const gifFilePaths: string[] = [];
 
   try {
     // 1. Скачиваем или подготавливаем фон
@@ -535,6 +546,27 @@ export async function renderVideoNew(
         await createEmojiImage(emojiElements[i].emoji, emojiPath);
       } catch (error) {
         console.warn(`Failed to create emoji image ${i}, will skip:`, error);
+      }
+    }
+
+    // 3.5. Скачиваем GIF файлы
+    for (let i = 0; i < gifElements.length; i++) {
+      const gif = gifElements[i];
+      const gifPath = path.join(videosDir, `gif_${jobId}_${i}.gif`);
+      gifFilePaths.push(gifPath);
+
+      try {
+        console.log(`Downloading GIF ${i} from:`, gif.url);
+        const response = await fetch(gif.url);
+        if (response.ok) {
+          const gifBuffer = await response.arrayBuffer();
+          await fs.writeFile(gifPath, Buffer.from(gifBuffer));
+          console.log(`GIF ${i} downloaded successfully`);
+        } else {
+          console.warn(`Failed to download GIF ${i}, status:`, response.status);
+        }
+      } catch (error) {
+        console.warn(`Failed to download GIF ${i}, will skip:`, error);
       }
     }
 
@@ -747,6 +779,31 @@ export async function renderVideoNew(
         inputIndex++;
       }
 
+      // Добавляем GIF элементы
+      for (let i = 0; i < gifElements.length; i++) {
+        const gif = gifElements[i];
+        const gifPath = gifFilePaths[i];
+
+        // Проверяем существование файла GIF
+        try {
+          await fs.stat(gifPath);
+        } catch {
+          console.warn(`GIF ${i} file not found at ${gifPath}, skipping`);
+          continue;
+        }
+
+        // Создаем фильтр для GIF - масштабируем до нужного размера
+        const gifLayer = `[gif${i}]`;
+        const gifFilter = `[${inputIndex}:v]scale=${gif.width}:${gif.height}${gifLayer}`;
+        filterChain.push(gifFilter);
+
+        // Создаем overlay на заданной позиции
+        const nextLayer = `[vg${i}]`;
+        filterChain.push(`${currentLayer}${gifLayer}overlay=${gif.x}:${gif.y}${nextLayer}`);
+        currentLayer = nextLayer;
+        inputIndex++;
+      }
+
       // Финальный выходной поток
       filterChain.push(`${currentLayer}trim=duration=${targetDuration}[v]`);
 
@@ -842,14 +899,14 @@ export async function renderVideoNew(
 
         // Если указан конец обрезки, вычисляем длительность
         if (videoTrimEnd !== undefined && videoTrimEnd !== null) {
-          const trimDuration = videoTrimEnd - (videoTrimStart || 0);
+          const trimDuration = Math.max(0.1, videoTrimEnd - (videoTrimStart || 0)); // Минимум 0.1 секунды
           inputOpts.push("-t", trimDuration.toString());
           console.log(`Video trim duration: ${trimDuration}s (${videoTrimStart || 0}s - ${videoTrimEnd}s)`);
         }
 
         // Добавляем зацикливание только если не указана обрезка, либо если обрезанное видео короче целевой длительности
         const trimmedDuration = videoTrimEnd !== undefined && videoTrimEnd !== null
-          ? videoTrimEnd - (videoTrimStart || 0)
+          ? Math.max(0.1, videoTrimEnd - (videoTrimStart || 0))
           : backgroundDuration;
 
         if (trimmedDuration < targetDuration) {
@@ -873,6 +930,19 @@ export async function renderVideoNew(
             .inputOptions(["-loop", "1", "-framerate", "25"]);
         } catch {
           console.warn(`Skipping emoji input ${emojiPath} - file not found`);
+        }
+      }
+
+      // Добавляем GIF файлы как входы с зацикливанием
+      for (const gifPath of gifFilePaths) {
+        try {
+          await fs.stat(gifPath);
+          command = command
+            .input(gifPath)
+            .inputOptions(["-stream_loop", "-1", "-ignore_loop", "0"]);
+          console.log(`Added GIF input with loop: ${gifPath}`);
+        } catch {
+          console.warn(`Skipping GIF input ${gifPath} - file not found`);
         }
       }
 
@@ -900,7 +970,7 @@ export async function renderVideoNew(
       // Обработка аудио
       let fullFilterComplex: string;
       if (hasAudioFile && tempAudioPath) {
-        const audioInputIndex = 1 + emojiElements.length; // После фона и всех эмодзи
+        const audioInputIndex = 1 + emojiElements.length + gifElements.length; // После фона, эмодзи и GIF
         let audioFilter: string;
 
         // Определяем начало и конец обрезки аудио
@@ -1005,6 +1075,9 @@ export async function renderVideoNew(
             for (const emojiPath of emojiImagePaths) {
               await fs.unlink(emojiPath).catch(() => {});
             }
+            for (const gifPath of gifFilePaths) {
+              await fs.unlink(gifPath).catch(() => {});
+            }
             for (const textPath of textFilePaths) {
               await fs.unlink(textPath).catch(() => {});
             }
@@ -1038,6 +1111,9 @@ export async function renderVideoNew(
           for (const emojiPath of emojiImagePaths) {
             fs.unlink(emojiPath).catch(() => {});
           }
+          for (const gifPath of gifFilePaths) {
+            fs.unlink(gifPath).catch(() => {});
+          }
           for (const textPath of textFilePaths) {
             fs.unlink(textPath).catch(() => {});
           }
@@ -1053,6 +1129,9 @@ export async function renderVideoNew(
     }
     for (const emojiPath of emojiImagePaths) {
       await fs.unlink(emojiPath).catch(() => {});
+    }
+    for (const gifPath of gifFilePaths) {
+      await fs.unlink(gifPath).catch(() => {});
     }
     // Очищаем текстовые файлы (если они были созданы)
     try {

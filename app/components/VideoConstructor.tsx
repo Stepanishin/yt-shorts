@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import GenerationLogsModal from "./GenerationLogsModal";
 import EmojiElement from "./VideoConstructor/EmojiElement";
+import GifElement from "./VideoConstructor/GifElement";
 import TextElement from "./VideoConstructor/TextElement";
 import SubscribeElement from "./VideoConstructor/SubscribeElement";
 import AddElementsPanel from "./VideoConstructor/AddElementsPanel";
@@ -50,6 +51,16 @@ interface EmojiElement {
   isDragging?: boolean;
 }
 
+interface GifElement {
+  id: string;
+  url: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isDragging?: boolean;
+}
+
 const VIDEO_WIDTH = 720;
 const VIDEO_HEIGHT = 1280;
 const PREVIEW_SCALE = 0.3; // 30% от оригинального размера для предпросмотра
@@ -71,6 +82,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [textElements, setTextElements] = useState<TextElement[]>([]);
   const [subscribeElements, setSubscribeElements] = useState<SubscribeElement[]>([]);
   const [emojiElements, setEmojiElements] = useState<EmojiElement[]>([]);
+  const [gifElements, setGifElements] = useState<GifElement[]>([]);
   const [backgroundUrl, setBackgroundUrl] = useState<string>("");
   const [backgroundType, setBackgroundType] = useState<"video" | "image">("video");
   const [imageEffect, setImageEffect] = useState<"none" | "zoom-in" | "zoom-in-out" | "pan-right-left">("none");
@@ -85,6 +97,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [selectedSubscribeId, setSelectedSubscribeId] = useState<string | null>(null);
   const [selectedEmojiId, setSelectedEmojiId] = useState<string | null>(null);
+  const [selectedGifId, setSelectedGifId] = useState<string | null>(null);
   const [uploadingToYouTube, setUploadingToYouTube] = useState(false);
   const [youtubeVideoUrl, setYoutubeVideoUrl] = useState<string | null>(null);
   const [useAITitle, setUseAITitle] = useState(true);
@@ -139,6 +152,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         setTextElements(normalizeTextElements(state.textElements || []));
         setSubscribeElements(state.subscribeElements || []);
         setEmojiElements(state.emojiElements || []);
+        setGifElements(state.gifElements || []);
         setBackgroundUrl(state.backgroundUrl || "");
         setBackgroundType(state.backgroundType || "video");
         setImageEffect(state.imageEffect || "none");
@@ -178,6 +192,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       textElements,
       subscribeElements,
       emojiElements,
+      gifElements,
       backgroundUrl,
       backgroundType,
       imageEffect,
@@ -200,6 +215,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     textElements,
     subscribeElements,
     emojiElements,
+    gifElements,
     backgroundUrl,
     backgroundType,
     imageEffect,
@@ -390,11 +406,25 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     setSelectedEmojiId(newElement.id);
   };
 
+  // Добавить новую GIF-ку
+  const addGifElement = (url: string = "") => {
+    const newElement: GifElement = {
+      id: Math.random().toString(36).substr(2, 9),
+      url: url || "https://i.gifer.com/6os.gif", // Дефолтная GIF
+      x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 75),
+      y: Math.max(SAFE_PADDING, VIDEO_HEIGHT / 2 - 75),
+      width: 150,
+      height: 150,
+    };
+    setGifElements([...gifElements, newElement]);
+    setSelectedGifId(newElement.id);
+  };
+
   // Обработка начала перетаскивания
   const handleDragStart = (
     e: React.MouseEvent | React.TouchEvent,
     id: string,
-    type: "text" | "subscribe" | "emoji"
+    type: "text" | "subscribe" | "emoji" | "gif"
   ) => {
     e.preventDefault();
     const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
@@ -416,13 +446,20 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         )
       );
       setSelectedSubscribeId(id);
-    } else {
+    } else if (type === "emoji") {
       setEmojiElements((prev) =>
         prev.map((el) =>
           el.id === id ? { ...el, isDragging: true } : el
         )
       );
       setSelectedEmojiId(id);
+    } else if (type === "gif") {
+      setGifElements((prev) =>
+        prev.map((el) =>
+          el.id === id ? { ...el, isDragging: true } : el
+        )
+      );
+      setSelectedGifId(id);
     }
   };
 
@@ -474,6 +511,18 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           : el
       )
     );
+
+    setGifElements((prev) =>
+      prev.map((el) =>
+        el.isDragging
+          ? {
+              ...el,
+              x: Math.max(SAFE_PADDING, Math.min(VIDEO_WIDTH - SAFE_PADDING, el.x + deltaX)),
+              y: Math.max(SAFE_PADDING, Math.min(VIDEO_HEIGHT - SAFE_PADDING, el.y + deltaY)),
+            }
+          : el
+      )
+    );
   };
 
   // Обработка окончания перетаскивания
@@ -486,6 +535,9 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       prev.map((el) => ({ ...el, isDragging: false }))
     );
     setEmojiElements((prev) =>
+      prev.map((el) => ({ ...el, isDragging: false }))
+    );
+    setGifElements((prev) =>
       prev.map((el) => ({ ...el, isDragging: false }))
     );
   };
@@ -525,6 +577,18 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const deleteEmojiElement = (id: string) => {
     setEmojiElements((prev) => prev.filter((el) => el.id !== id));
     if (selectedEmojiId === id) setSelectedEmojiId(null);
+  };
+
+  // Обновить GIF элемент
+  const updateGifElement = (id: string, updates: Partial<GifElement>) => {
+    setGifElements((prev) =>
+      prev.map((el) => (el.id === id ? { ...el, ...updates } : el))
+    );
+  };
+
+  const deleteGifElement = (id: string) => {
+    setGifElements((prev) => prev.filter((el) => el.id !== id));
+    if (selectedGifId === id) setSelectedGifId(null);
   };
 
   // Функция для расчета переносов текста как в браузере
@@ -761,6 +825,13 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             y: el.y,
             size: el.size,
             animation: el.animation,
+          })),
+          gifElements: gifElements.map((el) => ({
+            url: el.url,
+            x: el.x,
+            y: el.y,
+            width: el.width,
+            height: el.height,
           })),
           audioUrl: audioUrl || undefined,
           audioTrimStart: audioUrl ? audioTrimStart : undefined,
@@ -1064,6 +1135,13 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
             size: el.size,
             animation: el.animation,
           })),
+          gifElements: gifElements.map((el) => ({
+            url: el.url,
+            x: el.x,
+            y: el.y,
+            width: el.width,
+            height: el.height,
+          })),
           duration: videoDuration,
           backgroundModel,
           audioModel,
@@ -1304,10 +1382,12 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           onAddText={addTextElement}
           onAddSubscribe={addSubscribeElement}
           onAddEmoji={() => addEmojiElement("😂")}
+          onAddGif={() => addGifElement()}
           onClearAll={() => {
             setTextElements([]);
             setSubscribeElements([]);
             setEmojiElements([]);
+            setGifElements([]);
             setBackgroundUrl("");
             setImageEffect("none");
             setAudioUrl("");
@@ -1430,6 +1510,20 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   onSelect={setSelectedEmojiId}
                   onUpdate={updateEmojiElement}
                   onDelete={deleteEmojiElement}
+                />
+              ))}
+
+              {/* GIF элементы */}
+              {gifElements.map((el) => (
+                <GifElement
+                  key={el.id}
+                  element={el}
+                  previewScale={PREVIEW_SCALE}
+                  isSelected={selectedGifId === el.id}
+                  onDragStart={(e, id) => handleDragStart(e, id, "gif")}
+                  onSelect={setSelectedGifId}
+                  onUpdate={updateGifElement}
+                  onDelete={deleteGifElement}
                 />
               ))}
             </div>

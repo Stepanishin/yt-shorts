@@ -100,10 +100,18 @@ export default function MediaPlayer({
   useEffect(() => {
     if (type !== 'video' || !maxDuration || duration === 0) return;
 
-    const newEnd = Math.min(trimStart + maxDuration, duration);
+    // Убеждаемся что trimStart не больше duration
+    const validTrimStart = Math.min(trimStart, Math.max(0, duration - 0.1));
+    const newEnd = Math.min(validTrimStart + maxDuration, duration);
+
+    // Обновляем оба значения если trimStart был некорректен
+    if (validTrimStart !== trimStart) {
+      setTrimStart(validTrimStart);
+    }
+
     setTrimEnd(newEnd);
     if (onTrimChange) {
-      onTrimChange(trimStart, newEnd);
+      onTrimChange(validTrimStart, newEnd);
     }
   }, [type, maxDuration, duration, trimStart, onTrimChange]);
 
@@ -202,8 +210,16 @@ export default function MediaPlayer({
     const regions = regionsPluginRef.current.getRegions();
     if (regions.length > 0) {
       const region = regions[0];
-      const newEnd = Math.min(trimStart + maxDuration, duration);
-      region.setOptions({ end: newEnd });
+
+      // Убеждаемся что trimStart не больше duration
+      const validTrimStart = Math.min(trimStart, Math.max(0, duration - 0.1));
+      const newEnd = Math.min(validTrimStart + maxDuration, duration);
+
+      // Обновляем регион с корректными значениями
+      region.setOptions({
+        start: validTrimStart,
+        end: newEnd
+      });
     }
   }, [type, maxDuration, duration, trimStart]);
 

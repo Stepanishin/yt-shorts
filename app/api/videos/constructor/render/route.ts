@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       videoTrimEnd,
       textElements,
       emojiElements,
+      gifElements = [],
       audioUrl,
       audioTrimStart,
       audioTrimEnd,
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
       backgroundImageUrl,
       textElements: textElements.length,
       emojiElements: emojiElements.length,
+      gifElements: gifElements.length,
       duration,
     });
 
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest) {
       videoTrimEnd,
       textElements,
       emojiElements,
+      gifElements,
       audioUrl,
       audioTrimStart,
       audioTrimEnd,

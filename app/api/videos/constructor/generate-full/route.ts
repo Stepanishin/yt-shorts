@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     const {
       textElements,
       emojiElements,
+      gifElements = [],
       duration = 5,
       backgroundModel = "luma-direct",
       audioModel = "ace-step", // По умолчанию Ace-Step (дешевле)
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Валидация
-    if (!Array.isArray(textElements) || !Array.isArray(emojiElements)) {
+    if (!Array.isArray(textElements) || !Array.isArray(emojiElements) || !Array.isArray(gifElements)) {
       return NextResponse.json(
         { error: "Invalid elements format" },
         { status: 400 }
@@ -131,6 +132,7 @@ export async function POST(request: NextRequest) {
       backgroundVideoUrl: backgroundResult.videoUrl,
       textElements,
       emojiElements,
+      gifElements,
       audioUrl: audioResult.audioUrl,
       duration,
       jobId,
