@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js';
 
@@ -201,6 +201,40 @@ export default function AudioPlayer({
     }, 100);
   };
 
+  const handleResetTrim = () => {
+    const availableDuration = duration || maxDuration || 0;
+    if (availableDuration === 0) return;
+
+    const newEnd = Math.min(maxDuration || availableDuration, availableDuration);
+
+    setTrimStart(0);
+    setTrimEnd(newEnd);
+    setCurrentTime(0);
+    setIsPlaying(false);
+
+    if (wavesurferRef.current) {
+      wavesurferRef.current.stop();
+      wavesurferRef.current.setTime(0);
+    }
+
+    const regions = regionsPluginRef.current?.getRegions();
+    if (regions && regions.length > 0) {
+      regions[0].setOptions({ start: 0, end: newEnd });
+    } else if (regionsPluginRef.current) {
+      regionsPluginRef.current.addRegion({
+        start: 0,
+        end: newEnd,
+        color: 'rgba(34, 197, 94, 0.3)',
+        drag: true,
+        resize: true,
+      });
+    }
+
+    if (onTrimChangeRef.current) {
+      onTrimChangeRef.current(0, newEnd);
+    }
+  };
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -213,20 +247,30 @@ export default function AudioPlayer({
       {/* Header с кнопкой сворачивания */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-700">Audio Preview & Trim</h3>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-gray-500 hover:text-gray-700 transition-colors p-1"
-          title={isExpanded ? "Свернуть" : "Развернуть"}
-        >
-          <svg
-            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleResetTrim}
+            disabled={isLoading || (!duration && !maxDuration)}
+            className="px-2 py-1 text-xs border border-gray-200 rounded text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Сбросить обрезку до 0 и длины шортса"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+            ↺ Сбросить
+          </button>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+            title={isExpanded ? "Свернуть" : "Развернуть"}
+          >
+            <svg
+              className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Waveform - всегда видим */}
