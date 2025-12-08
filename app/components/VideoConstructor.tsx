@@ -386,8 +386,8 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
       x: Math.max(SAFE_PADDING, VIDEO_WIDTH / 2 - 100),
       y: Math.max(SAFE_PADDING, VIDEO_HEIGHT / 2),
       fontSize: 32,
-      color: "black@1",
-      backgroundColor: "white@0.6",
+      color: "#000000@1",
+      backgroundColor: "#ffffff@0.6",
       boxPadding: 10,
       fontWeight: "bold",
       width: 400, // Дефолтная ширина текстового блока

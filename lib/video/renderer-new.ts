@@ -630,37 +630,40 @@ export async function renderVideoNew(
         const textX = te.x + boxPadding;
         const textY = te.y + boxPadding;
 
-        // Функция для переноса текста по ширине
-        // Оцениваем количество символов на строку на основе ширины и размера шрифта
+        // Функция для переноса текста по ширине (грубое приближение браузерного wrap)
         const wrapText = (text: string, textWidth?: number): string => {
-          // Оцениваем количество символов на строку
-          // Примерно 0.6 * fontSize пикселей на символ для Arial
-          const availableWidth = textWidth || (720 - textX - boxPadding * 2); // Используем доступную ширину
-          const estimatedCharsPerLine = Math.floor(availableWidth / (te.fontSize * 0.6));
-          const maxCharsPerLine = Math.max(20, Math.min(40, estimatedCharsPerLine));
-          
-          const words = text.split(/\s+/);
-          const lines: string[] = [];
-          let currentLine = '';
+          const availableWidth = textWidth || (720 - textX - boxPadding * 2);
+          // Примерно 0.55 * fontSize пикселей на символ для Arial
+          const estimatedCharsPerLine = Math.floor(availableWidth / (te.fontSize * 0.55));
+          const maxCharsPerLine = Math.max(15, Math.min(60, estimatedCharsPerLine));
 
-          for (const word of words) {
-            const testLine = currentLine ? `${currentLine} ${word}` : word;
-            if (testLine.length <= maxCharsPerLine) {
-              currentLine = testLine;
-            } else {
-              if (currentLine) lines.push(currentLine);
-              currentLine = word;
-              // Если одно слово длиннее maxCharsPerLine, разбиваем его принудительно
-              if (currentLine.length > maxCharsPerLine) {
-                const chunks = currentLine.match(new RegExp(`.{1,${maxCharsPerLine}}`, 'g')) || [];
-                lines.push(...chunks.slice(0, -1));
-                currentLine = chunks[chunks.length - 1] || '';
+          const wrapLine = (line: string) => {
+            const words = line.split(/\s+/);
+            const lines: string[] = [];
+            let currentLine = '';
+
+            for (const word of words) {
+              const testLine = currentLine ? `${currentLine} ${word}` : word;
+              if (testLine.length <= maxCharsPerLine) {
+                currentLine = testLine;
+              } else {
+                if (currentLine) lines.push(currentLine);
+                currentLine = word;
+                if (currentLine.length > maxCharsPerLine) {
+                  const chunks = currentLine.match(new RegExp(`.{1,${maxCharsPerLine}}`, 'g')) || [];
+                  lines.push(...chunks.slice(0, -1));
+                  currentLine = chunks[chunks.length - 1] || '';
+                }
               }
             }
-          }
-          if (currentLine) lines.push(currentLine);
-          
-          return lines.join('\n');
+            if (currentLine) lines.push(currentLine);
+            return lines.join('\n');
+          };
+
+          return text
+            .split(/\r?\n/)
+            .map((line) => wrapLine(line))
+            .join('\n');
         };
 
         // Обрабатываем текст: сохраняем только явные переносы строк (Enter), убираем автоматические
@@ -668,14 +671,12 @@ export async function renderVideoNew(
           .replace(/\r\n/g, '\n')  // Нормализуем Windows переносы
           .replace(/\r/g, '\n')    // Нормализуем старые Mac переносы
           .trim();                 // Убираем лишние пробелы по краям
-
-        // НЕ применяем автоматический wrapText - FFmpeg сам перенесет текст по ширине через text_w
-        // Сохраняем только явные переносы строк, которые пользователь ввел через Enter
+        const wrappedText = wrapText(processedText, te.width || (720 - textX - boxPadding * 2));
 
         // Создаем временный файл для текста (как в старом рендерере)
         // Это более надежный способ для многострочного текста
         const textFilePath = path.join(videosDir, `text_${jobId}_${i}.txt`);
-        await fs.writeFile(textFilePath, processedText, 'utf-8');
+        await fs.writeFile(textFilePath, wrappedText, 'utf-8');
         textFilePaths.push(textFilePath);
 
         // Используем textfile вместо text для поддержки многострочного текста
