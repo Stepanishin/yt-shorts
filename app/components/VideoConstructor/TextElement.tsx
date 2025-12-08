@@ -23,6 +23,7 @@ interface TextElementProps {
   onSelect: (id: string) => void;
   onUpdate: (id: string, updates: Partial<TextElementData>) => void;
   onDelete: (id: string) => void;
+  onSave?: (element: TextElementData) => void;
 }
 
 export default function TextElement({
@@ -33,11 +34,13 @@ export default function TextElement({
   onSelect,
   onUpdate,
   onDelete,
+  onSave,
 }: TextElementProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isEditingText, setIsEditingText] = useState(false);
   const [isResizing, setIsResizing] = useState<"left" | "right" | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textElementRef = useRef<HTMLDivElement>(null);
   const draggedRef = useRef(false);
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const resizeStartRef = useRef<{ width: number; x: number; mouseX: number } | null>(null);
@@ -266,10 +269,88 @@ export default function TextElement({
     };
   }, [isResizing, element.id, onUpdate, previewScale]);
 
+  // Сохраняем позицию курсора
+  const saveCursorPosition = (): number | null => {
+    if (!textElementRef.current) return null;
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(textElementRef.current);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    return preCaretRange.toString().length;
+  };
+
+  // Восстанавливаем позицию курсора
+  const restoreCursorPosition = (position: number) => {
+    if (!textElementRef.current || position === null || position < 0) return;
+
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    try {
+      const range = document.createRange();
+      let charCount = 0;
+      const nodeStack: Node[] = [textElementRef.current];
+      let node: Node | undefined;
+      let foundStart = false;
+
+      while (!foundStart && (node = nodeStack.pop())) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const textLength = node.textContent?.length || 0;
+          const nextCharCount = charCount + textLength;
+          if (position <= nextCharCount) {
+            const offset = Math.min(position - charCount, textLength);
+            range.setStart(node, offset);
+            range.setEnd(node, offset);
+            foundStart = true;
+          }
+          charCount = nextCharCount;
+        } else {
+          let i = node.childNodes.length;
+          while (i--) {
+            nodeStack.push(node.childNodes[i]);
+          }
+        }
+      }
+
+      if (foundStart) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    } catch (error) {
+      // Игнорируем ошибки восстановления позиции
+      console.debug("Failed to restore cursor position:", error);
+    }
+  };
+
   const handleTextInput = (e: React.FormEvent<HTMLDivElement>) => {
     const value = e.currentTarget.innerText;
+    const cursorPos = saveCursorPosition();
+    
+    // Обновляем текст без немедленного ре-рендера
     onUpdate(element.id, { text: value });
+    
+    // Восстанавливаем позицию курсора после обновления
+    if (cursorPos !== null && textElementRef.current) {
+      // Используем двойной requestAnimationFrame для гарантии, что DOM обновился
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (textElementRef.current) {
+            restoreCursorPosition(cursorPos);
+          }
+        });
+      });
+    }
   };
+
+  // Синхронизируем текст только когда элемент не редактируется
+  useEffect(() => {
+    if (!isEditingText && textElementRef.current && textElementRef.current.innerText !== element.text) {
+      textElementRef.current.innerText = element.text;
+    }
+  }, [element.text, isEditingText]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Escape") {
@@ -312,6 +393,7 @@ export default function TextElement({
         )}
 
         <div
+          ref={textElementRef}
           className={`cursor-${isEditingText ? "text" : "move"} relative ${
             isSelected ? "ring-2 ring-blue-500 rounded" : ""
           }`}
@@ -366,15 +448,30 @@ export default function TextElement({
         >
           <div className="flex items-center justify-between text-sm font-semibold text-gray-800">
             <span>Настройки текста</span>
-            <button
-              className="text-red-500 hover:text-red-600 text-xs font-medium"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete();
-              }}
-            >
-              Удалить
-            </button>
+            <div className="flex items-center gap-2">
+              {onSave && (
+                <button
+                  className="text-green-600 hover:text-green-700 text-xs font-medium"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSave(element);
+                    setShowDropdown(false);
+                  }}
+                  title="Сохранить в кастомные блоки"
+                >
+                  💾 Сохранить
+                </button>
+              )}
+              <button
+                className="text-red-500 hover:text-red-600 text-xs font-medium"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
+              >
+                Удалить
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-xs text-gray-700">

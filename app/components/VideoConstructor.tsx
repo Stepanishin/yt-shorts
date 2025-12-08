@@ -8,6 +8,7 @@ import GifElement from "./VideoConstructor/GifElement";
 import TextElement from "./VideoConstructor/TextElement";
 import SubscribeElement from "./VideoConstructor/SubscribeElement";
 import AddElementsPanel from "./VideoConstructor/AddElementsPanel";
+import CustomBlocksPanel from "./VideoConstructor/CustomBlocksPanel";
 import BackgroundSettings from "./VideoConstructor/BackgroundSettings";
 import ProgressIndicator from "./VideoConstructor/ProgressIndicator";
 import MediaPlayer from "./MediaPlayer";
@@ -394,6 +395,69 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     };
     setTextElements([...textElements, newElement]);
     setSelectedTextId(newElement.id);
+  };
+
+  // Добавить кастомный блок
+  const addCustomBlock = (blockData: {
+    text: string;
+    x: number;
+    y: number;
+    fontSize: number;
+    color: string;
+    backgroundColor?: string;
+    boxPadding?: number;
+    fontWeight?: "normal" | "bold";
+    width?: number;
+  }) => {
+    const newElement: TextElement = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...blockData,
+    };
+    setTextElements([...textElements, newElement]);
+    setSelectedTextId(newElement.id);
+  };
+
+  // Сохранить текстовый элемент как кастомный блок
+  const handleSaveTextBlock = async (element: TextElement) => {
+    try {
+      const response = await fetch("/api/custom-blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: element.text,
+          x: element.x,
+          y: element.y,
+          fontSize: element.fontSize,
+          color: element.color,
+          backgroundColor: element.backgroundColor,
+          boxPadding: element.boxPadding,
+          fontWeight: element.fontWeight,
+          width: element.width,
+        }),
+      });
+
+      if (response.ok) {
+        showModal({
+          title: "Успешно",
+          message: "Блок сохранен в кастомные блоки",
+          type: "success",
+        });
+      } else {
+        const error = await response.json();
+        showModal({
+          title: "Ошибка",
+          message: error.error || "Не удалось сохранить блок",
+          type: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error saving custom block:", error);
+      showModal({
+        title: "Ошибка",
+        message: "Не удалось сохранить блок",
+        type: "error",
+      });
+    }
   };
 
   // Добавить новый subscribe элемент
@@ -1427,6 +1491,9 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
           }}
         />
 
+        {/* Кастомные блоки */}
+        <CustomBlocksPanel onAddBlock={addCustomBlock} />
+
       </div>
 
       {/* Область предпросмотра */}
@@ -1504,6 +1571,7 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   onSelect={setSelectedTextId}
                   onUpdate={updateTextElement}
                   onDelete={deleteTextElement}
+                  onSave={handleSaveTextBlock}
                 />
               ))}
 
