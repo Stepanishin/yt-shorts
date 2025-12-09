@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
         // Обновляем статус на "publishing"
         await updateScheduledVideoStatus(userId, video.id, "publishing");
 
-        // Получаем YouTube клиент с автоматическим обновлением токенов
-        const { oauth2Client } = await getUserYouTubeClient(userId);
+        // Получаем YouTube клиент с автоматическим обновлением токенов (используем googleId)
+        const { oauth2Client } = await getUserYouTubeClient(user.googleId);
 
         // Определяем путь к видео
         let videoPath: string;

@@ -46,7 +46,8 @@ export async function autoPublishScheduledVideos() {
         // Обновляем статус на "publishing"
         await updateScheduledVideoStatus(userId, video.id, "publishing");
 
-        const { oauth2Client } = await getUserYouTubeClient(userId);
+        // Используем googleId вместо _id для получения YouTube клиента
+        const { oauth2Client } = await getUserYouTubeClient(user.googleId);
 
         // Определяем путь к видео
         let videoPath: string;
