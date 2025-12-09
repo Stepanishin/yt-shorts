@@ -32,11 +32,11 @@ export function startScheduler() {
     try {
       const result = await autoPublishScheduledVideos();
 
-      if (result.skipped) {
+      if ('skipped' in result && result.skipped) {
         console.log("⏭️ Skipped (already publishing)");
-      } else if (result.success === 0 && result.failed === 0) {
+      } else if ('success' in result && result.success === 0 && result.failed === 0) {
         console.log("✅ No videos to publish");
-      } else {
+      } else if ('success' in result) {
         console.log(`✅ Published: ${result.success}, Failed: ${result.failed}`);
       }
     } catch (error) {
