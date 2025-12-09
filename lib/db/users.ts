@@ -287,8 +287,13 @@ export async function addScheduledVideo(
     status: "planned",
   };
 
+  // Поддерживаем как ObjectId так и другие форматы userId
+  const query = ObjectId.isValid(userId)
+    ? { _id: new ObjectId(userId) }
+    : { googleId: userId };
+
   await db.collection<User>(COLLECTION_NAME).updateOne(
-    { _id: new ObjectId(userId) },
+    query,
     {
       $push: { scheduledVideos: scheduledVideo } as any,
       $set: { updatedAt: new Date() }
@@ -299,7 +304,14 @@ export async function addScheduledVideo(
 }
 
 export async function getScheduledVideos(userId: string): Promise<ScheduledVideo[]> {
-  const user = await getUserById(userId);
+  const db = await getMongoDatabase();
+
+  // Поддерживаем как ObjectId так и другие форматы userId
+  const query = ObjectId.isValid(userId)
+    ? { _id: new ObjectId(userId) }
+    : { googleId: userId };
+
+  const user = await db.collection<User>(COLLECTION_NAME).findOne(query);
   return user?.scheduledVideos || [];
 }
 
@@ -323,8 +335,13 @@ export async function updateScheduledVideoStatus(
     if (updates.errorMessage) updateFields["scheduledVideos.$.errorMessage"] = updates.errorMessage;
   }
 
+  // Поддерживаем как ObjectId так и другие форматы userId
+  const userQuery = ObjectId.isValid(userId)
+    ? { _id: new ObjectId(userId) }
+    : { googleId: userId };
+
   await db.collection<User>(COLLECTION_NAME).updateOne(
-    { _id: new ObjectId(userId), "scheduledVideos.id": videoId },
+    { ...userQuery, "scheduledVideos.id": videoId },
     { $set: updateFields }
   );
 }
@@ -332,8 +349,13 @@ export async function updateScheduledVideoStatus(
 export async function deleteScheduledVideo(userId: string, videoId: string): Promise<void> {
   const db = await getMongoDatabase();
 
+  // Поддерживаем как ObjectId так и другие форматы userId
+  const query = ObjectId.isValid(userId)
+    ? { _id: new ObjectId(userId) }
+    : { googleId: userId };
+
   await db.collection<User>(COLLECTION_NAME).updateOne(
-    { _id: new ObjectId(userId) },
+    query,
     {
       $pull: { scheduledVideos: { id: videoId } } as any,
       $set: { updatedAt: new Date() }
