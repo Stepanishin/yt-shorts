@@ -1,4 +1,4 @@
-import { getScheduledVideosForPublishing, updateScheduledVideoStatus, getUserById } from "@/lib/db/users";
+import { getScheduledVideosForPublishing, updateScheduledVideoStatus } from "@/lib/db/users";
 import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
 import { uploadVideoToYouTube } from "@/lib/youtube/youtube-client";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
@@ -35,11 +35,10 @@ export async function autoPublishScheduledVideos() {
       errors: [] as Array<{ videoId: string; error: string }>,
     };
 
-    for (const { userId, video } of videosToPublish) {
+    for (const { userId, video, user } of videosToPublish) {
       try {
         console.log(`📤 Publishing video ${video.id} for user ${userId}...`);
 
-        const user = await getUserById(userId);
         if (!user || !user.youtubeSettings?.accessToken) {
           throw new Error("YouTube not authorized for this user");
         }

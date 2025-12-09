@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getScheduledVideosForPublishing, updateScheduledVideoStatus, getUserById } from "@/lib/db/users";
+import { getScheduledVideosForPublishing, updateScheduledVideoStatus } from "@/lib/db/users";
 import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
 import { uploadVideoToYouTube } from "@/lib/youtube/youtube-client";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
@@ -28,14 +28,12 @@ export async function GET(request: NextRequest) {
       errors: [] as Array<{ videoId: string; error: string }>,
     };
 
-    for (const { userId, video } of videosToPublish) {
+    for (const { userId, video, user } of videosToPublish) {
       try {
         console.log(`\n📤 Publishing video ${video.id} for user ${userId}...`);
         console.log(`   Title: ${video.title}`);
         console.log(`   Scheduled: ${video.scheduledAt}`);
 
-        // Получаем пользователя и его YouTube клиент
-        const user = await getUserById(userId);
         if (!user) {
           throw new Error(`User ${userId} not found`);
         }

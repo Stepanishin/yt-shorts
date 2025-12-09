@@ -363,7 +363,7 @@ export async function deleteScheduledVideo(userId: string, videoId: string): Pro
   );
 }
 
-export async function getScheduledVideosForPublishing(): Promise<Array<{ userId: string; video: ScheduledVideo }>> {
+export async function getScheduledVideosForPublishing(): Promise<Array<{ userId: string; video: ScheduledVideo; user: User }>> {
   const db = await getMongoDatabase();
 
   const now = new Date();
@@ -378,7 +378,7 @@ export async function getScheduledVideosForPublishing(): Promise<Array<{ userId:
     }
   }).toArray();
 
-  const result: Array<{ userId: string; video: ScheduledVideo }> = [];
+  const result: Array<{ userId: string; video: ScheduledVideo; user: User }> = [];
 
   for (const user of users) {
     if (user.scheduledVideos) {
@@ -386,7 +386,8 @@ export async function getScheduledVideosForPublishing(): Promise<Array<{ userId:
         if (video.status === "planned" && new Date(video.scheduledAt) <= now) {
           result.push({
             userId: user._id!.toString(),
-            video
+            video,
+            user // Передаем весь объект пользователя, чтобы не делать повторный запрос
           });
         }
       }
