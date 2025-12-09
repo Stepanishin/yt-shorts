@@ -104,6 +104,10 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
   const [useAITitle, setUseAITitle] = useState(true);
   const [videoTitle, setVideoTitle] = useState("");
   const [videoDescription, setVideoDescription] = useState("");
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [scheduling, setScheduling] = useState(false);
   const [generatingBackground, setGeneratingBackground] = useState(false);
   const [generatingAudio, setGeneratingAudio] = useState(false);
   const [backgroundModel, setBackgroundModel] = useState<"ray-v1" | "hailuo-t2v-01" | "luma-direct">("luma-direct");
@@ -1411,6 +1415,126 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
     }
   };
 
+  // Обработчик планирования видео
+  const handleScheduleVideo = async () => {
+    if (!renderedVideoUrl) {
+      showModal({
+        title: "Ошибка",
+        message: "Сначала создайте видео",
+        type: "error",
+      });
+      return;
+    }
+
+    if (!scheduledDate || !scheduledTime) {
+      showModal({
+        title: "Ошибка",
+        message: "Укажите дату и время публикации",
+        type: "error",
+      });
+      return;
+    }
+
+    setScheduling(true);
+
+    try {
+      // Объединяем дату и время
+      const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`);
+
+      // Проверяем, что это будущее время
+      if (scheduledAt <= new Date()) {
+        throw new Error("Время публикации должно быть в будущем");
+      }
+
+      // Получаем название и описание
+      const allText = textElements.map(el => el.text).join("\n\n");
+      let title: string;
+      let description: string;
+
+      const hasTitleAndDescription = videoTitle.trim() && videoDescription.trim();
+
+      if (hasTitleAndDescription) {
+        title = videoTitle;
+        description = videoDescription;
+      } else if (useAITitle && allText) {
+        try {
+          const aiResponse = await fetch("/api/youtube/generate-title", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              jokeText: allText,
+              jokeTitle: videoTitle || undefined,
+            }),
+          });
+
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            title = aiData.title;
+            description = aiData.description;
+          } else {
+            throw new Error("AI generation failed");
+          }
+        } catch (aiError) {
+          console.warn("AI title generation failed, using fallback:", aiError);
+          title = videoTitle || "Video from Constructor";
+          description = videoDescription || allText;
+        }
+      } else {
+        title = videoTitle || "Video from Constructor";
+        description = videoDescription || allText;
+      }
+
+      const tags = [
+        "shorts",
+        "video",
+        "content",
+        "creator",
+      ];
+
+      const response = await fetch("/api/youtube/schedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          videoUrl: renderedVideoUrl,
+          title,
+          description,
+          tags,
+          privacyStatus: "public",
+          scheduledAt: scheduledAt.toISOString(),
+          jokeId: "constructor-" + Date.now(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Не удалось запланировать видео");
+      }
+
+      const result = await response.json();
+      setShowScheduleModal(false);
+      setScheduledDate("");
+      setScheduledTime("");
+      showModal({
+        title: "Видео запланировано!",
+        message: `Видео будет опубликовано ${scheduledAt.toLocaleString("ru-RU")}`,
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Schedule video error:", error);
+      showModal({
+        title: "Ошибка",
+        message: `Ошибка планирования: ${error instanceof Error ? error.message : "Произошла ошибка"}`,
+        type: "error",
+      });
+    } finally {
+      setScheduling(false);
+    }
+  };
+
   // Добавляем глобальные обработчики для перетаскивания
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => handleDragMove(e as unknown as React.MouseEvent);
@@ -1719,6 +1843,12 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
                   "📤 Опубликовать на YouTube"
                 )}
               </button>
+              <button
+                onClick={() => setShowScheduleModal(true)}
+                className="flex-1 bg-purple-600 text-white rounded px-4 py-2 hover:bg-purple-700 font-medium flex items-center justify-center gap-2"
+              >
+                🕐 Запланировать
+              </button>
               <a
                 href={renderedVideoUrl}
                 download
@@ -1818,6 +1948,77 @@ export default function VideoConstructor({ jokeId }: VideoConstructorProps) {
         )}
       </div>
       </div>
+
+      {/* Модальное окно планирования */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold mb-4 text-gray-900">Запланировать публикацию</h2>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Дата публикации
+                </label>
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Время публикации
+                </label>
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                <p className="text-sm text-blue-800">
+                  ℹ️ Видео будет автоматически опубликовано на YouTube в указанное время.
+                  Проверьте настройки YouTube в личном кабинете.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleScheduleVideo}
+                disabled={scheduling || !scheduledDate || !scheduledTime}
+                className="flex-1 bg-purple-600 text-white rounded px-4 py-2 hover:bg-purple-700 font-medium disabled:bg-gray-400 flex items-center justify-center gap-2"
+              >
+                {scheduling ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    Планирование...
+                  </>
+                ) : (
+                  "✅ Запланировать"
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  setScheduledDate("");
+                  setScheduledTime("");
+                }}
+                disabled={scheduling}
+                className="flex-1 bg-gray-300 text-gray-800 rounded px-4 py-2 hover:bg-gray-400 font-medium disabled:bg-gray-200"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Модальное окно с логами генерации */}
       <GenerationLogsModal

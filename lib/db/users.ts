@@ -14,6 +14,23 @@ export interface YouTubeSettings {
   channelId?: string;
 }
 
+export interface ScheduledVideo {
+  id: string; // Уникальный ID запланированного видео
+  videoUrl: string; // URL видео на сервере/S3
+  title: string;
+  description?: string;
+  tags?: string[];
+  privacyStatus?: "public" | "private" | "unlisted";
+  scheduledAt: Date; // Дата и время публикации
+  status: "planned" | "publishing" | "published" | "failed";
+  createdAt: Date;
+  publishedAt?: Date;
+  youtubeVideoId?: string;
+  youtubeVideoUrl?: string;
+  errorMessage?: string;
+  jokeId?: string; // ID анекдота, если видео создано из анекдота
+}
+
 export interface User {
   _id?: ObjectId;
   googleId: string;
@@ -23,6 +40,7 @@ export interface User {
   credits: number; // 1 credit = 1 euro cent
   isAdmin?: boolean; // Флаг администратора (опционально)
   youtubeSettings?: YouTubeSettings;
+  scheduledVideos?: ScheduledVideo[]; // Запланированные видео для публикации
   createdAt: Date;
   updatedAt: Date;
 }
@@ -249,6 +267,108 @@ export async function deductCredits(
   } catch (error) {
     console.error("Failed to log transaction:", error);
     // Не прерываем выполнение, если логирование не удалось
+  }
+
+  return result;
+}
+
+// ============ Scheduled Videos Management ============
+
+export async function addScheduledVideo(
+  userId: string,
+  video: Omit<ScheduledVideo, "id" | "createdAt" | "status">
+): Promise<ScheduledVideo> {
+  const db = await getMongoDatabase();
+
+  const scheduledVideo: ScheduledVideo = {
+    ...video,
+    id: new ObjectId().toString(),
+    createdAt: new Date(),
+    status: "planned",
+  };
+
+  await db.collection<User>(COLLECTION_NAME).updateOne(
+    { _id: new ObjectId(userId) },
+    {
+      $push: { scheduledVideos: scheduledVideo } as any,
+      $set: { updatedAt: new Date() }
+    }
+  );
+
+  return scheduledVideo;
+}
+
+export async function getScheduledVideos(userId: string): Promise<ScheduledVideo[]> {
+  const user = await getUserById(userId);
+  return user?.scheduledVideos || [];
+}
+
+export async function updateScheduledVideoStatus(
+  userId: string,
+  videoId: string,
+  status: ScheduledVideo["status"],
+  updates?: Partial<Pick<ScheduledVideo, "publishedAt" | "youtubeVideoId" | "youtubeVideoUrl" | "errorMessage">>
+): Promise<void> {
+  const db = await getMongoDatabase();
+
+  const updateFields: any = {
+    "scheduledVideos.$.status": status,
+    updatedAt: new Date(),
+  };
+
+  if (updates) {
+    if (updates.publishedAt) updateFields["scheduledVideos.$.publishedAt"] = updates.publishedAt;
+    if (updates.youtubeVideoId) updateFields["scheduledVideos.$.youtubeVideoId"] = updates.youtubeVideoId;
+    if (updates.youtubeVideoUrl) updateFields["scheduledVideos.$.youtubeVideoUrl"] = updates.youtubeVideoUrl;
+    if (updates.errorMessage) updateFields["scheduledVideos.$.errorMessage"] = updates.errorMessage;
+  }
+
+  await db.collection<User>(COLLECTION_NAME).updateOne(
+    { _id: new ObjectId(userId), "scheduledVideos.id": videoId },
+    { $set: updateFields }
+  );
+}
+
+export async function deleteScheduledVideo(userId: string, videoId: string): Promise<void> {
+  const db = await getMongoDatabase();
+
+  await db.collection<User>(COLLECTION_NAME).updateOne(
+    { _id: new ObjectId(userId) },
+    {
+      $pull: { scheduledVideos: { id: videoId } } as any,
+      $set: { updatedAt: new Date() }
+    }
+  );
+}
+
+export async function getScheduledVideosForPublishing(): Promise<Array<{ userId: string; video: ScheduledVideo }>> {
+  const db = await getMongoDatabase();
+
+  const now = new Date();
+
+  // Находим всех пользователей, у которых есть запланированные видео, готовые к публикации
+  const users = await db.collection<User>(COLLECTION_NAME).find({
+    scheduledVideos: {
+      $elemMatch: {
+        status: "planned",
+        scheduledAt: { $lte: now }
+      }
+    }
+  }).toArray();
+
+  const result: Array<{ userId: string; video: ScheduledVideo }> = [];
+
+  for (const user of users) {
+    if (user.scheduledVideos) {
+      for (const video of user.scheduledVideos) {
+        if (video.status === "planned" && new Date(video.scheduledAt) <= now) {
+          result.push({
+            userId: user._id!.toString(),
+            video
+          });
+        }
+      }
+    }
   }
 
   return result;

@@ -1,0 +1,48 @@
+import { autoPublishScheduledVideos } from "./youtube/auto-publisher";
+
+const CHECK_INTERVAL = 10 * 60 * 1000; // 10 минут в миллисекундах
+let schedulerRunning = false;
+
+/**
+ * Запускает автоматическую проверку и публикацию видео каждые 10 минут
+ */
+export function startScheduler() {
+  // Предотвращаем множественный запуск
+  if (schedulerRunning) {
+    console.log("⚠️ Scheduler already running");
+    return;
+  }
+
+  schedulerRunning = true;
+  console.log("🚀 Starting YouTube auto-publisher scheduler...");
+  console.log(`   Will check for scheduled videos every ${CHECK_INTERVAL / 1000 / 60} minutes`);
+
+  // Запускаем через 1 минуту после старта сервера (чтобы все успело инициализироваться)
+  setTimeout(() => {
+    console.log("📅 Running initial check for scheduled videos...");
+    autoPublishScheduledVideos().catch(error => {
+      console.error("Error in initial auto-publish:", error);
+    });
+  }, 60 * 1000);
+
+  // Затем каждые 10 минут
+  setInterval(async () => {
+    console.log(`\n📅 [${new Date().toISOString()}] Checking for scheduled videos...`);
+
+    try {
+      const result = await autoPublishScheduledVideos();
+
+      if (result.skipped) {
+        console.log("⏭️ Skipped (already publishing)");
+      } else if (result.success === 0 && result.failed === 0) {
+        console.log("✅ No videos to publish");
+      } else {
+        console.log(`✅ Published: ${result.success}, Failed: ${result.failed}`);
+      }
+    } catch (error) {
+      console.error("❌ Error in auto-publish:", error);
+    }
+  }, CHECK_INTERVAL);
+
+  console.log("✅ Scheduler started successfully");
+}
