@@ -8,7 +8,7 @@ import { deleteScheduledVideo } from "@/lib/db/users";
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -19,7 +19,7 @@ export async function DELETE(
       );
     }
 
-    const videoId = params.id;
+    const { id: videoId } = await params;
 
     console.log(`Deleting scheduled video ${videoId} for user ${session.user.id}`);
 
