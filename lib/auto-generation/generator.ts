@@ -180,10 +180,11 @@ export async function generateAutoVideo(
 
     // 9. Generate title and description
     console.log(`[${jobId}] Step 9: Generating title and description...`);
-    const title = generateVideoTitle(jokeText, config.youtube.titleTemplate);
+    const title = await generateVideoTitle(jokeText, config.youtube.titleTemplate);
     const description = generateVideoDescription(
       jokeText,
-      config.youtube.descriptionTemplate
+      config.youtube.descriptionTemplate,
+      audioUrl
     );
 
     console.log(`Title: ${title}`);
@@ -256,37 +257,118 @@ export async function generateAutoVideo(
 
 /**
  * Generate video title from joke text
+ * Format: несколько цепляющих слов о шутке на испанском + пара смайликов + "Chiste del día"
  */
-function generateVideoTitle(
+async function generateVideoTitle(
   jokeText: string,
   template?: string
-): string {
+): Promise<string> {
   if (template) {
     return template.replace("{joke}", jokeText.substring(0, 100));
   }
 
-  // Default: use first 80 characters of joke
-  const maxLength = 80;
-  let title = jokeText.substring(0, maxLength);
+  // Use AI to generate catchy title in Spanish
+  try {
+    const OpenAI = (await import("openai")).default;
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
-  if (jokeText.length > maxLength) {
-    title += "...";
+    const prompt = `Crea un título corto y atractivo para YouTube Shorts con este chiste en español.
+
+Chiste: ${jokeText}
+
+Requisitos:
+- En español
+- Máximo 50 caracteres (sin contar emojis y "Chiste del día")
+- Palabras que enganchen sobre el chiste
+- 2 emojis relacionados con risa/humor
+- Al final debe decir "Chiste del día"
+- Sin hashtags
+
+Formato: [Palabras enganchosas] [2 emojis] Chiste del día
+
+Ejemplos:
+- "¡No vas a creer esto! 😂🤣 Chiste del día"
+- "El mejor chiste 🤣😆 Chiste del día"
+- "Esto es increíble 😭😂 Chiste del día"
+
+Devuelve SOLO el título, sin comillas ni explicaciones.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Eres un experto en crear títulos virales para YouTube Shorts de comedia en español.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.9,
+      max_tokens: 100,
+    });
+
+    const title = response.choices[0]?.message?.content?.trim();
+
+    if (title && title.length <= 100) {
+      return title;
+    }
+  } catch (error) {
+    console.error("Failed to generate AI title, using fallback:", error);
   }
 
-  return title;
+  // Fallback: simple title
+  const emojis = ["😂", "🤣"];
+  const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  const secondEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  
+  // Extract first few words from joke
+  const words = jokeText.split(/\s+/).slice(0, 5).join(" ");
+  return `${words} ${randomEmoji}${secondEmoji} Chiste del día`;
 }
 
 /**
  * Generate video description from joke text
+ * Includes music attribution for Bensound
  */
 function generateVideoDescription(
   jokeText: string,
-  template?: string
+  template?: string,
+  audioUrl?: string | null
 ): string {
+  let description = "";
+  
   if (template) {
-    return template.replace("{joke}", jokeText);
+    description = template.replace("{joke}", jokeText);
+  } else {
+    // Default description
+    description = jokeText;
   }
 
-  // Default description
-  return jokeText;
+  // Add music attribution if audio is used
+  if (audioUrl) {
+    // Extract track name from URL if possible, otherwise use generic
+    let trackName = "Track Name";
+    try {
+      const urlParts = audioUrl.split("/");
+      const fileName = urlParts[urlParts.length - 1].split("?")[0];
+      if (fileName && fileName.endsWith(".mp3")) {
+        trackName = fileName.replace(".mp3", "").replace(/[-_]/g, " ");
+        // Capitalize first letter of each word
+        trackName = trackName.split(" ")
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(" ");
+      }
+    } catch (e) {
+      // Use default track name
+    }
+
+    description += `\n\nMusic: "${trackName}" by Bensound.com
+License: https://www.bensound.com/licensing`;
+  }
+
+  return description;
 }

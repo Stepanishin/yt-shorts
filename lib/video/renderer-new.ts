@@ -630,12 +630,12 @@ export async function renderVideoNew(
         const boxPadding = te.boxPadding || 10;
 
         // Поддержка центрирования: x=-1 или y=-1 означает центрирование
-        const textX = te.x === -1 ? "(w-text_w)/2" : (te.x + boxPadding).toString();
+        const numericTextX = te.x === -1 ? 360 : te.x + boxPadding; // Числовое значение для вычислений
+        const textX = te.x === -1 ? "(w-text_w)/2" : (te.x + boxPadding).toString(); // Строковое значение для FFmpeg
         const textY = te.y === -1 ? "(h-text_h)/2" : (te.y + boxPadding).toString();
 
         // Функция для переноса текста по ширине (грубое приближение браузерного wrap)
         const wrapText = (text: string, textWidth?: number): string => {
-          const numericTextX = te.x === -1 ? 360 : te.x + boxPadding; // Используем 360 (центр) как приближение для центрированного текста
           const availableWidth = textWidth || (720 - numericTextX - boxPadding * 2);
           // Примерно 0.55 * fontSize пикселей на символ для Arial
           const estimatedCharsPerLine = Math.floor(availableWidth / (te.fontSize * 0.55));
@@ -675,7 +675,7 @@ export async function renderVideoNew(
           .replace(/\r\n/g, '\n')  // Нормализуем Windows переносы
           .replace(/\r/g, '\n')    // Нормализуем старые Mac переносы
           .trim();                 // Убираем лишние пробелы по краям
-        const wrappedText = wrapText(processedText, te.width || (720 - textX - boxPadding * 2));
+        const wrappedText = wrapText(processedText, te.width || (720 - numericTextX - boxPadding * 2));
 
         // Создаем временный файл для текста (как в старом рендерере)
         // Это более надежный способ для многострочного текста
