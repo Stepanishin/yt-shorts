@@ -2,7 +2,7 @@ import { autoPublishScheduledVideos } from "./youtube/auto-publisher";
 import { runAutoGeneration } from "./auto-generation/scheduler";
 
 const CHECK_INTERVAL = 10 * 60 * 1000; // 10 минут в миллисекундах
-const AUTO_GEN_CHECK_INTERVAL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах
+const AUTO_GEN_CHECK_INTERVAL = 1 * 60 * 60 * 1000; // 1 часа в миллисекундах
 let schedulerRunning = false;
 
 /**
