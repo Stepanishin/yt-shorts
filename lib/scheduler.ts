@@ -1,6 +1,8 @@
 import { autoPublishScheduledVideos } from "./youtube/auto-publisher";
+import { runAutoGeneration } from "./auto-generation/scheduler";
 
 const CHECK_INTERVAL = 10 * 60 * 1000; // 10 минут в миллисекундах
+const AUTO_GEN_CHECK_INTERVAL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах
 let schedulerRunning = false;
 
 /**
@@ -43,6 +45,30 @@ export function startScheduler() {
       console.error("❌ Error in auto-publish:", error);
     }
   }, CHECK_INTERVAL);
+
+  // === Auto-Generation Scheduler (каждые 3 часа) ===
+  console.log("🤖 Starting Auto-Generation scheduler...");
+  console.log(`   Will check for auto-generation every ${AUTO_GEN_CHECK_INTERVAL / 1000 / 60 / 60} hours`);
+
+  // Первый запуск через 5 минут после старта
+  setTimeout(() => {
+    console.log("📹 Running initial auto-generation check...");
+    runAutoGeneration().catch(error => {
+      console.error("Error in initial auto-generation:", error);
+    });
+  }, 5 * 60 * 1000);
+
+  // Затем каждые 3 часа
+  setInterval(async () => {
+    console.log(`\n📹 [${new Date().toISOString()}] Running auto-generation...`);
+
+    try {
+      const result = await runAutoGeneration();
+      console.log(`✅ Auto-generation completed: ${result.generated} video(s) generated, ${result.failed} failed, ${result.skipped} skipped`);
+    } catch (error) {
+      console.error("❌ Error in auto-generation:", error);
+    }
+  }, AUTO_GEN_CHECK_INTERVAL);
 
   console.log("✅ Scheduler started successfully");
 }

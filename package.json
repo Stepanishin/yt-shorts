@@ -28,6 +28,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "stripe": "^20.0.0",
+    "unsplash-js": "^7.0.20",
     "wavesurfer.js": "^7.12.1"
   },
   "devDependencies": {

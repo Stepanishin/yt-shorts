@@ -147,14 +147,15 @@ async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; std
 
 export interface TextElement {
   text: string;
-  x: number; // Позиция в пикселях (0-720)
-  y: number; // Позиция в пикселях (0-1280)
+  x: number; // Позиция в пикселях (0-720), или -1 для центрирования
+  y: number; // Позиция в пикселях (0-1280), или -1 для центрирования
   fontSize: number;
   color: string; // Формат: black@1 или white@0.8
   backgroundColor?: string; // Формат: white@0.6
   boxPadding?: number;
   fontWeight?: "normal" | "bold"; // Жирность шрифта
   width?: number; // Максимальная ширина текстового блока
+  lineSpacing?: number; // Межстрочный интервал
 }
 
 export interface EmojiElement {
@@ -627,12 +628,15 @@ export async function renderVideoNew(
         // В FFmpeg drawtext координаты x,y обозначают позицию текста, а boxborderw рисует бокс вокруг текста
         // Поэтому нужно добавить padding к координатам, чтобы текст начинался с правильного места
         const boxPadding = te.boxPadding || 10;
-        const textX = te.x + boxPadding;
-        const textY = te.y + boxPadding;
+
+        // Поддержка центрирования: x=-1 или y=-1 означает центрирование
+        const textX = te.x === -1 ? "(w-text_w)/2" : (te.x + boxPadding).toString();
+        const textY = te.y === -1 ? "(h-text_h)/2" : (te.y + boxPadding).toString();
 
         // Функция для переноса текста по ширине (грубое приближение браузерного wrap)
         const wrapText = (text: string, textWidth?: number): string => {
-          const availableWidth = textWidth || (720 - textX - boxPadding * 2);
+          const numericTextX = te.x === -1 ? 360 : te.x + boxPadding; // Используем 360 (центр) как приближение для центрированного текста
+          const availableWidth = textWidth || (720 - numericTextX - boxPadding * 2);
           // Примерно 0.55 * fontSize пикселей на символ для Arial
           const estimatedCharsPerLine = Math.floor(availableWidth / (te.fontSize * 0.55));
           const maxCharsPerLine = Math.max(15, Math.min(60, estimatedCharsPerLine));
@@ -726,7 +730,7 @@ export async function renderVideoNew(
         // lineHeight 1.2 означает, что высота строки = fontSize * 1.2
         // line_spacing в FFmpeg - это дополнительное расстояние между строками
         // Поэтому: line_spacing = fontSize * (1.2 - 1) = fontSize * 0.2
-        const lineSpacing = Math.floor(te.fontSize * 0.2);
+        const lineSpacing = te.lineSpacing !== undefined ? te.lineSpacing : Math.floor(te.fontSize * 0.2);
         drawtextFilter += `:line_spacing=${lineSpacing}`;
 
         // НЕ используем text_w - переносы уже добавлены в текст на клиенте через Canvas API
