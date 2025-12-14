@@ -102,7 +102,7 @@ export default function JokeList() {
   };
 
   const cleanupLongJokes = async () => {
-    if (!confirm("Вы уверены? Это пометит все pending анекдоты длиннее 600 символов как deleted.")) {
+    if (!confirm("Вы уверены? Это пометит все pending анекдоты длиннее 550 символов как deleted.")) {
       return;
     }
 
@@ -234,7 +234,7 @@ export default function JokeList() {
           disabled={cleaningLongJokes}
           className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-sm disabled:bg-orange-400 disabled:cursor-not-allowed"
         >
-          {cleaningLongJokes ? "Очистка..." : "Удалить длинные (>600)"}
+          {cleaningLongJokes ? "Очистка..." : "Удалить длинные (>550)"}
         </button>
       </div>
 

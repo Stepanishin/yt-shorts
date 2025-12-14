@@ -3,24 +3,24 @@ import { getJokeCandidateCollection } from "@/lib/ingest/storage";
 
 /**
  * POST /api/debug/cleanup-long-jokes
- * Помечает все pending анекдоты длиннее 600 символов как deleted
+ * Помечает все pending анекдоты длиннее 550 символов как deleted
  */
 export async function POST() {
   try {
     const collection = await getJokeCandidateCollection();
 
-    // Находим все pending анекдоты длиннее 600 символов
+    // Находим все pending анекдоты длиннее 550 символов
     const longJokes = await collection
       .find({
         $or: [
           { status: "pending" },
           { status: { $exists: false } }
         ],
-        $expr: { $gt: [{ $strLenCP: "$text" }, 600] }
+        $expr: { $gt: [{ $strLenCP: "$text" }, 550] }
       })
       .toArray();
 
-    console.log(`Found ${longJokes.length} pending jokes longer than 600 characters`);
+    console.log(`Found ${longJokes.length} pending jokes longer than 550 characters`);
 
     if (longJokes.length === 0) {
       return NextResponse.json({
@@ -37,13 +37,13 @@ export async function POST() {
           { status: "pending" },
           { status: { $exists: false } }
         ],
-        $expr: { $gt: [{ $strLenCP: "$text" }, 600] }
+        $expr: { $gt: [{ $strLenCP: "$text" }, 550] }
       },
       {
         $set: {
           status: "deleted",
           deletedAt: new Date(),
-          notes: "Text too long: exceeds 600 character limit",
+          notes: "Text too long: exceeds 550 character limit",
         },
       }
     );
