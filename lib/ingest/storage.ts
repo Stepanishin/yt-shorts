@@ -37,7 +37,7 @@ const ensureIndexes = async (collection: Collection<StoredJokeCandidate>) => {
 };
 
 // Максимальная длина текста анекдота для видео (основана на тестовом анекдоте)
-const MAX_JOKE_TEXT_LENGTH = 700;
+const MAX_JOKE_TEXT_LENGTH = 630;
 
 export const insertJokeCandidates = async (jokes: JokeCandidate[]) => {
   if (!jokes.length) {
