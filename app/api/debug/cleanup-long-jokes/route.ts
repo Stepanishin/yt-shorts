@@ -9,7 +9,7 @@ export async function POST() {
   try {
     const collection = await getJokeCandidateCollection();
 
-    // Находим все pending анекдоты длиннее 550 символов
+    // Находим все pending анекдоты длиннее 550
     const longJokes = await collection
       .find({
         $or: [
