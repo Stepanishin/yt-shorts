@@ -9,6 +9,15 @@ let schedulerRunning = false;
  * Запускает автоматическую проверку и публикацию видео каждые 10 минут
  */
 export function startScheduler() {
+  // Проверяем dev режим
+  const isDev = process.env.IS_DEV === "true";
+
+  if (isDev) {
+    console.log("🛑 Scheduler disabled in dev mode (IS_DEV=true)");
+    console.log("   Auto-generation and scheduled video publishing are paused");
+    return;
+  }
+
   // Предотвращаем множественный запуск
   if (schedulerRunning) {
     console.log("⚠️ Scheduler already running");

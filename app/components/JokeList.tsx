@@ -24,6 +24,7 @@ export default function JokeList() {
   } | null>(null);
 
   const [resetting, setResetting] = useState(false);
+  const [showOnlyPending, setShowOnlyPending] = useState(false);
 
   const loadJokes = async () => {
     setLoading(true);
@@ -148,11 +149,16 @@ export default function JokeList() {
     );
   }
 
+  // Filter jokes based on toggle
+  const filteredJokes = showOnlyPending
+    ? jokes.filter(joke => !joke.status || joke.status === "pending")
+    : jokes;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900">
-          Анекдоты ({jokes.length})
+          Анекдоты ({filteredJokes.length} {showOnlyPending && `из ${jokes.length}`})
         </h2>
         <div className="flex gap-2">
           <button
@@ -171,13 +177,28 @@ export default function JokeList() {
         </div>
       </div>
 
+      {/* Toggle for showing only pending jokes */}
+      <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showOnlyPending}
+            onChange={(e) => setShowOnlyPending(e.target.checked)}
+            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+          />
+          <span className="text-sm font-medium text-gray-900">
+            Показать только pending
+          </span>
+        </label>
+      </div>
+
       {collectResult && (
         <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900">
           Собрано: {collectResult.totalCollected}, добавлено в базу: {collectResult.inserted}
         </div>
       )}
       <div className="grid gap-4">
-        {jokes.map((joke) => (
+        {filteredJokes.map((joke) => (
           <JokeCard
             key={String(joke._id)}
             joke={joke}

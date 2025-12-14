@@ -48,7 +48,11 @@ export default function ScheduledVideosPage() {
       }
 
       const data = await response.json();
-      setScheduledVideos(data.scheduledVideos || []);
+      // Sort by createdAt descending (newest first)
+      const sortedVideos = (data.scheduledVideos || []).sort((a: ScheduledVideo, b: ScheduledVideo) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      setScheduledVideos(sortedVideos);
       setError(null);
     } catch (err) {
       console.error("Error fetching scheduled videos:", err);
