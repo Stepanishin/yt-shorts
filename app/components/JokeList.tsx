@@ -25,6 +25,11 @@ export default function JokeList() {
 
   const [resetting, setResetting] = useState(false);
   const [showOnlyPending, setShowOnlyPending] = useState(false);
+  const [cleaningLongJokes, setCleaningLongJokes] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<{
+    cleaned: number;
+    found: number;
+  } | null>(null);
 
   const loadJokes = async () => {
     setLoading(true);
@@ -93,6 +98,40 @@ export default function JokeList() {
       console.error("Failed to reset reserved:", err);
     } finally {
       setResetting(false);
+    }
+  };
+
+  const cleanupLongJokes = async () => {
+    if (!confirm("Вы уверены? Это пометит все pending анекдоты длиннее 600 символов как deleted.")) {
+      return;
+    }
+
+    setCleaningLongJokes(true);
+    setError(null);
+    setCleanupResult(null);
+    try {
+      const response = await fetch("/api/debug/cleanup-long-jokes", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Не удалось очистить длинные анекдоты");
+      }
+
+      const result = await response.json();
+      console.log("Cleanup result:", result);
+      setCleanupResult({
+        cleaned: result.cleaned,
+        found: result.found,
+      });
+
+      // Обновляем список после очистки
+      await loadJokes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to cleanup long jokes:", err);
+    } finally {
+      setCleaningLongJokes(false);
     }
   };
 
@@ -178,7 +217,7 @@ export default function JokeList() {
       </div>
 
       {/* Toggle for showing only pending jokes */}
-      <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200">
+      <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
@@ -190,7 +229,20 @@ export default function JokeList() {
             Показать только pending
           </span>
         </label>
+        <button
+          onClick={cleanupLongJokes}
+          disabled={cleaningLongJokes}
+          className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-sm disabled:bg-orange-400 disabled:cursor-not-allowed"
+        >
+          {cleaningLongJokes ? "Очистка..." : "Удалить длинные (>600)"}
+        </button>
       </div>
+
+      {cleanupResult && (
+        <div className="rounded-lg border border-orange-300 bg-orange-50 p-4 text-sm text-orange-900">
+          Найдено: {cleanupResult.found}, помечено как deleted: {cleanupResult.cleaned}
+        </div>
+      )}
 
       {collectResult && (
         <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900">
