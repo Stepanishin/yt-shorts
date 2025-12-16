@@ -261,9 +261,8 @@ export async function renderFinalVideo(
 
     // 2. Подготавливаем текст для наложения
     // Разбиваем текст на строки для компактного отображения (как в preview)
-    // Для вертикального видео 720px: уменьшаем символов на строку для безопасных отступов
-    const maxCharsPerLine = 35; // Уменьшено с 40 до 35 для безопасности
-    const wrapText = (text: string): string => {
+    // Функция для переноса текста с динамическим maxCharsPerLine
+    const wrapText = (text: string, maxCharsPerLine: number): string => {
       const words = text.split(' ');
       const lines: string[] = [];
       let currentLine = '';
@@ -300,36 +299,43 @@ export async function renderFinalVideo(
     }
 
     // Вычисляем динамический размер шрифта на основе длины текста
-    const calculateFontSize = (text: string): { fontSize: number; lineSpacing: number } => {
+    const calculateFontSize = (text: string): { fontSize: number; lineSpacing: number; maxCharsPerLine: number } => {
       const textLength = text.length;
 
       // Размеры по умолчанию для коротких текстов
       let fontSize = 32;
       let lineSpacing = 12;
+      let maxCharsPerLine = 32; // Уменьшено с 35 до 32 для большей безопасности
 
       // Уменьшаем размер шрифта для длинных текстов
+      // ВАЖНО: maxCharsPerLine тоже уменьшаем для меньших шрифтов
+      // чтобы компенсировать пропорциональную ширину символов
       if (textLength > 500) {
+        fontSize = 24;
+        lineSpacing = 10;
+        maxCharsPerLine = 26; // Меньше символов для маленького шрифта
+      } else if (textLength > 400) {
         fontSize = 26;
         lineSpacing = 10;
-      } else if (textLength > 400) {
-        fontSize = 28;
-        lineSpacing = 10;
+        maxCharsPerLine = 28;
       } else if (textLength > 300) {
-        fontSize = 32;
+        fontSize = 28;
         lineSpacing = 11;
+        maxCharsPerLine = 30;
       } else if (textLength > 200) {
-        fontSize = 32;
+        fontSize = 30;
         lineSpacing = 11;
+        maxCharsPerLine = 31;
       }
-      // Иначе используем дефолтные значения: fontSize = 32, lineSpacing = 12
+      // Иначе используем дефолтные значения: fontSize = 32, lineSpacing = 12, maxCharsPerLine = 32
 
-      return { fontSize, lineSpacing };
+      return { fontSize, lineSpacing, maxCharsPerLine };
     };
 
-    const { fontSize, lineSpacing } = calculateFontSize(textToRender);
-    console.log(`Dynamic font size: ${fontSize}px for text length: ${textToRender.length} chars`);
+    const { fontSize, lineSpacing, maxCharsPerLine } = calculateFontSize(textToRender);
+    console.log(`Dynamic font size: ${fontSize}px, maxCharsPerLine: ${maxCharsPerLine} for text length: ${textToRender.length} chars`);
 
-    const wrappedText = wrapText(textToRender);
+    const wrappedText = wrapText(textToRender, maxCharsPerLine);
     const lineCount = wrappedText.split('\n').length;
     const lineHeight = fontSize + lineSpacing;
     const textBoxPadding = 15; // boxborderw
@@ -339,7 +345,7 @@ export async function renderFinalVideo(
     const videoHeight = 1280;
 
     // Безопасные отступы от краев видео
-    const safeMarginHorizontal = 60; // Минимум 30px с каждой стороны
+    const safeMarginHorizontal = 80; // Увеличено до 40px с каждой стороны для предотвращения выхода текста за границы
     const safeMarginVertical = 100; // Минимум 50px сверху и снизу
 
     // Максимальные размеры контейнера с учетом отступов

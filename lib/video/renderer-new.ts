@@ -622,12 +622,64 @@ export async function renderVideoNew(
       // Добавляем текстовые элементы
       const textFilePaths: string[] = [];
       for (let i = 0; i < textElements.length; i++) {
-        const te = textElements[i];
+        let te = textElements[i];
+
+        // ДИНАМИЧЕСКИЙ РАСЧЕТ FONTSIZE НА ОСНОВЕ ДЛИНЫ ТЕКСТА
+        // Переопределяем fontSize из template, если текст длинный
+        const calculateDynamicFontSize = (text: string, baseFontSize: number): { fontSize: number; maxCharsPerLine: number } => {
+          const textLength = text.length;
+          let fontSize = baseFontSize;
+          let maxCharsPerLine = 32;
+
+          // Если baseFontSize > 40, используем динамическое масштабирование
+          if (baseFontSize >= 40) {
+            // Для коротких текстов используем дефолтный размер (максимум 32px)
+            fontSize = 32;
+            maxCharsPerLine = 32;
+
+            // Уменьшаем размер шрифта для длинных текстов
+            if (textLength > 500) {
+              fontSize = 26;
+              maxCharsPerLine = 26;
+            } else if (textLength > 400) {
+              fontSize = 28;
+              maxCharsPerLine = 28;
+            } else if (textLength > 300) {
+              fontSize = 30;
+              maxCharsPerLine = 30;
+            } else if (textLength > 200) {
+              fontSize = 32;
+              maxCharsPerLine = 31;
+            }
+          } else {
+            // Если baseFontSize <= 40, используем его как есть
+            fontSize = baseFontSize;
+            // Вычисляем maxCharsPerLine пропорционально
+            maxCharsPerLine = Math.floor(32 * (32 / Math.max(fontSize, 1)));
+          }
+
+          return { fontSize, maxCharsPerLine };
+        };
+
+        const { fontSize: dynamicFontSize, maxCharsPerLine: dynamicMaxChars } = calculateDynamicFontSize(te.text, te.fontSize);
+
+        // Создаем модифицированный объект te с новым fontSize
+        te = {
+          ...te,
+          fontSize: dynamicFontSize,
+        };
+
+        // Динамически уменьшаем boxPadding для меньших шрифтов
+        let boxPadding = te.boxPadding || 10;
+        if (dynamicFontSize <= 28) {
+          boxPadding = Math.min(boxPadding, 15); // Максимум 15px для маленьких шрифтов
+        }
+
+        console.log(`Text element ${i}: original fontSize=${textElements[i].fontSize}, dynamic fontSize=${dynamicFontSize}, text length=${te.text.length}, maxChars=${dynamicMaxChars}, boxPadding=${boxPadding}`);
 
         // В UI координаты x,y обозначают верхний левый угол контейнера (включая padding)
         // В FFmpeg drawtext координаты x,y обозначают позицию текста, а boxborderw рисует бокс вокруг текста
         // Поэтому нужно добавить padding к координатам, чтобы текст начинался с правильного места
-        const boxPadding = te.boxPadding || 10;
 
         // Поддержка центрирования: x=-1 или y=-1 означает центрирование
         const numericTextX = te.x === -1 ? 360 : te.x + boxPadding; // Числовое значение для вычислений
@@ -639,7 +691,8 @@ export async function renderVideoNew(
           const availableWidth = textWidth || (720 - numericTextX - boxPadding * 2);
           // Примерно 0.55 * fontSize пикселей на символ для Arial
           const estimatedCharsPerLine = Math.floor(availableWidth / (te.fontSize * 0.55));
-          const maxCharsPerLine = Math.max(15, Math.min(60, estimatedCharsPerLine));
+          // Используем минимум между вычисленным и динамическим значением для безопасности
+          const maxCharsPerLine = Math.max(15, Math.min(dynamicMaxChars, estimatedCharsPerLine));
 
           const wrapLine = (line: string) => {
             const words = line.split(/\s+/);
