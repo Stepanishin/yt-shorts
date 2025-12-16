@@ -50,7 +50,16 @@ export async function PATCH(
       return NextResponse.json({ error: "editedText must be a string" }, { status: 400 });
     }
 
-    console.log(`PATCH request for joke ${id}, updating editedText`);
+    // Trim whitespace and validate that text is not empty
+    const trimmedText = editedText.trim();
+    if (!trimmedText) {
+      return NextResponse.json(
+        { error: "editedText cannot be empty or whitespace only" },
+        { status: 400 }
+      );
+    }
+
+    console.log(`PATCH request for joke ${id}, updating editedText (length: ${trimmedText.length})`);
 
     // Проверяем что анекдот существует
     const joke = await findJokeCandidateById(id);
@@ -58,8 +67,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Joke not found" }, { status: 404 });
     }
 
-    // Обновляем editedText
-    await updateJokeCandidateText({ id, editedText });
+    // Обновляем editedText (используем trimmed версию)
+    await updateJokeCandidateText({ id, editedText: trimmedText });
 
     // Получаем обновленный анекдот
     const updatedJoke = await findJokeCandidateById(id);

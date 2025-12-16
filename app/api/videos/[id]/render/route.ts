@@ -91,10 +91,17 @@ async function renderVideo(job: any, emoji?: string): Promise<void> {
     console.log("Using emoji:", emojiToUse);
     
     // Рендерим финальное видео
+    // Используем editedText если он не пустой (после trim), иначе fallback на jokeText
+    const textToUse = job.editedText?.trim() || job.jokeText?.trim() || "";
+
+    if (!textToUse) {
+      throw new Error("Cannot render video: joke text is empty");
+    }
+
     const result = await renderFinalVideo({
       backgroundVideoUrl: job.backgroundVideoUrl,
       jokeTitle: job.jokeTitle,
-      editedText: job.editedText || job.jokeText,
+      editedText: textToUse,
       emoji: emojiToUse,
       audioUrl: job.audioUrl, // Передаем сгенерированное аудио
       jobId: String(job._id),

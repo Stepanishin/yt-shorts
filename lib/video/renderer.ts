@@ -288,9 +288,15 @@ export async function renderFinalVideo(
       return lines.join('\n');
     };
 
-    let textToRender = editedText;
+    // Validate that text is not empty (trim whitespace)
+    const trimmedText = editedText.trim();
+    if (!trimmedText) {
+      throw new Error("Cannot render video: editedText is empty or contains only whitespace");
+    }
+
+    let textToRender = trimmedText;
     if (jokeTitle) {
-      textToRender = `${jokeTitle}\n\n${editedText}`;
+      textToRender = `${jokeTitle}\n\n${trimmedText}`;
     }
 
     const wrappedText = wrapText(textToRender);
