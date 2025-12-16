@@ -299,11 +299,37 @@ export async function renderFinalVideo(
       textToRender = `${jokeTitle}\n\n${trimmedText}`;
     }
 
-    const wrappedText = wrapText(textToRender);
+    // Вычисляем динамический размер шрифта на основе длины текста
+    const calculateFontSize = (text: string): { fontSize: number; lineSpacing: number } => {
+      const textLength = text.length;
 
-    // Вычисляем параметры текста для позиционирования эмодзи
-    const fontSize = 32; // Увеличенный размер шрифта
-    const lineSpacing = 12; // Увеличенный межстрочный интервал
+      // Размеры по умолчанию для коротких текстов
+      let fontSize = 32;
+      let lineSpacing = 12;
+
+      // Уменьшаем размер шрифта для длинных текстов
+      if (textLength > 500) {
+        fontSize = 26;
+        lineSpacing = 10;
+      } else if (textLength > 400) {
+        fontSize = 28;
+        lineSpacing = 10;
+      } else if (textLength > 300) {
+        fontSize = 32;
+        lineSpacing = 11;
+      } else if (textLength > 200) {
+        fontSize = 32;
+        lineSpacing = 11;
+      }
+      // Иначе используем дефолтные значения: fontSize = 32, lineSpacing = 12
+
+      return { fontSize, lineSpacing };
+    };
+
+    const { fontSize, lineSpacing } = calculateFontSize(textToRender);
+    console.log(`Dynamic font size: ${fontSize}px for text length: ${textToRender.length} chars`);
+
+    const wrappedText = wrapText(textToRender);
     const lineCount = wrappedText.split('\n').length;
     const lineHeight = fontSize + lineSpacing;
     const textBoxPadding = 15; // boxborderw
