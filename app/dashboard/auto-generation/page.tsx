@@ -252,7 +252,7 @@ export default function AutoGenerationPage() {
   };
 
   const addTimeSlot = () => {
-    if (!config || config.publishTimes.length >= 6) return;
+    if (!config || config.publishTimes.length >= 10) return;
 
     const newTime: PublishTime = {
       id: Date.now().toString(),
@@ -372,7 +372,7 @@ export default function AutoGenerationPage() {
                 </label>
                 <button
                   onClick={addTimeSlot}
-                  disabled={config.publishTimes.length >= 6}
+                  disabled={config.publishTimes.length >= 10}
                   className="text-sm text-blue-600 hover:text-blue-700 disabled:text-gray-400"
                 >
                   + Add Time
