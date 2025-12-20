@@ -61,7 +61,7 @@ export interface AutoGenerationConfig {
   _id?: ObjectId;
   userId: string; // Reference to User._id or googleId
   isEnabled: boolean;
-  videosPerDay: number; // 1-6 videos per day
+  videosPerDay: number; // 1-10 videos per day
   publishTimes: PublishTime[];
   template: AutoGenerationTemplate;
   youtube: YouTubeAutoSettings;

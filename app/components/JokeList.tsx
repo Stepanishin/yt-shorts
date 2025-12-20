@@ -26,6 +26,8 @@ export default function JokeList() {
   const [resetting, setResetting] = useState(false);
   const [showOnlyPending, setShowOnlyPending] = useState(false);
   const [cleaningLongJokes, setCleaningLongJokes] = useState(false);
+  const [cleaningLongJokes600, setCleaningLongJokes600] = useState(false);
+  const [cleaningLongJokes650, setCleaningLongJokes650] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<{
     cleaned: number;
     found: number;
@@ -135,6 +137,74 @@ export default function JokeList() {
     }
   };
 
+  const cleanupLongJokes600 = async () => {
+    if (!confirm("Вы уверены? Это пометит все pending анекдоты длиннее 600 символов как deleted.")) {
+      return;
+    }
+
+    setCleaningLongJokes600(true);
+    setError(null);
+    setCleanupResult(null);
+    try {
+      const response = await fetch("/api/debug/cleanup-long-jokes-600", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Не удалось очистить длинные анекдоты");
+      }
+
+      const result = await response.json();
+      console.log("Cleanup result:", result);
+      setCleanupResult({
+        cleaned: result.cleaned,
+        found: result.found,
+      });
+
+      // Обновляем список после очистки
+      await loadJokes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to cleanup long jokes:", err);
+    } finally {
+      setCleaningLongJokes600(false);
+    }
+  };
+
+  const cleanupLongJokes650 = async () => {
+    if (!confirm("Вы уверены? Это пометит все pending анекдоты длиннее 650 символов как deleted.")) {
+      return;
+    }
+
+    setCleaningLongJokes650(true);
+    setError(null);
+    setCleanupResult(null);
+    try {
+      const response = await fetch("/api/debug/cleanup-long-jokes-650", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Не удалось очистить длинные анекдоты");
+      }
+
+      const result = await response.json();
+      console.log("Cleanup result:", result);
+      setCleanupResult({
+        cleaned: result.cleaned,
+        found: result.found,
+      });
+
+      // Обновляем список после очистки
+      await loadJokes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Произошла ошибка");
+      console.error("Failed to cleanup long jokes:", err);
+    } finally {
+      setCleaningLongJokes650(false);
+    }
+  };
+
   useEffect(() => {
     loadJokes();
   }, []);
@@ -229,13 +299,29 @@ export default function JokeList() {
             Показать только pending
           </span>
         </label>
-        <button
-          onClick={cleanupLongJokes}
-          disabled={cleaningLongJokes}
-          className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-sm disabled:bg-orange-400 disabled:cursor-not-allowed"
-        >
-          {cleaningLongJokes ? "Очистка..." : "Удалить длинные (>500)"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={cleanupLongJokes}
+            disabled={cleaningLongJokes}
+            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-sm disabled:bg-orange-400 disabled:cursor-not-allowed"
+          >
+            {cleaningLongJokes ? "Очистка..." : "Удалить длинные (>500)"}
+          </button>
+          <button
+            onClick={cleanupLongJokes600}
+            disabled={cleaningLongJokes600}
+            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-sm disabled:bg-orange-400 disabled:cursor-not-allowed"
+          >
+            {cleaningLongJokes600 ? "Очистка..." : "Удалить длинные (>600)"}
+          </button>
+          <button
+            onClick={cleanupLongJokes650}
+            disabled={cleaningLongJokes650}
+            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-sm disabled:bg-orange-400 disabled:cursor-not-allowed"
+          >
+            {cleaningLongJokes650 ? "Очистка..." : "Удалить длинные (>650)"}
+          </button>
+        </div>
       </div>
 
       {cleanupResult && (

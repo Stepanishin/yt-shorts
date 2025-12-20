@@ -104,9 +104,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validation
-    if (body.videosPerDay && (body.videosPerDay < 1 || body.videosPerDay > 6)) {
+    if (body.videosPerDay && (body.videosPerDay < 1 || body.videosPerDay > 10)) {
       return NextResponse.json(
-        { error: "videosPerDay must be between 1 and 6" },
+        { error: "videosPerDay must be between 1 and 10" },
         { status: 400 }
       );
     }

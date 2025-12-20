@@ -355,7 +355,7 @@ export default function AutoGenerationPage() {
               <input
                 type="number"
                 min="1"
-                max="6"
+                max="10"
                 value={config.videosPerDay}
                 onChange={(e) =>
                   setConfig({ ...config, videosPerDay: parseInt(e.target.value) || 1 })
