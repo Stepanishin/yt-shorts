@@ -1,10 +1,11 @@
 import { getActiveAutoGenerationConfigs } from "@/lib/db/auto-generation";
+import { getActiveAutoGenerationConfigsDE } from "@/lib/db/auto-generation-de";
 import { getScheduledVideos } from "@/lib/db/users";
 import {
   getScheduledTimesAhead,
   isTimeSlotAvailable,
 } from "./schedule-calculator";
-import { generateAutoVideo } from "./generator";
+import { generateAutoVideo, generateAutoVideoDE } from "./generator";
 
 export interface AutoGenerationResult {
   generated: number;
@@ -30,19 +31,26 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
   };
 
   try {
-    // Get all active configurations
-    const activeConfigs = await getActiveAutoGenerationConfigs();
+    // Get all active configurations (both ES and DE)
+    const activeConfigsES = await getActiveAutoGenerationConfigs();
+    const activeConfigsDE = await getActiveAutoGenerationConfigsDE();
 
-    console.log(`Found ${activeConfigs.length} active configuration(s)`);
+    // Combine configs with language marker
+    const allConfigs = [
+      ...activeConfigsES.map(config => ({ config, language: 'es' as const })),
+      ...activeConfigsDE.map(config => ({ config, language: 'de' as const })),
+    ];
 
-    if (activeConfigs.length === 0) {
+    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES, ${activeConfigsDE.length} DE)`);
+
+    if (allConfigs.length === 0) {
       console.log("No active configurations found");
       return result;
     }
 
     // Process each configuration
-    for (const config of activeConfigs) {
-      console.log(`\n--- Processing config for user ${config.userId} ---`);
+    for (const { config, language } of allConfigs) {
+      console.log(`\n--- Processing ${language.toUpperCase()} config for user ${config.userId} ---`);
 
       try {
         // Get scheduled times for next 24 hours
@@ -61,11 +69,27 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
 
         // Get existing scheduled videos for this user
         const existingScheduledVideos = await getScheduledVideos(config.userId);
+
+        // Filter by channel and language to allow same time slots on different channels
+        const configChannelId = config.youtube?.channelId;
         const existingScheduledTimes = existingScheduledVideos
           .filter((v) => v.status === "planned")
+          // Only consider videos for the same channel/language as conflicting
+          .filter((v) => {
+            // If both have channelId set, compare them
+            if (configChannelId && v.youtubeChannelId) {
+              return v.youtubeChannelId === configChannelId;
+            }
+            // If both are default channel (no channelId), compare by language
+            if (!configChannelId && !v.youtubeChannelId) {
+              return v.language === language;
+            }
+            // If one has channelId and other doesn't, they don't conflict
+            return false;
+          })
           .map((v) => v.scheduledAt);
 
-        console.log(`User has ${existingScheduledTimes.length} existing scheduled video(s)`);
+        console.log(`User has ${existingScheduledTimes.length} existing scheduled video(s) for this channel`);
 
         // Find available time slots
         let generatedForThisConfig = 0;
@@ -94,15 +118,24 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
 
           // Generate video for this time slot
           console.log(
-            `\n🎬 Generating video for ${scheduledTime.toISOString()}...`
+            `\n🎬 Generating ${language.toUpperCase()} video for ${scheduledTime.toISOString()}...`
           );
 
           try {
-            await generateAutoVideo(
-              config.userId,
-              config._id!.toString(),
-              scheduledTime
-            );
+            // Use appropriate generation function based on language
+            if (language === 'de') {
+              await generateAutoVideoDE(
+                config.userId,
+                config._id!.toString(),
+                scheduledTime
+              );
+            } else {
+              await generateAutoVideo(
+                config.userId,
+                config._id!.toString(),
+                scheduledTime
+              );
+            }
 
             result.generated++;
             result.scheduled++;
