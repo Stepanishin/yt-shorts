@@ -84,6 +84,8 @@ export async function autoPublishScheduledVideos() {
           description: video.description || `${video.title}\n\nGenerated with AI`,
           tags: finalTags,
           privacyStatus: finalPrivacyStatus,
+          channelId: video.youtubeChannelId, // Optional: use specific channel if specified
+          language: video.language || "es", // Use video language or default to Spanish
         });
 
         console.log(`✅ Video uploaded: ${result.videoUrl}`);

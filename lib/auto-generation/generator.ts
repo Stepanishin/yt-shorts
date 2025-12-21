@@ -208,6 +208,7 @@ export async function generateAutoVideo(
       scheduledAt,
       jokeId: joke._id!.toString(),
       language: "es",
+      youtubeChannelId: config.youtube.channelId, // Optional: use specific channel if configured
     });
 
     console.log(`Scheduled video ID: ${scheduledVideo.id}`);
@@ -682,6 +683,7 @@ export async function generateAutoVideoDE(
       scheduledAt,
       jokeId: joke._id!.toString(),
       language: "de",
+      youtubeChannelId: config.youtube.channelId, // Optional: use specific channel if configured
     });
 
     console.log(`[DE] Scheduled video ID: ${scheduledVideo.id}`);

@@ -11,6 +11,13 @@ interface PublishTime {
   isEnabled: boolean;
 }
 
+interface YouTubeChannel {
+  id: string;
+  title: string;
+  customUrl?: string;
+  thumbnailUrl?: string;
+}
+
 interface AutoGenConfig {
   _id?: string;
   isEnabled: boolean;
@@ -49,6 +56,7 @@ interface AutoGenConfig {
     titleTemplate?: string;
     descriptionTemplate?: string;
     useAI: boolean;
+    channelId?: string;
   };
   stats?: {
     totalGenerated: number;
@@ -68,12 +76,15 @@ export default function AutoGenerationDEPage() {
   const [resetting, setResetting] = useState(false);
   const [config, setConfig] = useState<AutoGenConfig | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [channels, setChannels] = useState<YouTubeChannel[]>([]);
+  const [loadingChannels, setLoadingChannels] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/");
     } else if (status === "authenticated") {
       loadConfig();
+      loadChannels();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router]);
@@ -133,6 +144,23 @@ export default function AutoGenerationDEPage() {
       showMessage("error", "Failed to load configuration");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadChannels = async () => {
+    setLoadingChannels(true);
+    try {
+      const response = await fetch("/api/youtube/channels");
+      const data = await response.json();
+
+      if (data.success && data.channels) {
+        setChannels(data.channels);
+      }
+    } catch (error) {
+      console.error("Error loading channels:", error);
+      // Не показываем ошибку пользователю - это опциональная функция
+    } finally {
+      setLoadingChannels(false);
     }
   };
 
@@ -541,6 +569,44 @@ export default function AutoGenerationDEPage() {
                 <option value="unlisted">Unlisted</option>
                 <option value="private">Private</option>
               </select>
+            </div>
+
+            {/* YouTube Channel Selection (optional, for users with multiple channels) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                YouTube Channel (Optional)
+              </label>
+              {loadingChannels ? (
+                <div className="text-sm text-gray-500">Loading channels...</div>
+              ) : channels.length > 0 ? (
+                <select
+                  value={config.youtube.channelId || ""}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      youtube: {
+                        ...config.youtube,
+                        channelId: e.target.value || undefined,
+                      },
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Default channel</option>
+                  {channels.map((channel) => (
+                    <option key={channel.id} value={channel.id}>
+                      {channel.title} {channel.customUrl ? `(${channel.customUrl})` : ""}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  No channels found. Connect YouTube in Settings first.
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Leave as "Default channel" if you have only one channel
+              </p>
             </div>
           </div>
 

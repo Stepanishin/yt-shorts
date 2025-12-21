@@ -30,6 +30,7 @@ export interface ScheduledVideo {
   errorMessage?: string;
   jokeId?: string; // ID анекдота, если видео создано из анекдота
   language?: "es" | "de"; // Язык шутки: es - испанский, de - немецкий
+  youtubeChannelId?: string; // Optional: specific YouTube channel ID (if user has multiple channels)
 }
 
 export interface User {

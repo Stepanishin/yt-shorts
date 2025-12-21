@@ -48,6 +48,7 @@ export interface YouTubeAutoSettingsDE {
   titleTemplate?: string; // Template with variables like {joke}
   descriptionTemplate?: string;
   useAI: boolean; // Generate title/description via AI (in German)
+  channelId?: string; // Optional: specific YouTube channel ID (if user has multiple channels)
 }
 
 export interface AutoGenerationStatsDE {

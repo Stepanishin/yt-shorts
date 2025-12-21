@@ -74,6 +74,8 @@ export interface UploadVideoOptions {
   tags?: string[];
   categoryId?: string;
   privacyStatus?: "private" | "public" | "unlisted";
+  channelId?: string; // Optional: specific YouTube channel ID (for users with multiple channels)
+  language?: "es" | "de" | string; // Optional: video language (defaults to "es" for backward compatibility)
 }
 
 export async function uploadVideoToYouTube(options: UploadVideoOptions) {
@@ -85,28 +87,38 @@ export async function uploadVideoToYouTube(options: UploadVideoOptions) {
     tags = [],
     categoryId = "23", // 23 = Comedy
     privacyStatus = "public",
+    channelId,
+    language = "es", // Default to Spanish for backward compatibility
   } = options;
 
   const fs = require("fs");
 
   try {
+    // Build request body
+    const requestBody: any = {
+      snippet: {
+        title,
+        description,
+        tags,
+        categoryId,
+        defaultLanguage: language,
+        defaultAudioLanguage: language,
+      },
+      status: {
+        privacyStatus,
+        selfDeclaredMadeForKids: false,
+      },
+    };
+
+    // If channelId is specified, upload to that specific channel
+    if (channelId) {
+      requestBody.snippet.channelId = channelId;
+    }
+
     const response = await youtube.videos.insert({
       auth: oauth2Client,
       part: ["snippet", "status"],
-      requestBody: {
-        snippet: {
-          title,
-          description,
-          tags,
-          categoryId,
-          defaultLanguage: "es",
-          defaultAudioLanguage: "es",
-        },
-        status: {
-          privacyStatus,
-          selfDeclaredMadeForKids: false,
-        },
-      },
+      requestBody,
       media: {
         body: fs.createReadStream(videoPath),
       },
@@ -167,4 +179,38 @@ export function setEncryptedCredentials(oauth2Client: OAuth2Client, encryptedAcc
   }
 
   oauth2Client.setCredentials(credentials);
+}
+
+/**
+ * Получает список YouTube каналов пользователя
+ */
+export interface YouTubeChannel {
+  id: string;
+  title: string;
+  customUrl?: string;
+  thumbnailUrl?: string;
+}
+
+export async function getUserYouTubeChannels(oauth2Client: OAuth2Client): Promise<YouTubeChannel[]> {
+  try {
+    const response = await youtube.channels.list({
+      auth: oauth2Client,
+      part: ["snippet", "contentDetails"],
+      mine: true,
+    });
+
+    if (!response.data.items || response.data.items.length === 0) {
+      return [];
+    }
+
+    return response.data.items.map((channel) => ({
+      id: channel.id!,
+      title: channel.snippet?.title || "Unnamed Channel",
+      customUrl: channel.snippet?.customUrl || undefined,
+      thumbnailUrl: channel.snippet?.thumbnails?.default?.url || undefined,
+    }));
+  } catch (error) {
+    console.error("Error fetching YouTube channels:", error);
+    throw error;
+  }
 }
