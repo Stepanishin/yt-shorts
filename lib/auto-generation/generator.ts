@@ -94,7 +94,9 @@ export async function generateAutoVideo(
         backgroundImageUrl = config.template.background.fallbackImageUrl;
         console.log(`Using fallback image: ${backgroundImageUrl}`);
       } else {
-        throw new Error("Unsplash failed and no fallback image configured");
+        // Use default placeholder image if no custom fallback is configured
+        backgroundImageUrl = "https://picsum.photos/1080/1920";
+        console.log(`Using default placeholder image: ${backgroundImageUrl}`);
       }
     }
 
@@ -574,7 +576,9 @@ export async function generateAutoVideoDE(
         backgroundImageUrl = config.template.background.fallbackImageUrl;
         console.log(`[DE] Using fallback image: ${backgroundImageUrl}`);
       } else {
-        throw new Error("[DE] Unsplash failed and no fallback image configured");
+        // Use default placeholder image if no custom fallback is configured
+        backgroundImageUrl = "https://picsum.photos/1080/1920";
+        console.log(`[DE] Using default placeholder image: ${backgroundImageUrl}`);
       }
     }
 
