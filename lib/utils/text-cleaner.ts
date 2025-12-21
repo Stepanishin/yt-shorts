@@ -84,6 +84,15 @@ export const cleanText = (
     cleaned = cleaned.replace(/&laquo;/g, "«");
     cleaned = cleaned.replace(/&raquo;/g, "»");
 
+    // Немецкие умлауты и специальные символы
+    cleaned = cleaned.replace(/&auml;/g, "ä");
+    cleaned = cleaned.replace(/&ouml;/g, "ö");
+    cleaned = cleaned.replace(/&uuml;/g, "ü");
+    cleaned = cleaned.replace(/&Auml;/g, "Ä");
+    cleaned = cleaned.replace(/&Ouml;/g, "Ö");
+    cleaned = cleaned.replace(/&Uuml;/g, "Ü");
+    cleaned = cleaned.replace(/&szlig;/g, "ß");
+
     // Декодируем числовые HTML-сущности (&#8211; -> –, &#8230; -> …, etc.)
     cleaned = cleaned.replace(/&#(\d+);/g, (match, dec) => {
       return String.fromCharCode(parseInt(dec, 10));

@@ -2,6 +2,7 @@ import { getScheduledVideosForPublishing, updateScheduledVideoStatus } from "@/l
 import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
 import { uploadVideoToYouTube } from "@/lib/youtube/youtube-client";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
+import { markJokeCandidateAsPublishedDE } from "@/lib/ingest-de/storage";
 import * as path from "path";
 import * as fs from "fs/promises";
 
@@ -102,14 +103,25 @@ export async function autoPublishScheduledVideos() {
           }
         }
 
-        // Обновляем статус анекдота
+        // Обновляем статус анекдота (для ES или DE шуток)
         if (video.jokeId && !video.jokeId.startsWith("constructor-")) {
           try {
-            await markJokeCandidateAsPublished({
-              id: video.jokeId,
-              youtubeVideoUrl: result.videoUrl,
-              youtubeVideoId: result.videoId,
-            });
+            // Используем правильную функцию в зависимости от языка
+            if (video.language === "de") {
+              console.log(`[DE] Marking joke ${video.jokeId} as published...`);
+              await markJokeCandidateAsPublishedDE({
+                id: video.jokeId,
+                youtubeVideoUrl: result.videoUrl,
+                youtubeVideoId: result.videoId,
+              });
+            } else {
+              // По умолчанию используем ES (испанский)
+              await markJokeCandidateAsPublished({
+                id: video.jokeId,
+                youtubeVideoUrl: result.videoUrl,
+                youtubeVideoId: result.videoId,
+              });
+            }
           } catch (error) {
             console.error("Failed to update joke status:", error);
           }
