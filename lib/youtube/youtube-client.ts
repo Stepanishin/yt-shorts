@@ -17,18 +17,18 @@ export interface OAuthCredentials {
 export function createOAuth2Client(userSettings?: YouTubeSettings): OAuth2Client {
   let clientId: string;
   let clientSecret: string;
-  let redirectUri: string;
+
+  // redirectUri ВСЕГДА берется из environment variables, так как это системная настройка окружения
+  const redirectUri = process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`;
 
   if (userSettings) {
-    // Use user-specific settings
+    // Use user-specific settings for credentials only
     clientId = userSettings.clientId;
     clientSecret = decrypt(userSettings.clientSecret);
-    redirectUri = userSettings.redirectUri;
   } else {
     // Fallback to environment variables for backward compatibility
     clientId = process.env.YOUTUBE_CLIENT_ID || "";
     clientSecret = process.env.YOUTUBE_CLIENT_SECRET || "";
-    redirectUri = process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`;
   }
 
   if (!clientId || !clientSecret) {

@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     // Если используются глобальные credentials, сохраняем их в настройки пользователя для будущего использования
     const globalClientId = process.env.YOUTUBE_CLIENT_ID || "";
     const globalClientSecret = process.env.YOUTUBE_CLIENT_SECRET || "";
-    const globalRedirectUri = process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`;
+    // redirectUri больше не сохраняется в БД - всегда берется из env
 
     // Убеждаемся, что у нас есть credentials (либо пользовательские, либо глобальные)
     if (!userSettings && (!globalClientId || !globalClientSecret)) {
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       // Используем пользовательские credentials, если они есть, иначе глобальные
       clientId: userSettings?.clientId || globalClientId,
       clientSecret: userSettings?.clientSecret || encrypt(globalClientSecret),
-      redirectUri: userSettings?.redirectUri || globalRedirectUri,
+      redirectUri: process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`, // Всегда из env
       accessToken: tokens.access_token ? encrypt(tokens.access_token) : user.youtubeSettings?.accessToken,
       refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : user.youtubeSettings?.refreshToken,
       tokenExpiresAt: expiresAt,
