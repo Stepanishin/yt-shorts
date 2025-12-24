@@ -1,5 +1,6 @@
 import { fetchJokeAPIRandomJoke } from "@/lib/sources-de/jokeapi";
 import { fetchAberwitzigCategory } from "@/lib/sources-de/aberwitzig";
+import { fetchProgrammwechselPage } from "@/lib/sources-de/programmwechsel";
 import { JokeCandidateDE, JokePreviewRequestDE, JokePreviewBundleDE } from "./types";
 
 export async function collectJokePreviewDE(
@@ -74,6 +75,40 @@ export async function collectJokePreviewDE(
       };
     } else {
       meta.aberwitzig = {
+        success: false,
+        error: result.error.message,
+        url: result.error.url,
+      };
+    }
+  }
+
+  // Fetch from Programmwechsel
+  if (request.programmwechsel?.enabled) {
+    const result = await fetchProgrammwechselPage({
+      pagePath: request.programmwechsel.pagePath,
+      baseUrl: request.programmwechsel.baseUrl,
+      timeoutMs: request.programmwechsel.timeoutMs,
+    });
+
+    if (result.ok) {
+      for (const joke of result.jokes) {
+        jokes.push({
+          source: "programmwechsel",
+          text: joke.text,
+          url: joke.url,
+          category: joke.category,
+          language: "de",
+        });
+      }
+      meta.programmwechsel = {
+        success: true,
+        url: result.meta.url,
+        pagePath: result.meta.pagePath,
+        durationMs: result.meta.durationMs,
+        jokesCount: result.jokes.length,
+      };
+    } else {
+      meta.programmwechsel = {
         success: false,
         error: result.error.message,
         url: result.error.url,

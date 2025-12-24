@@ -1,4 +1,4 @@
-export type JokeSourceDE = "jokeapi" | "aberwitzig";
+export type JokeSourceDE = "jokeapi" | "aberwitzig" | "programmwechsel";
 
 export interface JokeCandidateDE {
   source: JokeSourceDE;
@@ -28,6 +28,12 @@ export interface JokePreviewRequestDE {
     enabled?: boolean;
     category: string;
     part?: number;
+    baseUrl?: string;
+    timeoutMs?: number;
+  };
+  programmwechsel?: {
+    enabled?: boolean;
+    pagePath: string;
     baseUrl?: string;
     timeoutMs?: number;
   };

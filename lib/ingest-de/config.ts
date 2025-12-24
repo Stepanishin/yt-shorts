@@ -16,9 +16,19 @@ export interface AberwitzigIngestConfig {
   }>;
 }
 
+export interface ProgrammwechselIngestConfig {
+  enabled: boolean;
+  sources: Array<{
+    pagePath: string;
+    baseUrl?: string;
+    timeoutMs?: number;
+  }>;
+}
+
 export interface IngestConfigDE {
   jokeapi: JokeAPIIngestConfig;
   aberwitzig: AberwitzigIngestConfig;
+  programmwechsel: ProgrammwechselIngestConfig;
 }
 
 export const getDefaultIngestConfigDE = (): IngestConfigDE => ({
@@ -39,6 +49,12 @@ export const getDefaultIngestConfigDE = (): IngestConfigDE => ({
       { category: "schlechte-witze", part: 1 },
       { category: "antiwitze", part: 1 },
       { category: "kinderwitze", part: 1 },
+    ],
+  },
+  programmwechsel: {
+    enabled: true,
+    sources: [
+      { pagePath: "/lustig/humor/gute-witze.html" }, // Longer jokes (30-700 characters)
     ],
   },
 });

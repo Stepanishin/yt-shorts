@@ -88,6 +88,36 @@ export const runIngestDE = async (): Promise<RunIngestResultDE> => {
     meta.aberwitzig = aberwitzigMeta;
   }
 
+  // Fetch from Programmwechsel
+  if (config.programmwechsel.enabled) {
+    const jokes: JokeCandidateDE[] = [];
+    const programmwechselMeta: Record<string, unknown>[] = [];
+
+    console.log(`[DE] Fetching from ${config.programmwechsel.sources.length} Programmwechsel pages...`);
+    for (const source of config.programmwechsel.sources) {
+      console.log(`[DE] Fetching ${source.pagePath}...`);
+      const preview = await collectJokePreviewDE({
+        programmwechsel: {
+          enabled: true,
+          pagePath: source.pagePath,
+          baseUrl: source.baseUrl,
+          timeoutMs: source.timeoutMs,
+        },
+      });
+      jokes.push(...preview.jokes);
+      if (preview.meta.programmwechsel && typeof preview.meta.programmwechsel === "object") {
+        programmwechselMeta.push(preview.meta.programmwechsel as Record<string, unknown>);
+      }
+
+      // Small delay between requests
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    console.log(`[DE] Collected ${jokes.length} jokes from Programmwechsel`);
+    collected.push(...jokes);
+    meta.programmwechsel = programmwechselMeta;
+  }
+
   console.log(`[DE] Total collected: ${collected.length} jokes`);
   const { inserted } = await insertJokeCandidatesDE(collected);
   console.log(`[DE] Inserted: ${inserted} new jokes`);
