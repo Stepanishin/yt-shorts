@@ -29,7 +29,7 @@ export interface ScheduledVideo {
   youtubeVideoUrl?: string;
   errorMessage?: string;
   jokeId?: string; // ID анекдота, если видео создано из анекдота
-  language?: "es" | "de"; // Язык шутки: es - испанский, de - немецкий
+  language?: "es" | "de" | "pt"; // Язык шутки: es - испанский, de - немецкий, pt - португальский
   youtubeChannelId?: string; // Optional: specific YouTube channel ID (if user has multiple channels)
 }
 
