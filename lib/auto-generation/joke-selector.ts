@@ -2,6 +2,8 @@ import { getJokeCandidateCollection } from "@/lib/ingest/storage";
 import type { StoredJokeCandidate } from "@/lib/ingest/storage";
 import { getJokeCandidateCollectionDE } from "@/lib/ingest-de/storage";
 import type { StoredJokeCandidateDE } from "@/lib/ingest-de/storage";
+import { getJokeCandidateCollectionPT } from "@/lib/ingest-pt/storage";
+import type { StoredJokeCandidatePT } from "@/lib/ingest-pt/storage";
 
 /**
  * Select next available joke for auto-generation (Spanish)
@@ -174,6 +176,94 @@ export async function getAvailableJokesCountDE(): Promise<number> {
     return count;
   } catch (error) {
     console.error("[DE] Error counting available jokes:", error);
+    return 0;
+  }
+}
+
+/**
+ * Select next available Portuguese joke for auto-generation
+ * Returns a joke with status 'pending', marks it as 'reserved'
+ */
+export async function selectNextJokePT(): Promise<StoredJokeCandidatePT | null> {
+  try {
+    const collection = await getJokeCandidateCollectionPT();
+
+    // Debug: Check what jokes are actually available
+    const anyJoke = await collection.findOne({});
+    console.log("[PT] Sample joke from DB:", {
+      id: anyJoke?._id,
+      status: anyJoke?.status,
+      language: anyJoke?.language,
+      hasText: !!anyJoke?.text,
+    });
+
+    // Direct MongoDB query - simpler approach
+    console.log("[PT] Trying to reserve joke directly from MongoDB...");
+
+    const query = {
+      status: { $in: ["pending", null] as any },
+      language: "pt",
+    };
+
+    console.log("[PT] Query:", JSON.stringify(query));
+
+    // Find and update in one atomic operation
+    const result = await collection.findOneAndUpdate(
+      query,
+      {
+        $set: {
+          status: "reserved",
+          reservedAt: new Date(),
+        },
+      },
+      {
+        sort: { createdAt: 1 }, // Oldest first
+        returnDocument: "after",
+      }
+    );
+
+    console.log("[PT] FindOneAndUpdate result type:", typeof result);
+    console.log("[PT] FindOneAndUpdate result keys:", result ? Object.keys(result) : "null");
+    console.log("[PT] FindOneAndUpdate result:", {
+      found: !!result,
+      hasValue: !!result?.value,
+      hasOk: !!(result as any)?.ok,
+      directResult: !!result,
+      id: result?.value?._id || (result as any)?._id,
+    });
+
+    // Try different ways to access the result
+    const joke = result?.value || (result as any) || result;
+
+    if (!joke) {
+      console.warn("[PT] No jokes available for auto-generation");
+      return null;
+    }
+
+    console.log(`[PT] Selected joke: ${joke._id} - "${joke.text.substring(0, 50)}..."`);
+
+    return joke;
+  } catch (error) {
+    console.error("[PT] Error selecting joke:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get count of available Portuguese jokes for auto-generation
+ */
+export async function getAvailableJokesCountPT(): Promise<number> {
+  try {
+    const collection = await getJokeCandidateCollectionPT();
+
+    const count = await collection.countDocuments({
+      status: { $in: ["pending", undefined] },
+      language: "pt",
+    });
+
+    return count;
+  } catch (error) {
+    console.error("[PT] Error counting available jokes:", error);
     return 0;
   }
 }

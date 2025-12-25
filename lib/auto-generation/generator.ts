@@ -13,10 +13,18 @@ import {
   incrementGeneratedCountDE,
   AutoGenerationJobDE,
 } from "@/lib/db/auto-generation-de";
+import {
+  getAutoGenerationConfigPT,
+  createAutoGenerationJobPT,
+  updateJobStatusPT,
+  incrementGeneratedCountPT,
+  AutoGenerationJobPT,
+} from "@/lib/db/auto-generation-pt";
 import { addScheduledVideo } from "@/lib/db/users";
 import { markJokeCandidateStatus } from "@/lib/ingest/storage";
 import { markJokeCandidateStatusDE } from "@/lib/ingest-de/storage";
-import { selectNextJoke, getAvailableJokesCount, selectNextJokeDE, getAvailableJokesCountDE } from "./joke-selector";
+import { markJokeCandidateStatusPT } from "@/lib/ingest-pt/storage";
+import { selectNextJoke, getAvailableJokesCount, selectNextJokeDE, getAvailableJokesCountDE, selectNextJokePT, getAvailableJokesCountPT } from "./joke-selector";
 import { prepareAudioCut, selectRandomFromArray } from "./audio-processor";
 import { renderAutoVideo } from "./video-renderer";
 import { fetchUnsplashImage } from "@/lib/unsplash/client";
@@ -504,6 +512,124 @@ Lizenz: https://www.bensound.com/licensing`;
 }
 
 /**
+ * Generate video title for Portuguese jokes
+ * Format: catchy words about the joke in Portuguese + emojis + "Piada do dia"
+ */
+async function generateVideoTitlePT(
+  jokeText: string,
+  template?: string
+): Promise<string> {
+  if (template) {
+    return template.replace("{joke}", jokeText.substring(0, 100));
+  }
+
+  // Use AI to generate catchy title in Portuguese
+  try {
+    const OpenAI = (await import("openai")).default;
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const prompt = `Crie um título curto e atraente para YouTube Shorts com esta piada em português.
+
+Piada: ${jokeText}
+
+Requisitos:
+- Em português
+- Máximo 50 caracteres (sem contar emojis e "Piada do dia")
+- Palavras que chamem atenção sobre a piada
+- 2 emojis relacionados com riso/humor
+- No final deve dizer "Piada do dia"
+- Sem hashtags
+
+Formato: [Palavras impactantes] [2 emojis] Piada do dia
+
+Exemplos:
+- "Não vai acreditar nisso! 😂🤣 Piada do dia"
+- "A melhor piada 🤣😆 Piada do dia"
+- "Isso é incrível 😭😂 Piada do dia"
+
+Retorne APENAS o título, sem aspas ou explicações.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Você é um especialista em criar títulos virais para YouTube Shorts de comédia em português.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.9,
+      max_tokens: 100,
+    });
+
+    const title = response.choices[0]?.message?.content?.trim();
+
+    if (title && title.length <= 100) {
+      return title;
+    }
+  } catch (error) {
+    console.error("[PT] Failed to generate AI title, using fallback:", error);
+  }
+
+  // Fallback: simple title
+  const emojis = ["😂", "🤣"];
+  const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  const secondEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+  // Extract first few words from joke
+  const words = jokeText.split(/\s+/).slice(0, 5).join(" ");
+  return `${words} ${randomEmoji}${secondEmoji} Piada do dia`;
+}
+
+/**
+ * Generate video description for Portuguese jokes
+ * Includes music attribution for Bensound
+ */
+function generateVideoDescriptionPT(
+  jokeText: string,
+  template?: string,
+  audioUrl?: string | null
+): string {
+  let description = "";
+
+  if (template) {
+    description = template.replace("{joke}", jokeText);
+  } else {
+    // Default description
+    description = jokeText;
+  }
+
+  // Add music attribution if audio is used
+  if (audioUrl) {
+    // Extract track name from URL if possible, otherwise use generic
+    let trackName = "Track Name";
+    try {
+      const urlParts = audioUrl.split("/");
+      const fileName = urlParts[urlParts.length - 1].split("?")[0];
+      if (fileName && fileName.endsWith(".mp3")) {
+        trackName = fileName.replace(".mp3", "").replace(/[-_]/g, " ");
+        // Capitalize first letter of each word
+        trackName = trackName.split(" ")
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(" ");
+      }
+    } catch (e) {
+      // Use default track name
+    }
+
+    description += `\n\nMúsica: "${trackName}" por Bensound.com
+Licença: https://www.bensound.com/licensing`;
+  }
+
+  return description;
+}
+
+/**
  * Main function to generate auto video for German jokes
  * @param userId - User ID
  * @param configId - Auto-generation config ID
@@ -736,6 +862,245 @@ export async function generateAutoVideoDE(
       });
     } catch (updateError) {
       console.error(`[DE][${jobId}] Failed to update job status:`, updateError);
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Main function to generate auto video for Portuguese jokes
+ * @param userId - User ID
+ * @param configId - Auto-generation config ID
+ * @param scheduledAt - Scheduled publish time
+ * @returns Created job
+ */
+export async function generateAutoVideoPT(
+  userId: string,
+  configId: string,
+  scheduledAt: Date
+): Promise<AutoGenerationJobPT> {
+  const jobId = new ObjectId().toString();
+
+  console.log(`\n=== Starting Portuguese Auto Video Generation ===`);
+  console.log(`[PT] Job ID: ${jobId}`);
+  console.log(`[PT] User ID: ${userId}`);
+  console.log(`[PT] Config ID: ${configId}`);
+  console.log(`[PT] Scheduled At: ${scheduledAt.toISOString()}`);
+
+  try {
+    // 1. Get configuration
+    console.log(`[PT][${jobId}] Step 1: Fetching configuration...`);
+    const config = await getAutoGenerationConfigPT(userId);
+
+    if (!config) {
+      throw new Error("[PT] Auto-generation config not found");
+    }
+
+    if (!config.isEnabled) {
+      throw new Error("[PT] Auto-generation is disabled");
+    }
+
+    // 2. Check available jokes
+    console.log(`[PT][${jobId}] Step 2: Checking available Portuguese jokes...`);
+    const availableJokes = await getAvailableJokesCountPT();
+    console.log(`[PT] Available Portuguese jokes: ${availableJokes}`);
+
+    if (availableJokes === 0) {
+      throw new Error("[PT] No Portuguese jokes available for generation");
+    }
+
+    // 3. Reserve joke
+    console.log(`[PT][${jobId}] Step 3: Reserving Portuguese joke...`);
+    const joke = await selectNextJokePT();
+
+    if (!joke) {
+      throw new Error("[PT] Failed to reserve Portuguese joke");
+    }
+
+    const jokeText = joke.editedText || joke.text;
+    console.log(`[PT] Selected joke ID: ${joke._id}`);
+    console.log(`[PT] Joke text (${jokeText.length} chars): ${jokeText.substring(0, 100)}...`);
+
+    // 4. Get background from Unsplash
+    console.log(`[PT][${jobId}] Step 4: Fetching background image...`);
+    let backgroundImageUrl: string;
+
+    try {
+      const unsplashPhoto = await fetchUnsplashImage(
+        config.template.background.unsplashKeywords,
+        jokeText
+      );
+      backgroundImageUrl = unsplashPhoto.url;
+      console.log(`[PT] Unsplash image: ${backgroundImageUrl}`);
+      console.log(`[PT] Photographer: ${unsplashPhoto.photographer.name}`);
+    } catch (unsplashError) {
+      console.warn(`[PT] Unsplash failed, using fallback:`, unsplashError);
+
+      if (config.template.background.fallbackImageUrl) {
+        backgroundImageUrl = config.template.background.fallbackImageUrl;
+        console.log(`[PT] Using fallback image: ${backgroundImageUrl}`);
+      } else {
+        // Use default placeholder image if no custom fallback is configured
+        backgroundImageUrl = "https://picsum.photos/1080/1920";
+        console.log(`[PT] Using default placeholder image: ${backgroundImageUrl}`);
+      }
+    }
+
+    // 5. Select random GIF
+    console.log(`[PT][${jobId}] Step 5: Selecting GIF...`);
+    let gifUrl = selectRandomFromArray(config.template.gif.urls);
+
+    if (gifUrl) {
+      gifUrl = gifUrl.trim();
+    }
+
+    console.log(`[PT] Selected GIF: ${gifUrl || "None"}`);
+
+    // 6. Select and trim audio
+    console.log(`[PT][${jobId}] Step 6: Preparing audio...`);
+    let audioUrl = selectRandomFromArray(config.template.audio.urls);
+
+    if (audioUrl) {
+      audioUrl = audioUrl.trim();
+    }
+
+    console.log(`[PT] Selected audio: ${audioUrl || "None"}`);
+
+    let audioTrimStart: number | undefined;
+    let audioTrimEnd: number | undefined;
+
+    if (audioUrl) {
+      const isDirectAudioLink = /\.(mp3|wav|m4a|aac|ogg)(\?.*)?$/i.test(audioUrl);
+
+      if (!isDirectAudioLink) {
+        console.warn(`[PT] ⚠️ Audio URL is not a direct file link: ${audioUrl}`);
+        console.warn(`[PT] ⚠️ Continuing without audio...`);
+        audioUrl = null;
+      } else {
+        try {
+          const audioCut = await prepareAudioCut(
+            audioUrl,
+            config.template.audio.duration,
+            config.template.audio.randomTrim
+          );
+          audioTrimStart = audioCut.start;
+          audioTrimEnd = audioCut.end;
+          console.log(`[PT] Audio trim: ${audioTrimStart.toFixed(2)}s - ${audioTrimEnd.toFixed(2)}s`);
+        } catch (audioError) {
+          console.warn(`[PT] Audio processing failed:`, audioError);
+          audioUrl = null;
+        }
+      }
+    }
+
+    // 7. Create job in queue
+    console.log(`[PT][${jobId}] Step 7: Creating job in queue...`);
+    const job = await createAutoGenerationJobPT({
+      userId,
+      configId,
+      status: "processing",
+      jokeId: joke._id!.toString(),
+      jokeText,
+      selectedResources: {
+        backgroundImageUrl,
+        gifUrl: gifUrl || undefined,
+        audioUrl: audioUrl || undefined,
+        audioTrimStart,
+        audioTrimEnd,
+      },
+      retryCount: 0,
+    });
+
+    console.log(`[PT] Job created: ${job._id}`);
+
+    // 8. Render video
+    console.log(`[PT][${jobId}] Step 8: Rendering video...`);
+    const videoResult = await renderAutoVideo(
+      config.template,
+      jokeText,
+      backgroundImageUrl,
+      gifUrl,
+      audioUrl,
+      audioTrimStart,
+      audioTrimEnd,
+      jobId
+    );
+
+    console.log(`[PT] Video rendered: ${videoResult.videoUrl}`);
+    console.log(`[PT] Duration: ${videoResult.duration}s`);
+
+    // 9. Generate title and description
+    console.log(`[PT][${jobId}] Step 9: Generating Portuguese title and description...`);
+    const title = await generateVideoTitlePT(jokeText, config.youtube.titleTemplate);
+    const description = generateVideoDescriptionPT(
+      jokeText,
+      config.youtube.descriptionTemplate,
+      audioUrl
+    );
+
+    console.log(`[PT] Title: ${title}`);
+
+    // 10. Schedule video for publication
+    console.log(`[PT][${jobId}] Step 10: Scheduling video for publication...`);
+    const scheduledVideo = await addScheduledVideo(userId, {
+      videoUrl: videoResult.videoUrl,
+      title,
+      description,
+      tags: config.youtube.tags,
+      privacyStatus: config.youtube.privacyStatus,
+      scheduledAt,
+      jokeId: joke._id!.toString(),
+      language: "pt",
+      youtubeChannelId: config.youtube.channelId, // Optional: use specific channel if configured
+    });
+
+    console.log(`[PT] Scheduled video ID: ${scheduledVideo.id}`);
+    console.log(`[PT] Scheduled for: ${scheduledAt.toISOString()}`);
+
+    // 11. Mark joke as reserved
+    await markJokeCandidateStatusPT({
+      id: joke._id!,
+      status: "reserved",
+      notes: `[PT] Auto-generated video scheduled for ${scheduledAt.toISOString()}`,
+    });
+
+    // 12. Update job status
+    console.log(`[PT][${jobId}] Step 11: Updating job status...`);
+    await updateJobStatusPT(job._id!, "completed", {
+      results: {
+        renderedVideoUrl: videoResult.videoUrl,
+        scheduledVideoId: scheduledVideo.id,
+        scheduledAt,
+      },
+    });
+
+    // 13. Update config stats
+    console.log(`[PT][${jobId}] Step 12: Updating stats...`);
+    await incrementGeneratedCountPT(new ObjectId(configId));
+
+    console.log(`[PT] === Portuguese Auto Video Generation Completed Successfully ===\n`);
+
+    return {
+      ...job,
+      status: "completed",
+      results: {
+        renderedVideoUrl: videoResult.videoUrl,
+        scheduledVideoId: scheduledVideo.id,
+        scheduledAt,
+      },
+    };
+  } catch (error) {
+    console.error(`[PT][${jobId}] ERROR in auto-generation:`, error);
+
+    try {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      await updateJobStatusPT(new ObjectId(jobId), "failed", {
+        errorMessage,
+      });
+    } catch (updateError) {
+      console.error(`[PT][${jobId}] Failed to update job status:`, updateError);
     }
 
     throw error;

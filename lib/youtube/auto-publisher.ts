@@ -3,6 +3,7 @@ import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
 import { uploadVideoToYouTube } from "@/lib/youtube/youtube-client";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 import { markJokeCandidateAsPublishedDE } from "@/lib/ingest-de/storage";
+import { markJokeCandidateAsPublishedPT } from "@/lib/ingest-pt/storage";
 import * as path from "path";
 import * as fs from "fs/promises";
 
@@ -105,13 +106,20 @@ export async function autoPublishScheduledVideos() {
           }
         }
 
-        // Обновляем статус анекдота (для ES или DE шуток)
+        // Обновляем статус анекдота (для ES, DE или PT шуток)
         if (video.jokeId && !video.jokeId.startsWith("constructor-")) {
           try {
             // Используем правильную функцию в зависимости от языка
             if (video.language === "de") {
               console.log(`[DE] Marking joke ${video.jokeId} as published...`);
               await markJokeCandidateAsPublishedDE({
+                id: video.jokeId,
+                youtubeVideoUrl: result.videoUrl,
+                youtubeVideoId: result.videoId,
+              });
+            } else if (video.language === "pt") {
+              console.log(`[PT] Marking joke ${video.jokeId} as published...`);
+              await markJokeCandidateAsPublishedPT({
                 id: video.jokeId,
                 youtubeVideoUrl: result.videoUrl,
                 youtubeVideoId: result.videoId,

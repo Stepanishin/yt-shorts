@@ -75,7 +75,7 @@ export interface UploadVideoOptions {
   categoryId?: string;
   privacyStatus?: "private" | "public" | "unlisted";
   channelId?: string; // Optional: specific YouTube channel ID (for users with multiple channels)
-  language?: "es" | "de" | string; // Optional: video language (defaults to "es" for backward compatibility)
+  language?: "es" | "de" | "pt" | string; // Optional: video language (defaults to "es" for backward compatibility)
 }
 
 export async function uploadVideoToYouTube(options: UploadVideoOptions) {
