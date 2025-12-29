@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import {
-  getAutoGenerationConfigDE,
-  saveAutoGenerationConfigDE,
-  deleteAutoGenerationConfigDE,
-  AutoGenerationConfigDE,
-} from "@/lib/db/auto-generation-de";
+  getAutoGenerationConfigPT,
+  saveAutoGenerationConfigPT,
+  deleteAutoGenerationConfigPT,
+  AutoGenerationConfigPT,
+} from "@/lib/db/auto-generation-pt";
 import { getUserByGoogleId } from "@/lib/db/users";
 
 /**
- * GET /api/auto-generation-de/config
- * Get current auto-generation configuration for German videos
+ * GET /api/auto-generation-pt/config
+ * Get current auto-generation configuration for Portuguese videos
  */
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const config = await getAutoGenerationConfigDE(user._id!.toString());
+    const config = await getAutoGenerationConfigPT(user._id!.toString());
 
     // Migration: Update old color values and duration to new defaults
     let needsMigration = false;
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         };
 
         // Save migrated config back to database
-        await saveAutoGenerationConfigDE(migratedConfig);
+        await saveAutoGenerationConfigPT(migratedConfig);
       }
     }
 
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       config,
     });
   } catch (error) {
-    console.error("Error fetching auto-generation-de config:", error);
+    console.error("Error fetching auto-generation-pt config:", error);
     return NextResponse.json(
       { error: "Failed to fetch configuration" },
       { status: 500 }
@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/auto-generation-de/config
- * Create or update auto-generation configuration for German videos
+ * POST /api/auto-generation-pt/config
+ * Create or update auto-generation configuration for Portuguese videos
  */
 export async function POST(request: NextRequest) {
   try {
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get existing config to preserve _id
-    const existingConfig = await getAutoGenerationConfigDE(user._id!.toString());
+    const existingConfig = await getAutoGenerationConfigPT(user._id!.toString());
 
     // Prepare template with migration for old color values
     const templateBase = body.template ?? existingConfig?.template ?? {
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
       configData._id = existingConfig._id;
     }
 
-    const savedConfig = await saveAutoGenerationConfigDE(configData);
+    const savedConfig = await saveAutoGenerationConfigPT(configData);
 
     return NextResponse.json({
       success: true,
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
         : "Configuration created successfully",
     });
   } catch (error) {
-    console.error("Error saving auto-generation-de config:", error);
+    console.error("Error saving auto-generation-pt config:", error);
     return NextResponse.json(
       { error: "Failed to save configuration" },
       { status: 500 }
@@ -230,8 +230,8 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * DELETE /api/auto-generation-de/config
- * Delete auto-generation configuration for German videos
+ * DELETE /api/auto-generation-pt/config
+ * Delete auto-generation configuration for Portuguese videos
  */
 export async function DELETE(request: NextRequest) {
   try {
@@ -247,7 +247,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const deleted = await deleteAutoGenerationConfigDE(user._id!.toString());
+    const deleted = await deleteAutoGenerationConfigPT(user._id!.toString());
 
     if (!deleted) {
       return NextResponse.json(
@@ -261,7 +261,7 @@ export async function DELETE(request: NextRequest) {
       message: "Configuration deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting auto-generation-de config:", error);
+    console.error("Error deleting auto-generation-pt config:", error);
     return NextResponse.json(
       { error: "Failed to delete configuration" },
       { status: 500 }
