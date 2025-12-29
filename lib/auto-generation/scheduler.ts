@@ -1,11 +1,12 @@
 import { getActiveAutoGenerationConfigs } from "@/lib/db/auto-generation";
 import { getActiveAutoGenerationConfigsDE } from "@/lib/db/auto-generation-de";
+import { getActiveAutoGenerationConfigsPT } from "@/lib/db/auto-generation-pt";
 import { getScheduledVideos } from "@/lib/db/users";
 import {
   getScheduledTimesAhead,
   isTimeSlotAvailable,
 } from "./schedule-calculator";
-import { generateAutoVideo, generateAutoVideoDE } from "./generator";
+import { generateAutoVideo, generateAutoVideoDE, generateAutoVideoPT } from "./generator";
 
 export interface AutoGenerationResult {
   generated: number;
@@ -31,17 +32,19 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
   };
 
   try {
-    // Get all active configurations (both ES and DE)
+    // Get all active configurations (ES, DE, and PT)
     const activeConfigsES = await getActiveAutoGenerationConfigs();
     const activeConfigsDE = await getActiveAutoGenerationConfigsDE();
+    const activeConfigsPT = await getActiveAutoGenerationConfigsPT();
 
     // Combine configs with language marker
     const allConfigs = [
       ...activeConfigsES.map(config => ({ config, language: 'es' as const })),
       ...activeConfigsDE.map(config => ({ config, language: 'de' as const })),
+      ...activeConfigsPT.map(config => ({ config, language: 'pt' as const })),
     ];
 
-    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES, ${activeConfigsDE.length} DE)`);
+    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES, ${activeConfigsDE.length} DE, ${activeConfigsPT.length} PT)`);
 
     if (allConfigs.length === 0) {
       console.log("No active configurations found");
@@ -125,6 +128,12 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
             // Use appropriate generation function based on language
             if (language === 'de') {
               await generateAutoVideoDE(
+                config.userId,
+                config._id!.toString(),
+                scheduledTime
+              );
+            } else if (language === 'pt') {
+              await generateAutoVideoPT(
                 config.userId,
                 config._id!.toString(),
                 scheduledTime
