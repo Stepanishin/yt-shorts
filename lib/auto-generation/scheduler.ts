@@ -1,12 +1,13 @@
 import { getActiveAutoGenerationConfigs } from "@/lib/db/auto-generation";
 import { getActiveAutoGenerationConfigsDE } from "@/lib/db/auto-generation-de";
 import { getActiveAutoGenerationConfigsPT } from "@/lib/db/auto-generation-pt";
+import { getActiveAutoGenerationConfigsFR } from "@/lib/db/auto-generation-fr";
 import { getScheduledVideos } from "@/lib/db/users";
 import {
   getScheduledTimesAhead,
   isTimeSlotAvailable,
 } from "./schedule-calculator";
-import { generateAutoVideo, generateAutoVideoDE, generateAutoVideoPT } from "./generator";
+import { generateAutoVideo, generateAutoVideoDE, generateAutoVideoPT, generateAutoVideoFR } from "./generator";
 
 export interface AutoGenerationResult {
   generated: number;
@@ -32,19 +33,21 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
   };
 
   try {
-    // Get all active configurations (ES, DE, and PT)
+    // Get all active configurations (ES, DE, PT, and FR)
     const activeConfigsES = await getActiveAutoGenerationConfigs();
     const activeConfigsDE = await getActiveAutoGenerationConfigsDE();
     const activeConfigsPT = await getActiveAutoGenerationConfigsPT();
+    const activeConfigsFR = await getActiveAutoGenerationConfigsFR();
 
     // Combine configs with language marker
     const allConfigs = [
       ...activeConfigsES.map(config => ({ config, language: 'es' as const })),
       ...activeConfigsDE.map(config => ({ config, language: 'de' as const })),
       ...activeConfigsPT.map(config => ({ config, language: 'pt' as const })),
+      ...activeConfigsFR.map(config => ({ config, language: 'fr' as const })),
     ];
 
-    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES, ${activeConfigsDE.length} DE, ${activeConfigsPT.length} PT)`);
+    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES, ${activeConfigsDE.length} DE, ${activeConfigsPT.length} PT, ${activeConfigsFR.length} FR)`);
 
     if (allConfigs.length === 0) {
       console.log("No active configurations found");
@@ -134,6 +137,12 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
               );
             } else if (language === 'pt') {
               await generateAutoVideoPT(
+                config.userId,
+                config._id!.toString(),
+                scheduledTime
+              );
+            } else if (language === 'fr') {
+              await generateAutoVideoFR(
                 config.userId,
                 config._id!.toString(),
                 scheduledTime

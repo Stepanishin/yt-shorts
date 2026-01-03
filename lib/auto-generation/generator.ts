@@ -20,11 +20,19 @@ import {
   incrementGeneratedCountPT,
   AutoGenerationJobPT,
 } from "@/lib/db/auto-generation-pt";
+import {
+  getAutoGenerationConfigFR,
+  createAutoGenerationJobFR,
+  updateJobStatusFR,
+  incrementGeneratedCountFR,
+  AutoGenerationJobFR,
+} from "@/lib/db/auto-generation-fr";
 import { addScheduledVideo } from "@/lib/db/users";
 import { markJokeCandidateStatus } from "@/lib/ingest/storage";
 import { markJokeCandidateStatusDE } from "@/lib/ingest-de/storage";
 import { markJokeCandidateStatusPT } from "@/lib/ingest-pt/storage";
-import { selectNextJoke, getAvailableJokesCount, selectNextJokeDE, getAvailableJokesCountDE, selectNextJokePT, getAvailableJokesCountPT } from "./joke-selector";
+import { markJokeCandidateStatusFR } from "@/lib/ingest-fr/storage";
+import { selectNextJoke, getAvailableJokesCount, selectNextJokeDE, getAvailableJokesCountDE, selectNextJokePT, getAvailableJokesCountPT, selectNextJokeFR, getAvailableJokesCountFR } from "./joke-selector";
 import { prepareAudioCut, selectRandomFromArray } from "./audio-processor";
 import { renderAutoVideo } from "./video-renderer";
 import { fetchUnsplashImage } from "@/lib/unsplash/client";
@@ -1101,6 +1109,363 @@ export async function generateAutoVideoPT(
       });
     } catch (updateError) {
       console.error(`[PT][${jobId}] Failed to update job status:`, updateError);
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Generate video title for French jokes
+ * Format: catchy words about the joke in French + emojis + "Blague du jour"
+ */
+async function generateVideoTitleFR(
+  jokeText: string,
+  template?: string
+): Promise<string> {
+  if (template) {
+    return template.replace("{joke}", jokeText.substring(0, 100));
+  }
+
+  // Use AI to generate catchy title in French
+  try {
+    const OpenAI = (await import("openai")).default;
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const prompt = `Crée un titre court et accrocheur pour YouTube Shorts avec cette blague en français.
+
+Blague: ${jokeText}
+
+Exigences:
+- En français
+- Maximum 50 caractères (sans compter les emojis et "Blague du jour")
+- Mots accrocheurs sur la blague
+- 2 emojis liés au rire/humour
+- À la fin doit dire "Blague du jour"
+- Pas de hashtags
+
+Format: [Mots accrocheurs] [2 emojis] Blague du jour
+
+Exemples:
+- "Tu ne vas pas le croire! 😂🤣 Blague du jour"
+- "La meilleure blague 🤣😆 Blague du jour"
+- "C'est incroyable 😭😂 Blague du jour"
+
+Renvoie UNIQUEMENT le titre, sans guillemets ni explications.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Tu es un expert en création de titres viraux pour YouTube Shorts de comédie en français.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.9,
+      max_tokens: 100,
+    });
+
+    const title = response.choices[0]?.message?.content?.trim();
+
+    if (title && title.length <= 100) {
+      return title;
+    }
+  } catch (error) {
+    console.error("[FR] Failed to generate AI title, using fallback:", error);
+  }
+
+  // Fallback: simple title
+  const emojis = ["😂", "🤣"];
+  const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  const secondEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+  // Extract first few words from joke
+  const words = jokeText.split(/\s+/).slice(0, 5).join(" ");
+  return `${words} ${randomEmoji}${secondEmoji} Blague du jour`;
+}
+
+/**
+ * Generate video description for French jokes
+ * Includes music attribution for Bensound
+ */
+function generateVideoDescriptionFR(
+  jokeText: string,
+  template?: string,
+  audioUrl?: string | null
+): string {
+  let description = "";
+
+  if (template) {
+    description = template.replace("{joke}", jokeText);
+  } else {
+    // Default description
+    description = jokeText;
+  }
+
+  // Add music attribution if audio is used
+  if (audioUrl) {
+    // Extract track name from URL if possible, otherwise use generic
+    let trackName = "Track Name";
+    try {
+      const urlParts = audioUrl.split("/");
+      const fileName = urlParts[urlParts.length - 1].split("?")[0];
+      if (fileName && fileName.endsWith(".mp3")) {
+        trackName = fileName.replace(".mp3", "").replace(/[-_]/g, " ");
+        // Capitalize first letter of each word
+        trackName = trackName.split(" ")
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(" ");
+      }
+    } catch (e) {
+      // Use default track name
+    }
+
+    description += `\n\nMusique: "${trackName}" par Bensound.com
+Licence: https://www.bensound.com/licensing`;
+  }
+
+  return description;
+}
+
+/**
+ * Main function to generate auto video for French jokes
+ * @param userId - User ID
+ * @param configId - Auto-generation config ID
+ * @param scheduledAt - Scheduled publish time
+ * @returns Created job
+ */
+export async function generateAutoVideoFR(
+  userId: string,
+  configId: string,
+  scheduledAt: Date
+): Promise<AutoGenerationJobFR> {
+  const jobId = new ObjectId().toString();
+
+  console.log(`\n=== Starting French Auto Video Generation ===`);
+  console.log(`[FR] Job ID: ${jobId}`);
+  console.log(`[FR] User ID: ${userId}`);
+  console.log(`[FR] Config ID: ${configId}`);
+  console.log(`[FR] Scheduled At: ${scheduledAt.toISOString()}`);
+
+  try {
+    // 1. Get configuration
+    console.log(`[FR][${jobId}] Step 1: Fetching configuration...`);
+    const config = await getAutoGenerationConfigFR(userId);
+
+    if (!config) {
+      throw new Error("[FR] Auto-generation config not found");
+    }
+
+    if (!config.isEnabled) {
+      throw new Error("[FR] Auto-generation is disabled");
+    }
+
+    // 2. Check available jokes
+    console.log(`[FR][${jobId}] Step 2: Checking available French jokes...`);
+    const availableJokes = await getAvailableJokesCountFR();
+    console.log(`[FR] Available French jokes: ${availableJokes}`);
+
+    if (availableJokes === 0) {
+      throw new Error("[FR] No French jokes available for generation");
+    }
+
+    // 3. Reserve joke
+    console.log(`[FR][${jobId}] Step 3: Reserving French joke...`);
+    const joke = await selectNextJokeFR();
+
+    if (!joke) {
+      throw new Error("[FR] Failed to reserve French joke");
+    }
+
+    const jokeText = joke.editedText || joke.text;
+    console.log(`[FR] Selected joke ID: ${joke._id}`);
+    console.log(`[FR] Joke text (${jokeText.length} chars): ${jokeText.substring(0, 100)}...`);
+
+    // 4. Get background from Unsplash
+    console.log(`[FR][${jobId}] Step 4: Fetching background image...`);
+    let backgroundImageUrl: string;
+
+    try {
+      const unsplashPhoto = await fetchUnsplashImage(
+        config.template.background.unsplashKeywords,
+        jokeText
+      );
+      backgroundImageUrl = unsplashPhoto.url;
+      console.log(`[FR] Unsplash image: ${backgroundImageUrl}`);
+      console.log(`[FR] Photographer: ${unsplashPhoto.photographer.name}`);
+    } catch (unsplashError) {
+      console.warn(`[FR] Unsplash failed, using fallback:`, unsplashError);
+
+      if (config.template.background.fallbackImageUrl) {
+        backgroundImageUrl = config.template.background.fallbackImageUrl;
+        console.log(`[FR] Using fallback image: ${backgroundImageUrl}`);
+      } else {
+        // Use default placeholder image if no custom fallback is configured
+        backgroundImageUrl = "https://picsum.photos/1080/1920";
+        console.log(`[FR] Using default placeholder image: ${backgroundImageUrl}`);
+      }
+    }
+
+    // 5. Select random GIF
+    console.log(`[FR][${jobId}] Step 5: Selecting GIF...`);
+    let gifUrl = selectRandomFromArray(config.template.gif.urls);
+
+    if (gifUrl) {
+      gifUrl = gifUrl.trim();
+    }
+
+    console.log(`[FR] Selected GIF: ${gifUrl || "None"}`);
+
+    // 6. Select and trim audio
+    console.log(`[FR][${jobId}] Step 6: Preparing audio...`);
+    let audioUrl = selectRandomFromArray(config.template.audio.urls);
+
+    if (audioUrl) {
+      audioUrl = audioUrl.trim();
+    }
+
+    console.log(`[FR] Selected audio: ${audioUrl || "None"}`);
+
+    let audioTrimStart: number | undefined;
+    let audioTrimEnd: number | undefined;
+
+    if (audioUrl) {
+      const isDirectAudioLink = /\.(mp3|wav|m4a|aac|ogg)(\?.*)?$/i.test(audioUrl);
+
+      if (!isDirectAudioLink) {
+        console.warn(`[FR] ⚠️ Audio URL is not a direct file link: ${audioUrl}`);
+        console.warn(`[FR] ⚠️ Continuing without audio...`);
+        audioUrl = null;
+      } else {
+        try {
+          const audioCut = await prepareAudioCut(
+            audioUrl,
+            config.template.audio.duration,
+            config.template.audio.randomTrim
+          );
+          audioTrimStart = audioCut.start;
+          audioTrimEnd = audioCut.end;
+          console.log(`[FR] Audio trim: ${audioTrimStart.toFixed(2)}s - ${audioTrimEnd.toFixed(2)}s`);
+        } catch (audioError) {
+          console.warn(`[FR] Audio processing failed:`, audioError);
+          audioUrl = null;
+        }
+      }
+    }
+
+    // 7. Create job in queue
+    console.log(`[FR][${jobId}] Step 7: Creating job in queue...`);
+    const job = await createAutoGenerationJobFR({
+      userId,
+      configId,
+      status: "processing",
+      jokeId: joke._id!.toString(),
+      jokeText,
+      selectedResources: {
+        backgroundImageUrl,
+        gifUrl: gifUrl || undefined,
+        audioUrl: audioUrl || undefined,
+        audioTrimStart,
+        audioTrimEnd,
+      },
+      retryCount: 0,
+    });
+
+    console.log(`[FR] Job created: ${job._id}`);
+
+    // 8. Render video
+    console.log(`[FR][${jobId}] Step 8: Rendering video...`);
+    const videoResult = await renderAutoVideo(
+      config.template,
+      jokeText,
+      backgroundImageUrl,
+      gifUrl,
+      audioUrl,
+      audioTrimStart,
+      audioTrimEnd,
+      jobId
+    );
+
+    console.log(`[FR] Video rendered: ${videoResult.videoUrl}`);
+    console.log(`[FR] Duration: ${videoResult.duration}s`);
+
+    // 9. Generate title and description
+    console.log(`[FR][${jobId}] Step 9: Generating French title and description...`);
+    const title = await generateVideoTitleFR(jokeText, config.youtube.titleTemplate);
+    const description = generateVideoDescriptionFR(
+      jokeText,
+      config.youtube.descriptionTemplate,
+      audioUrl
+    );
+
+    console.log(`[FR] Title: ${title}`);
+
+    // 10. Schedule video for publication
+    console.log(`[FR][${jobId}] Step 10: Scheduling video for publication...`);
+    const scheduledVideo = await addScheduledVideo(userId, {
+      videoUrl: videoResult.videoUrl,
+      title,
+      description,
+      tags: config.youtube.tags,
+      privacyStatus: config.youtube.privacyStatus,
+      scheduledAt,
+      jokeId: joke._id!.toString(),
+      language: "fr",
+      youtubeChannelId: config.youtube.channelId, // Optional: use specific channel if configured
+    });
+
+    console.log(`[FR] Scheduled video ID: ${scheduledVideo.id}`);
+    console.log(`[FR] Scheduled for: ${scheduledAt.toISOString()}`);
+
+    // 11. Mark joke as reserved
+    await markJokeCandidateStatusFR({
+      id: joke._id!,
+      status: "reserved",
+      notes: `[FR] Auto-generated video scheduled for ${scheduledAt.toISOString()}`,
+    });
+
+    // 12. Update job status
+    console.log(`[FR][${jobId}] Step 11: Updating job status...`);
+    await updateJobStatusFR(job._id!, "completed", {
+      results: {
+        renderedVideoUrl: videoResult.videoUrl,
+        scheduledVideoId: scheduledVideo.id,
+        scheduledAt,
+      },
+    });
+
+    // 13. Update config stats
+    console.log(`[FR][${jobId}] Step 12: Updating stats...`);
+    await incrementGeneratedCountFR(new ObjectId(configId));
+
+    console.log(`[FR] === French Auto Video Generation Completed Successfully ===\n`);
+
+    return {
+      ...job,
+      status: "completed",
+      results: {
+        renderedVideoUrl: videoResult.videoUrl,
+        scheduledVideoId: scheduledVideo.id,
+        scheduledAt,
+      },
+    };
+  } catch (error) {
+    console.error(`[FR][${jobId}] ERROR in auto-generation:`, error);
+
+    try {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      await updateJobStatusFR(new ObjectId(jobId), "failed", {
+        errorMessage,
+      });
+    } catch (updateError) {
+      console.error(`[FR][${jobId}] Failed to update job status:`, updateError);
     }
 
     throw error;
