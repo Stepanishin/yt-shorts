@@ -37,8 +37,8 @@ export const getDefaultIngestConfigFR = (): IngestConfigFR => ({
   blagueDrole: {
     enabled: true,
     sources: [
-      { page: 1 }, // Main page with latest jokes
-      { category: "histoire-drole", page: 1 }, // Funny stories - working well
+      {}, // Main page with latest jokes - page will be tracked in DB
+      { category: "histoire-drole" }, // Funny stories - working well
     ],
   },
   blaguesEnStock: {
@@ -54,13 +54,13 @@ export const getDefaultIngestConfigFR = (): IngestConfigFR => ({
   blagueHumour: {
     enabled: true,
     sources: [
-      { page: 1 }, // Main page
-      { category: "blague-toto", page: 1 }, // Toto jokes (very popular)
-      { category: "blague-courtes-droles", page: 1 }, // Short funny jokes
-      { category: "blagues-beaufs", page: 1 }, // Redneck jokes
-      { category: "blagues-chuck-norris", page: 1 }, // Chuck Norris jokes
-      { category: "blagues-de-papa", page: 1 }, // Dad jokes
-      { category: "blagues-travail", page: 1 }, // Work jokes
+      {}, // Main page - page will be tracked in DB
+      { category: "blague-toto" }, // Toto jokes (very popular)
+      { category: "blague-courtes-droles" }, // Short funny jokes
+      { category: "blagues-beaufs" }, // Redneck jokes
+      { category: "blagues-chuck-norris" }, // Chuck Norris jokes
+      { category: "blagues-de-papa" }, // Dad jokes
+      { category: "blagues-travail" }, // Work jokes
     ],
   },
 });

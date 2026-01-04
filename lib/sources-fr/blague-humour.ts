@@ -146,59 +146,125 @@ const parseJokesFromHtml = (html: string, url: string, category?: string): Blagu
   const $ = load(html);
   const results: BlagueHumourJoke[] = [];
 
-  // blague-humour.com structure: each joke is in an article element
-  $("article").each((index, element) => {
-    const $article = $(element);
+  // blague-humour.com structure: try multiple approaches
 
-    // Extract title from h3 > a or h2 > a
-    const $titleLink = $article.find("h3 a, h2 a").first();
-    const title = $titleLink.text().trim();
-    const jokeUrl = $titleLink.attr("href") || "";
+  // Approach 1: Look for article elements
+  let $jokeElements = $("article");
 
-    // Extract joke text from paragraphs (excluding title)
-    let jokeText = "";
+  // Approach 2: If no articles, look for h2/h3 > a pattern (title links)
+  if ($jokeElements.length === 0) {
+    // Find all title links and treat each as a joke container
+    $("h2 a, h3 a").each((i, titleLink) => {
+      const $titleLink = $(titleLink);
+      const jokeUrl = $titleLink.attr("href") || "";
+      const title = $titleLink.text().trim();
 
-    // Get all text content after the title
-    $article.find("p").each((i, p) => {
-      const text = $(p).text().trim();
-      if (text && !text.includes("Cliquez ici")) {
-        jokeText += text + "\n";
+      // Skip if not a joke URL
+      if (!jokeUrl || jokeUrl.includes("/page/") || jokeUrl === "#") return;
+
+      // Find paragraphs that follow this heading (siblings)
+      let jokeText = "";
+      let $current = $titleLink.closest("h2, h3").next();
+
+      // Collect following paragraphs until we hit another heading or end
+      while ($current.length > 0 && !$current.is("h2, h3")) {
+        if ($current.is("p")) {
+          const text = $current.text().trim();
+          if (text && !text.includes("Cliquez ici") && !text.includes("J'ai ri")) {
+            jokeText += text + "\n";
+          }
+        }
+        $current = $current.next();
+
+        // Safety: stop after 10 elements
+        if ($current.prevAll().length > 10) break;
       }
+
+      jokeText = cleanJokeHtml(jokeText.trim());
+
+      // Extract ID from URL slug (e.g., /blague-toto/toto-maths-2/ -> use hash of URL)
+      let jokeId: string | undefined;
+      const slugMatch = jokeUrl.match(/\/([^\/]+)\/?$/);
+      if (slugMatch) {
+        // Use slug as ID, or extract numbers if present
+        const slug = slugMatch[1];
+        const numberMatch = slug.match(/-(\d+)$/);
+        jokeId = numberMatch ? numberMatch[1] : slug;
+      }
+
+      const cleanTitle = title.replace(/^#\d+\s*-\s*/, "").trim();
+
+      // Filter criteria
+      if (jokeText.length < 20) return;
+      if (jokeText.length > 1000) return;
+      if (!jokeText || !cleanTitle) return;
+
+      if (
+        jokeText.includes("blague-humour.com") ||
+        jokeText.toLowerCase().includes("navigation") ||
+        jokeText.toLowerCase().includes("publicit")
+      ) {
+        return;
+      }
+
+      results.push({
+        text: jokeText,
+        url: jokeUrl.startsWith("http") ? jokeUrl : `${BASE_URL}${jokeUrl}`,
+        title: cleanTitle,
+        category: category,
+        id: jokeId,
+      });
     });
+  } else {
+    // Original approach with article elements
+    $jokeElements.each((index, element) => {
+      const $article = $(element);
+      const $titleLink = $article.find("h3 a, h2 a").first();
+      const title = $titleLink.text().trim();
+      const jokeUrl = $titleLink.attr("href") || "";
 
-    jokeText = cleanJokeHtml(jokeText.trim());
+      let jokeText = "";
+      $article.find("p").each((i, p) => {
+        const text = $(p).text().trim();
+        if (text && !text.includes("Cliquez ici") && !text.includes("J'ai ri")) {
+          jokeText += text + "\n";
+        }
+      });
 
-    // Extract ID from title (format: "#3784 - Title")
-    const idMatch = title.match(/^#(\d+)/);
-    const jokeId = idMatch ? idMatch[1] : undefined;
+      jokeText = cleanJokeHtml(jokeText.trim());
 
-    // Clean title (remove ID prefix)
-    const cleanTitle = title.replace(/^#\d+\s*-\s*/, "").trim();
+      // Extract ID from URL slug
+      let jokeId: string | undefined;
+      const slugMatch = jokeUrl.match(/\/([^\/]+)\/?$/);
+      if (slugMatch) {
+        const slug = slugMatch[1];
+        const numberMatch = slug.match(/-(\d+)$/);
+        jokeId = numberMatch ? numberMatch[1] : slug;
+      }
 
-    // Filter criteria
-    if (jokeText.length < 20) return; // Skip very short texts
-    if (jokeText.length > 1000) return; // Skip very long texts
+      const cleanTitle = title.replace(/^#\d+\s*-\s*/, "").trim();
 
-    // Skip if no text or no title
-    if (!jokeText || !cleanTitle) return;
+      if (jokeText.length < 20) return;
+      if (jokeText.length > 1000) return;
+      if (!jokeText || !cleanTitle) return;
 
-    // Skip meta content
-    if (
-      jokeText.includes("blague-humour.com") ||
-      jokeText.toLowerCase().includes("navigation") ||
-      jokeText.toLowerCase().includes("publicit")
-    ) {
-      return;
-    }
+      if (
+        jokeText.includes("blague-humour.com") ||
+        jokeText.toLowerCase().includes("navigation") ||
+        jokeText.toLowerCase().includes("publicit")
+      ) {
+        return;
+      }
 
-    results.push({
-      text: jokeText,
-      url: jokeUrl.startsWith("http") ? jokeUrl : `${BASE_URL}${jokeUrl}`,
-      title: cleanTitle,
-      category: category,
-      id: jokeId,
+      results.push({
+        text: jokeText,
+        url: jokeUrl.startsWith("http") ? jokeUrl : `${BASE_URL}${jokeUrl}`,
+        title: cleanTitle,
+        category: category,
+        id: jokeId,
+      });
     });
-  });
+  }
 
   console.log(`[FR/BLAGUE-HUMOUR] Parsed ${results.length} jokes from ${url}`);
   return results;

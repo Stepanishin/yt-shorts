@@ -155,17 +155,25 @@ const parseJokesFromHtml = (html: string, url: string, category?: string): Blagu
 
       const data = JSON.parse(jsonText);
 
-      // Check if it's an ItemList with jokes
-      if (data["@type"] === "ItemList" && Array.isArray(data.itemListElement)) {
-        for (const item of data.itemListElement) {
+      // Handle @graph structure (common in schema.org)
+      const itemsToCheck = data["@graph"]
+        ? data["@graph"].filter((item: any) => item["@type"] === "ItemList")
+        : data["@type"] === "ItemList" ? [data] : [];
+
+      for (const listItem of itemsToCheck) {
+        if (!Array.isArray(listItem.itemListElement)) continue;
+
+        for (const item of listItem.itemListElement) {
           if (item["@type"] === "Article" && item.genre === "blague") {
             const jokeText = cleanJokeHtml(item.articleBody || "");
             const headline = item.headline || "";
             const jokeUrl = item.url || "";
 
-            // Extract ID from URL if possible
-            const idMatch = jokeUrl.match(/blague-(\d+)/);
-            const jokeId = idMatch ? idMatch[1] : undefined;
+            // Extract ID from URL - support both /blague-(\d+) and #(\d+) formats
+            let jokeId: string | undefined;
+            const anchorMatch = jokeUrl.match(/#(\d+)/);
+            const slugMatch = jokeUrl.match(/blague-(\d+)/);
+            jokeId = anchorMatch ? anchorMatch[1] : slugMatch ? slugMatch[1] : undefined;
 
             // Extract author name
             const authorName = item.author?.name || undefined;
