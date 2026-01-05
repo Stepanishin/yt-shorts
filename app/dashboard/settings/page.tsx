@@ -10,6 +10,7 @@ interface YouTubeSettingsForm {
   clientSecret: string;
   defaultPrivacyStatus: "public" | "private" | "unlisted";
   defaultTags: string;
+  youtubeProject: 1 | 2;
 }
 
 export default function SettingsPage() {
@@ -23,6 +24,7 @@ export default function SettingsPage() {
     clientSecret: "",
     defaultPrivacyStatus: "unlisted",
     defaultTags: "",
+    youtubeProject: 1,
   });
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export default function SettingsPage() {
             clientSecret: "", // Don't load encrypted secret
             defaultPrivacyStatus: data.settings.defaultPrivacyStatus || "unlisted",
             defaultTags: data.settings.defaultTags?.join(", ") || "",
+            youtubeProject: data.settings.youtubeProject || 1,
           });
           setYoutubeConnected(!!data.settings.accessToken);
         }
@@ -66,6 +69,7 @@ export default function SettingsPage() {
             .split(",")
             .map((tag) => tag.trim())
             .filter(Boolean),
+          youtubeProject: youtubeSettings.youtubeProject,
         }),
       });
 
@@ -199,14 +203,12 @@ export default function SettingsPage() {
                     </span>
                   </div>
                 )}
-                {session?.user?.isAdmin && (
-                  <button
-                    onClick={() => setShowYouTubeForm(!showYouTubeForm)}
-                    className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition-colors font-medium text-sm"
-                  >
-                    {showYouTubeForm ? "Hide" : "Configure"}
-                  </button>
-                )}
+                <button
+                  onClick={() => setShowYouTubeForm(!showYouTubeForm)}
+                  className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition-colors font-medium text-sm"
+                >
+                  {showYouTubeForm ? "Hide Settings" : "Settings"}
+                </button>
                 <button
                   onClick={handleConnectYouTube}
                   className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
@@ -214,6 +216,77 @@ export default function SettingsPage() {
                   {youtubeConnected ? "Reconnect" : "Connect"}
                 </button>
               </div>
+            </div>
+
+            {/* YouTube Project Selector (Always Visible) */}
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-300 rounded-md">
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                YouTube API Project
+              </label>
+              <p className="text-xs text-gray-800 mb-3">
+                Select which Google Cloud project to use for YouTube API quota. Each project has 10,000 units/day.
+              </p>
+              <div className="space-y-2 mb-4">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="youtubeProject"
+                    value={1}
+                    checked={youtubeSettings.youtubeProject === 1}
+                    onChange={() =>
+                      setYoutubeSettings({ ...youtubeSettings, youtubeProject: 1 })
+                    }
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-900">
+                    <strong>Project 1</strong> (Default - uses YOUTUBE_CLIENT_ID)
+                  </span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="youtubeProject"
+                    value={2}
+                    checked={youtubeSettings.youtubeProject === 2}
+                    onChange={() =>
+                      setYoutubeSettings({ ...youtubeSettings, youtubeProject: 2 })
+                    }
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-900">
+                    <strong>Project 2</strong> (Additional quota - uses YOUTUBE_PROJECT_2_CLIENT_ID)
+                  </span>
+                </label>
+              </div>
+              <button
+                onClick={async () => {
+                  setSaving(true);
+                  setMessage(null);
+                  try {
+                    const response = await fetch("/api/user/youtube-settings", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        youtubeProject: youtubeSettings.youtubeProject,
+                      }),
+                    });
+                    if (response.ok) {
+                      setMessage({ type: "success", text: "Project changed successfully!" });
+                    } else {
+                      const data = await response.json();
+                      setMessage({ type: "error", text: data.error || "Failed to change project" });
+                    }
+                  } catch (error) {
+                    setMessage({ type: "error", text: "An error occurred" });
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Project"}
+              </button>
             </div>
 
             {/* YouTube OAuth Configuration Form */}

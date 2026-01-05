@@ -22,11 +22,24 @@ export function createOAuth2Client(userSettings?: YouTubeSettings): OAuth2Client
   const redirectUri = process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`;
 
   if (userSettings) {
-    // Use user-specific settings for credentials only
-    clientId = userSettings.clientId;
-    clientSecret = decrypt(userSettings.clientSecret);
+    // Check which YouTube project to use
+    const useProject2 = userSettings.youtubeProject === 2;
+
+    if (useProject2) {
+      // Use Project 2 credentials from environment
+      clientId = process.env.YOUTUBE_PROJECT_2_CLIENT_ID || "";
+      clientSecret = process.env.YOUTUBE_PROJECT_2_CLIENT_SECRET || "";
+
+      if (!clientId || !clientSecret) {
+        throw new Error("YouTube Project 2 credentials not configured in environment variables.");
+      }
+    } else {
+      // Use user-specific settings or Project 1 credentials
+      clientId = userSettings.clientId || process.env.YOUTUBE_CLIENT_ID || "";
+      clientSecret = userSettings.clientSecret ? decrypt(userSettings.clientSecret) : process.env.YOUTUBE_CLIENT_SECRET || "";
+    }
   } else {
-    // Fallback to environment variables for backward compatibility
+    // Fallback to environment variables for backward compatibility (Project 1)
     clientId = process.env.YOUTUBE_CLIENT_ID || "";
     clientSecret = process.env.YOUTUBE_CLIENT_SECRET || "";
   }

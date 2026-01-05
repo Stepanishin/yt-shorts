@@ -12,6 +12,7 @@ export interface YouTubeSettings {
   defaultPrivacyStatus?: "public" | "private" | "unlisted";
   defaultTags?: string[];
   channelId?: string;
+  youtubeProject?: 1 | 2; // YouTube API Project selector (1 = default, 2 = additional quota)
 }
 
 export interface ScheduledVideo {

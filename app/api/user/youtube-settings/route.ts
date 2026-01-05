@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
           channelId: user.youtubeSettings.channelId,
           accessToken: !!user.youtubeSettings.accessToken,
           tokenExpiresAt: user.youtubeSettings.tokenExpiresAt,
+          youtubeProject: user.youtubeSettings.youtubeProject || 1,
         },
       });
     }
@@ -48,8 +49,35 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { clientId, clientSecret, defaultPrivacyStatus, defaultTags } = body;
+    const { clientId, clientSecret, defaultPrivacyStatus, defaultTags, youtubeProject } = body;
 
+    const user = await getUserByGoogleId(session.user.id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // If only saving youtubeProject (quick project switch)
+    if (youtubeProject !== undefined && !clientId && !clientSecret && !defaultPrivacyStatus && !defaultTags) {
+      if (user.youtubeSettings) {
+        await updateUser(user._id!.toString(), {
+          youtubeSettings: {
+            ...user.youtubeSettings,
+            youtubeProject: youtubeProject || 1,
+          },
+        });
+        return NextResponse.json({
+          success: true,
+          message: "YouTube project updated successfully",
+        });
+      } else {
+        return NextResponse.json(
+          { error: "Please configure YouTube settings first" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Full settings update
     if (!clientId) {
       return NextResponse.json(
         { error: "Client ID is required" },
@@ -60,17 +88,13 @@ export async function POST(req: NextRequest) {
     // Auto-generate redirect URI based on the app URL
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/youtube/callback`;
 
-    const user = await getUserByGoogleId(session.user.id);
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
     // Prepare YouTube settings
     const youtubeSettings = {
       clientId,
       redirectUri,
       defaultPrivacyStatus: defaultPrivacyStatus || "unlisted",
       defaultTags: defaultTags || [],
+      youtubeProject: youtubeProject || 1,
       // Keep existing encrypted values if clientSecret is not provided
       clientSecret: clientSecret
         ? encrypt(clientSecret)
