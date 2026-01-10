@@ -155,8 +155,8 @@ export async function POST(request: NextRequest) {
       gif: {
         urls: [],
         position: "bottom-right",
-        width: 300,
-        height: 300,
+        width: 600,
+        height: 600,
       },
       audio: {
         urls: [],
