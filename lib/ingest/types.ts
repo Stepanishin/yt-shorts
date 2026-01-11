@@ -1,4 +1,4 @@
-export type JokeSource = "chistes" | "yavendras" | "todochistes";
+export type JokeSource = "chistes" | "yavendras" | "todochistes" | "ricuib-1000chistes" | "ricuib-pintamania";
 
 export interface JokeCandidate {
   source: JokeSource;
