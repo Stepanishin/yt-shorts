@@ -33,10 +33,11 @@ export async function GET(request: NextRequest) {
     let migratedConfig = config;
 
     if (config?.template?.text) {
-      const needsColorMigration = 
-        config.template.text.color === "white@1" && 
-        config.template.text.backgroundColor === "black@0.6";
-      
+      const needsColorMigration =
+        (config.template.text.color === "white@1" && config.template.text.backgroundColor === "black@0.6") ||
+        (config.template.text.color === "black@1" && config.template.text.backgroundColor === "white@0.6") ||
+        (config.template.text.color === "white@1" && config.template.text.backgroundColor === "red@0.85");
+
       const needsDurationMigration = config.template.audio?.duration === 20;
 
       if (needsColorMigration || needsDurationMigration) {
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
             text: needsColorMigration ? {
               ...config.template.text,
               color: "black@1",
-              backgroundColor: "white@0.6",
+              backgroundColor: "white@1",
             } : config.template.text,
             audio: needsDurationMigration ? {
               ...config.template.audio,
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
             } : config.template.audio,
           },
         };
-        
+
         // Save migrated config back to database
         await saveAutoGenerationConfig(migratedConfig);
       }
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
       text: {
         fontSize: 29,
         color: "black@1",
-        backgroundColor: "white@0.6",
+        backgroundColor: "white@1",
         boxPadding: 15,
         fontWeight: "bold",
         position: { x: 360, y: 200 },
@@ -155,8 +156,8 @@ export async function POST(request: NextRequest) {
       gif: {
         urls: [],
         position: "bottom-right",
-        width: 600,
-        height: 600,
+        width: 900,
+        height: 900,
       },
       audio: {
         urls: [],
@@ -171,7 +172,10 @@ export async function POST(request: NextRequest) {
 
     // Migration: Update old color values and duration to new defaults
     let template = templateBase;
-    const needsColorMigration = template.text && template.text.color === "white@1" && template.text.backgroundColor === "black@0.6";
+    const needsColorMigration = template.text &&
+      ((template.text.color === "white@1" && template.text.backgroundColor === "black@0.6") ||
+       (template.text.color === "black@1" && template.text.backgroundColor === "white@0.6") ||
+       (template.text.color === "white@1" && template.text.backgroundColor === "red@0.85"));
     const needsDurationMigration = template.audio && template.audio.duration === 20;
 
     if (needsColorMigration || needsDurationMigration) {
@@ -180,7 +184,7 @@ export async function POST(request: NextRequest) {
         text: needsColorMigration ? {
           ...template.text,
           color: "black@1",
-          backgroundColor: "white@0.6",
+          backgroundColor: "white@1",
         } : template.text,
         audio: needsDurationMigration ? {
           ...template.audio,
