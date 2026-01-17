@@ -1,4 +1,4 @@
-export type JokeSourceDE = "jokeapi" | "aberwitzig" | "programmwechsel";
+export type JokeSourceDE = "jokeapi" | "aberwitzig" | "programmwechsel" | "schlechtewitzefront";
 
 export interface JokeCandidateDE {
   source: JokeSourceDE;
