@@ -57,6 +57,7 @@ interface AutoGenConfig {
     descriptionTemplate?: string;
     useAI: boolean;
     channelId?: string;
+    manualChannelId?: string;
   };
   stats?: {
     totalGenerated: number;
