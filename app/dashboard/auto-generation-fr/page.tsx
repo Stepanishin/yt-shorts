@@ -608,6 +608,31 @@ export default function AutoGenerationFRPage() {
                 Leave as &quot;Default channel&quot; if you have only one channel
               </p>
             </div>
+
+            {/* Manual Channel ID Input (for Brand Accounts) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Manual Channel ID (Optional)
+              </label>
+              <input
+                type="text"
+                value={config.youtube.manualChannelId || ""}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    youtube: {
+                      ...config.youtube,
+                      manualChannelId: e.target.value || undefined,
+                    },
+                  })
+                }
+                placeholder="UC..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                For Brand Accounts: paste Channel ID here. Overrides dropdown selection.
+              </p>
+            </div>
           </div>
 
           <div className="mt-8 flex gap-3">

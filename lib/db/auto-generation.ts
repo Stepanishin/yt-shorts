@@ -49,6 +49,7 @@ export interface YouTubeAutoSettings {
   descriptionTemplate?: string;
   useAI: boolean; // Generate title/description via AI
   channelId?: string; // Optional: specific YouTube channel ID (if user has multiple channels)
+  manualChannelId?: string; // Optional: manually entered Channel ID (for Brand Accounts). Overrides channelId.
 }
 
 export interface AutoGenerationStats {

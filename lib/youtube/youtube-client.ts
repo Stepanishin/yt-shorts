@@ -206,22 +206,44 @@ export interface YouTubeChannel {
 
 export async function getUserYouTubeChannels(oauth2Client: OAuth2Client): Promise<YouTubeChannel[]> {
   try {
-    const response = await youtube.channels.list({
-      auth: oauth2Client,
-      part: ["snippet", "contentDetails"],
-      mine: true,
-    });
+    // Fetch both personal channels and Brand Account channels
+    const [mineResponse, managedResponse] = await Promise.all([
+      youtube.channels.list({
+        auth: oauth2Client,
+        part: ["snippet", "contentDetails"],
+        mine: true,
+      }),
+      youtube.channels.list({
+        auth: oauth2Client,
+        part: ["snippet", "contentDetails"],
+        managedByMe: true,
+      }).catch(() => ({ data: { items: [] } })), // Brand Accounts may require Content Owner access
+    ]);
 
-    if (!response.data.items || response.data.items.length === 0) {
+    const allChannels = [
+      ...(mineResponse.data.items || []),
+      ...(managedResponse.data.items || []),
+    ];
+
+    if (allChannels.length === 0) {
       return [];
     }
 
-    return response.data.items.map((channel) => ({
-      id: channel.id!,
-      title: channel.snippet?.title || "Unnamed Channel",
-      customUrl: channel.snippet?.customUrl || undefined,
-      thumbnailUrl: channel.snippet?.thumbnails?.default?.url || undefined,
-    }));
+    // Deduplicate by channel ID (in case a channel appears in both responses)
+    const uniqueChannels = new Map<string, YouTubeChannel>();
+
+    for (const channel of allChannels) {
+      if (channel.id && !uniqueChannels.has(channel.id)) {
+        uniqueChannels.set(channel.id, {
+          id: channel.id,
+          title: channel.snippet?.title || "Unnamed Channel",
+          customUrl: channel.snippet?.customUrl || undefined,
+          thumbnailUrl: channel.snippet?.thumbnails?.default?.url || undefined,
+        });
+      }
+    }
+
+    return Array.from(uniqueChannels.values());
   } catch (error) {
     console.error("Error fetching YouTube channels:", error);
     throw error;
