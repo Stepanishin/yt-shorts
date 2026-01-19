@@ -62,9 +62,10 @@ export async function autoPublishScheduledVideos() {
             console.log(`📺 Using channel-specific credentials for ${channelCreds.channelTitle} (${channelCreds.channelId})`);
 
             // Create OAuth client with channel credentials
+            // Note: createOAuth2Client expects encrypted clientSecret and will decrypt it internally
             const tempClient = createOAuth2Client({
               clientId: channelCreds.clientId,
-              clientSecret: decrypt(channelCreds.clientSecret),
+              clientSecret: channelCreds.clientSecret, // Already encrypted in DB, createOAuth2Client will decrypt
               redirectUri: process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`,
               youtubeProject: channelCreds.youtubeProject,
             } as any);
