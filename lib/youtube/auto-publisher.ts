@@ -4,6 +4,7 @@ import { uploadVideoToYouTube, createOAuth2Client, setEncryptedCredentials, refr
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 import { markJokeCandidateAsPublishedDE } from "@/lib/ingest-de/storage";
 import { markJokeCandidateAsPublishedPT } from "@/lib/ingest-pt/storage";
+import { markJokeCandidateAsPublishedFR } from "@/lib/ingest-fr/storage";
 import { getYouTubeChannelByChannelId, updateYouTubeChannelTokens } from "@/lib/db/youtube-channels";
 import { encrypt } from "@/lib/encryption";
 import * as path from "path";
@@ -189,6 +190,13 @@ export async function autoPublishScheduledVideos() {
             } else if (video.language === "pt") {
               console.log(`[PT] Marking joke ${video.jokeId} as published...`);
               await markJokeCandidateAsPublishedPT({
+                id: video.jokeId,
+                youtubeVideoUrl: result.videoUrl,
+                youtubeVideoId: result.videoId,
+              });
+            } else if (video.language === "fr") {
+              console.log(`[FR] Marking joke ${video.jokeId} as published...`);
+              await markJokeCandidateAsPublishedFR({
                 id: video.jokeId,
                 youtubeVideoUrl: result.videoUrl,
                 youtubeVideoId: result.videoId,
