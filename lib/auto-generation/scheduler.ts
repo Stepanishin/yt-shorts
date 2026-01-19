@@ -77,7 +77,8 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
         const existingScheduledVideos = await getScheduledVideos(config.userId);
 
         // Filter by channel and language to allow same time slots on different channels
-        const configChannelId = config.youtube?.channelId;
+        // IMPORTANT: Use same priority as generator: savedChannelId > manualChannelId > channelId
+        const configChannelId = config.youtube?.savedChannelId || config.youtube?.manualChannelId || config.youtube?.channelId;
         const existingScheduledTimes = existingScheduledVideos
           .filter((v) => v.status === "planned")
           // Only consider videos for the same channel/language as conflicting

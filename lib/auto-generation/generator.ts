@@ -372,8 +372,14 @@ function generateVideoDescription(
   if (template) {
     description = template.replace("{joke}", jokeText);
   } else {
-    // Default description
+    // Default description with joke text
     description = jokeText;
+
+    // Add call to action
+    description += `\n\n😂 ¿Te gustó? ¡Dale like y suscríbete para más chistes diarios!`;
+
+    // Add SEO hashtags
+    description += `\n\n#shorts #chiste #humor #comedia #risa #gracioso #funny #chistedeldía`;
   }
 
   // Add music attribution if audio is used
@@ -490,8 +496,14 @@ function generateVideoDescriptionDE(
   if (template) {
     description = template.replace("{joke}", jokeText);
   } else {
-    // Default description
+    // Default description with joke text
     description = jokeText;
+
+    // Add call to action in German
+    description += `\n\n😂 Hat es dir gefallen? Daumen hoch und abonniere für tägliche Witze!`;
+
+    // Add SEO hashtags
+    description += `\n\n#shorts #witz #humor #komödie #lustig #witzig #funny #witzdestages`;
   }
 
   // Add music attribution if audio is used
@@ -608,8 +620,14 @@ function generateVideoDescriptionPT(
   if (template) {
     description = template.replace("{joke}", jokeText);
   } else {
-    // Default description
+    // Default description with joke text
     description = jokeText;
+
+    // Add call to action in Portuguese
+    description += `\n\n😂 Gostou? Deixe seu like e inscreva-se para piadas diárias!`;
+
+    // Add SEO hashtags
+    description += `\n\n#shorts #piada #humor #comédia #risadas #engraçado #funny #piadadodia`;
   }
 
   // Add music attribution if audio is used
@@ -1204,8 +1222,14 @@ function generateVideoDescriptionFR(
   if (template) {
     description = template.replace("{joke}", jokeText);
   } else {
-    // Default description
+    // Default description with joke text
     description = jokeText;
+
+    // Add call to action in French
+    description += `\n\n😂 Ça t'a plu? Like et abonne-toi pour des blagues quotidiennes!`;
+
+    // Add SEO hashtags
+    description += `\n\n#shorts #blague #humour #rire #drôle #comique #funny #blaguefrançaise`;
   }
 
   // Add music attribution if audio is used
