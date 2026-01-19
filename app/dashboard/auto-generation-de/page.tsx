@@ -58,6 +58,7 @@ interface AutoGenConfig {
     useAI: boolean;
     channelId?: string;
     manualChannelId?: string;
+    savedChannelId?: string;
   };
   stats?: {
     totalGenerated: number;
@@ -79,6 +80,11 @@ export default function AutoGenerationDEPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [channels, setChannels] = useState<YouTubeChannel[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(false);
+  const [savedChannels, setSavedChannels] = useState<Array<{
+    channelId: string;
+    channelTitle: string;
+    isDefault: boolean;
+  }>>([]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -86,6 +92,7 @@ export default function AutoGenerationDEPage() {
     } else if (status === "authenticated") {
       loadConfig();
       loadChannels();
+      loadSavedChannels();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, router]);
@@ -162,6 +169,18 @@ export default function AutoGenerationDEPage() {
       // Не показываем ошибку пользователю - это опциональная функция
     } finally {
       setLoadingChannels(false);
+    }
+  };
+
+  const loadSavedChannels = async () => {
+    try {
+      const response = await fetch("/api/youtube/my-channels");
+      if (response.ok) {
+        const data = await response.json();
+        setSavedChannels(data.channels || []);
+      }
+    } catch (error) {
+      console.error("Error loading saved channels:", error);
     }
   };
 
@@ -609,6 +628,38 @@ export default function AutoGenerationDEPage() {
                 Leave as "Default channel" if you have only one channel
               </p>
             </div>
+
+            {/* Saved YouTube Channels Dropdown (Multi-Channel Support) */}
+            {savedChannels.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Saved Channel (Recommended)
+                </label>
+                <select
+                  value={config.youtube.savedChannelId || ""}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      youtube: {
+                        ...config.youtube,
+                        savedChannelId: e.target.value || undefined,
+                      },
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">None (use default or manual)</option>
+                  {savedChannels.map((channel) => (
+                    <option key={channel.channelId} value={channel.channelId}>
+                      {channel.channelTitle} {channel.isDefault ? "(Default)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Select a channel from your saved channels. You can add more in Settings.
+                </p>
+              </div>
+            )}
 
             {/* Manual Channel ID Input (for Brand Accounts) */}
             <div>

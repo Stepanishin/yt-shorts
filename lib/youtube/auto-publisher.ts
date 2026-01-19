@@ -1,9 +1,11 @@
 import { getScheduledVideosForPublishing, updateScheduledVideoStatus } from "@/lib/db/users";
 import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
-import { uploadVideoToYouTube } from "@/lib/youtube/youtube-client";
+import { uploadVideoToYouTube, createOAuth2Client, setEncryptedCredentials } from "@/lib/youtube/youtube-client";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 import { markJokeCandidateAsPublishedDE } from "@/lib/ingest-de/storage";
 import { markJokeCandidateAsPublishedPT } from "@/lib/ingest-pt/storage";
+import { getYouTubeChannelByChannelId } from "@/lib/db/youtube-channels";
+import { decrypt } from "@/lib/encryption";
 import * as path from "path";
 import * as fs from "fs/promises";
 
@@ -48,8 +50,44 @@ export async function autoPublishScheduledVideos() {
         // Обновляем статус на "publishing"
         await updateScheduledVideoStatus(userId, video.id, "publishing");
 
-        // Используем googleId вместо _id для получения YouTube клиента
-        const { oauth2Client } = await getUserYouTubeClient(user.googleId);
+        // Get OAuth client - try to use channel-specific credentials if available
+        let oauth2Client;
+
+        if (video.youtubeChannelId) {
+          // Try to find channel credentials in youtube_channels collection
+          const channelCreds = await getYouTubeChannelByChannelId(user.googleId, video.youtubeChannelId);
+
+          if (channelCreds && channelCreds.accessToken) {
+            // Use channel-specific credentials
+            console.log(`📺 Using channel-specific credentials for ${channelCreds.channelTitle} (${channelCreds.channelId})`);
+
+            // Create OAuth client with channel credentials
+            const tempClient = createOAuth2Client({
+              clientId: channelCreds.clientId,
+              clientSecret: decrypt(channelCreds.clientSecret),
+              redirectUri: process.env.YOUTUBE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`,
+              youtubeProject: channelCreds.youtubeProject,
+            } as any);
+
+            // Set encrypted credentials
+            setEncryptedCredentials(
+              tempClient,
+              channelCreds.accessToken,
+              channelCreds.refreshToken
+            );
+
+            oauth2Client = tempClient;
+          } else {
+            // Fallback to user's default YouTube settings
+            console.log(`⚠️ Channel credentials not found for ${video.youtubeChannelId}, using default settings`);
+            const result = await getUserYouTubeClient(user.googleId);
+            oauth2Client = result.oauth2Client;
+          }
+        } else {
+          // No specific channel requested, use user's default YouTube settings
+          const result = await getUserYouTubeClient(user.googleId);
+          oauth2Client = result.oauth2Client;
+        }
 
         // Определяем путь к видео
         let videoPath: string;

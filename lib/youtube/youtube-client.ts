@@ -54,7 +54,7 @@ export function createOAuth2Client(userSettings?: YouTubeSettings): OAuth2Client
 /**
  * Генерирует URL для авторизации YouTube
  */
-export function getAuthUrl(oauth2Client: OAuth2Client): string {
+export function getAuthUrl(oauth2Client: OAuth2Client, state?: string): string {
   const scopes = [
     "https://www.googleapis.com/auth/youtube.upload",
     "https://www.googleapis.com/auth/youtube",
@@ -64,6 +64,7 @@ export function getAuthUrl(oauth2Client: OAuth2Client): string {
     access_type: "offline",
     scope: scopes,
     prompt: "consent", // Заставляет Google показывать consent screen каждый раз
+    state, // Optional state parameter for passing data through OAuth flow
   });
 }
 

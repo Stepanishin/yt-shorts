@@ -50,6 +50,7 @@ export interface YouTubeAutoSettings {
   useAI: boolean; // Generate title/description via AI
   channelId?: string; // Optional: specific YouTube channel ID (if user has multiple channels)
   manualChannelId?: string; // Optional: manually entered Channel ID (for Brand Accounts). Overrides channelId.
+  savedChannelId?: string; // Optional: select from saved channels in youtube_channels collection. Highest priority.
 }
 
 export interface AutoGenerationStats {

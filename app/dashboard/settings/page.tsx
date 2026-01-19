@@ -13,12 +13,21 @@ interface YouTubeSettingsForm {
   youtubeProject: 1 | 2;
 }
 
+interface SavedYouTubeChannel {
+  channelId: string;
+  channelTitle: string;
+  channelThumbnail?: string;
+  isDefault: boolean;
+  createdAt: Date;
+}
+
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [youtubeConnected, setYoutubeConnected] = useState(false);
   const [showYouTubeForm, setShowYouTubeForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [savedChannels, setSavedChannels] = useState<SavedYouTubeChannel[]>([]);
   const [youtubeSettings, setYoutubeSettings] = useState<YouTubeSettingsForm>({
     clientId: "",
     clientSecret: "",
@@ -29,6 +38,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadYouTubeSettings();
+    loadSavedChannels();
   }, []);
 
   const loadYouTubeSettings = async () => {
@@ -49,6 +59,60 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error("Failed to load YouTube settings:", error);
+    }
+  };
+
+  const loadSavedChannels = async () => {
+    try {
+      const response = await fetch("/api/youtube/my-channels");
+      if (response.ok) {
+        const data = await response.json();
+        setSavedChannels(data.channels || []);
+      }
+    } catch (error) {
+      console.error("Failed to load saved channels:", error);
+    }
+  };
+
+  const handleAddNewChannel = () => {
+    window.location.href = "/api/youtube/auth?addChannel=true";
+  };
+
+  const handleSetDefaultChannel = async (channelId: string) => {
+    try {
+      const response = await fetch("/api/youtube/my-channels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelId, action: "set-default" }),
+      });
+
+      if (response.ok) {
+        await loadSavedChannels();
+        setMessage({ type: "success", text: "Default channel updated!" });
+      }
+    } catch (error) {
+      console.error("Failed to set default channel:", error);
+      setMessage({ type: "error", text: "Failed to update default channel" });
+    }
+  };
+
+  const handleDeleteChannel = async (channelId: string) => {
+    if (!confirm("Are you sure you want to remove this channel?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/youtube/my-channels?channelId=${channelId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        await loadSavedChannels();
+        setMessage({ type: "success", text: "Channel removed!" });
+      }
+    } catch (error) {
+      console.error("Failed to delete channel:", error);
+      setMessage({ type: "error", text: "Failed to remove channel" });
     }
   };
 
@@ -217,6 +281,92 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+
+            {/* Saved YouTube Channels (Multi-Channel Support) */}
+            {savedChannels.length > 0 && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-300 rounded-md">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    Saved Channels ({savedChannels.length})
+                  </h4>
+                  <button
+                    onClick={handleAddNewChannel}
+                    className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs font-medium"
+                  >
+                    + Add Another Channel
+                  </button>
+                </div>
+                <p className="text-xs text-gray-800 mb-3">
+                  You can publish to different channels for different languages. Select a channel in auto-generation settings.
+                </p>
+                <div className="space-y-2">
+                  {savedChannels.map((channel) => (
+                    <div
+                      key={channel.channelId}
+                      className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md"
+                    >
+                      <div className="flex items-center gap-3">
+                        {channel.channelThumbnail && (
+                          <Image
+                            src={channel.channelThumbnail}
+                            alt={channel.channelTitle}
+                            width={32}
+                            height={32}
+                            className="rounded-full"
+                          />
+                        )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              {channel.channelTitle}
+                            </span>
+                            {channel.isDefault && (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-600">
+                            {channel.channelId}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!channel.isDefault && (
+                          <button
+                            onClick={() => handleSetDefaultChannel(channel.channelId)}
+                            className="px-3 py-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            Set as Default
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteChannel(channel.channelId)}
+                          className="px-3 py-1 text-xs text-red-600 hover:text-red-800 font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add Channel Button (when no saved channels) */}
+            {savedChannels.length === 0 && youtubeConnected && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-300 rounded-md">
+                <p className="text-sm text-gray-800 mb-3">
+                  <strong>Multi-Channel Support:</strong> You can add multiple YouTube channels to publish different languages to different channels.
+                </p>
+                <button
+                  onClick={handleAddNewChannel}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  + Add YouTube Channel
+                </button>
+              </div>
+            )}
 
             {/* YouTube Project Selector (Always Visible) */}
             <div className="mt-4 p-4 bg-amber-50 border border-amber-300 rounded-md">

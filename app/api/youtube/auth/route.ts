@@ -46,7 +46,14 @@ export async function GET(request: NextRequest) {
     }
 
     const oauth2Client = createOAuth2Client(userSettings);
-    const authUrl = getAuthUrl(oauth2Client);
+
+    // Check if user wants to add a new channel (for multi-channel support)
+    const searchParams = request.nextUrl.searchParams;
+    const addChannel = searchParams.get("addChannel") === "true";
+
+    // Pass state through OAuth flow to remember the intent
+    const state = addChannel ? JSON.stringify({ addChannel: true }) : undefined;
+    const authUrl = getAuthUrl(oauth2Client, state);
 
     // Редирект на страницу авторизации Google
     return NextResponse.redirect(authUrl);

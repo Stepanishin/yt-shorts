@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createOAuth2Client, getTokensFromCode } from "@/lib/youtube/youtube-client";
+import { createOAuth2Client, getTokensFromCode, getUserYouTubeChannels } from "@/lib/youtube/youtube-client";
 import { auth } from "@/lib/auth";
 import { getUserByGoogleId, updateUser, type YouTubeSettings } from "@/lib/db/users";
 import { encrypt } from "@/lib/encryption";
+import { upsertYouTubeChannel } from "@/lib/db/youtube-channels";
 
 /**
  * GET /api/youtube/callback
@@ -20,6 +21,18 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get("code");
     const error = searchParams.get("error");
+    const stateParam = searchParams.get("state");
+
+    // Parse state to check if this is adding a new channel
+    let addChannel = false;
+    if (stateParam) {
+      try {
+        const state = JSON.parse(stateParam);
+        addChannel = state.addChannel === true;
+      } catch (e) {
+        console.warn("Failed to parse OAuth state:", e);
+      }
+    }
 
     if (error) {
       console.error("YouTube OAuth error:", error);
@@ -63,6 +76,7 @@ export async function GET(request: NextRequest) {
       hasRefreshToken: !!tokens.refresh_token,
       expiryDate: tokens.expiry_date,
       usingGlobalCredentials: !userSettings,
+      addChannel,
     });
 
     // Calculate token expiry date
@@ -70,11 +84,8 @@ export async function GET(request: NextRequest) {
       ? new Date(tokens.expiry_date)
       : new Date(Date.now() + 3600 * 1000); // Default: 1 hour from now
 
-    // Update user's YouTube settings with encrypted tokens
-    // Если используются глобальные credentials, сохраняем их в настройки пользователя для будущего использования
     const globalClientId = process.env.YOUTUBE_CLIENT_ID || "";
     const globalClientSecret = process.env.YOUTUBE_CLIENT_SECRET || "";
-    // redirectUri больше не сохраняется в БД - всегда берется из env
 
     // Убеждаемся, что у нас есть credentials (либо пользовательские, либо глобальные)
     if (!userSettings && (!globalClientId || !globalClientSecret)) {
@@ -83,6 +94,56 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // If adding a new channel, save to youtube_channels collection
+    if (addChannel) {
+      try {
+        // Set credentials to get channel info
+        oauth2Client.setCredentials(tokens);
+
+        // Get channel information from YouTube API
+        const channels = await getUserYouTubeChannels(oauth2Client);
+        if (channels.length === 0) {
+          throw new Error("No YouTube channel found for this account");
+        }
+
+        // Get the first channel (should be the one that was just authorized)
+        const channel = channels[0];
+
+        console.log("Adding new YouTube channel:", {
+          channelId: channel.id,
+          channelTitle: channel.title,
+        });
+
+        // Save channel credentials to youtube_channels collection
+        await upsertYouTubeChannel({
+          userId: session.user.id,
+          channelId: channel.id,
+          channelTitle: channel.title,
+          channelThumbnail: channel.thumbnailUrl,
+          accessToken: encrypt(tokens.access_token!),
+          refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : undefined,
+          tokenExpiresAt: expiresAt,
+          clientId: userSettings?.clientId || globalClientId,
+          clientSecret: userSettings?.clientSecret || encrypt(globalClientSecret),
+          youtubeProject: userSettings?.youtubeProject,
+          isDefault: false, // New channels are not default by default
+        });
+
+        console.log("New channel saved to youtube_channels collection");
+
+        // Redirect to settings page with success message
+        return NextResponse.redirect(
+          new URL("/dashboard/settings?youtube_channel_added=success", request.url)
+        );
+      } catch (error) {
+        console.error("Error adding new YouTube channel:", error);
+        return NextResponse.redirect(
+          new URL("/dashboard/settings?youtube_error=channel_add_failed", request.url)
+        );
+      }
+    }
+
+    // Default behavior: Update user's YouTube settings (for backward compatibility)
     const updatedSettings: YouTubeSettings = {
       // Используем пользовательские credentials, если они есть, иначе глобальные
       clientId: userSettings?.clientId || globalClientId,

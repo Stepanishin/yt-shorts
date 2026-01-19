@@ -226,7 +226,7 @@ export async function generateAutoVideo(
       scheduledAt,
       jokeId: joke._id!.toString(),
       language: "es",
-      youtubeChannelId: config.youtube.manualChannelId || config.youtube.channelId, // Manual ID overrides dropdown selection
+      youtubeChannelId: config.youtube.savedChannelId || config.youtube.manualChannelId || config.youtube.channelId, // Priority: savedChannelId > manualChannelId > channelId
     });
 
     console.log(`Scheduled video ID: ${scheduledVideo.id}`);
@@ -821,7 +821,7 @@ export async function generateAutoVideoDE(
       scheduledAt,
       jokeId: joke._id!.toString(),
       language: "de",
-      youtubeChannelId: config.youtube.manualChannelId || config.youtube.channelId, // Manual ID overrides dropdown selection
+      youtubeChannelId: config.youtube.savedChannelId || config.youtube.manualChannelId || config.youtube.channelId, // Priority: savedChannelId > manualChannelId > channelId
     });
 
     console.log(`[DE] Scheduled video ID: ${scheduledVideo.id}`);
@@ -1060,7 +1060,7 @@ export async function generateAutoVideoPT(
       scheduledAt,
       jokeId: joke._id!.toString(),
       language: "pt",
-      youtubeChannelId: config.youtube.manualChannelId || config.youtube.channelId, // Manual ID overrides dropdown selection
+      youtubeChannelId: config.youtube.savedChannelId || config.youtube.manualChannelId || config.youtube.channelId, // Priority: savedChannelId > manualChannelId > channelId
     });
 
     console.log(`[PT] Scheduled video ID: ${scheduledVideo.id}`);
@@ -1417,7 +1417,7 @@ export async function generateAutoVideoFR(
       scheduledAt,
       jokeId: joke._id!.toString(),
       language: "fr",
-      youtubeChannelId: config.youtube.manualChannelId || config.youtube.channelId, // Manual ID overrides dropdown selection
+      youtubeChannelId: config.youtube.savedChannelId || config.youtube.manualChannelId || config.youtube.channelId, // Priority: savedChannelId > manualChannelId > channelId
     });
 
     console.log(`[FR] Scheduled video ID: ${scheduledVideo.id}`);
