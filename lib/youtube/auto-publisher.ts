@@ -1,11 +1,11 @@
 import { getScheduledVideosForPublishing, updateScheduledVideoStatus } from "@/lib/db/users";
 import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
-import { uploadVideoToYouTube, createOAuth2Client, setEncryptedCredentials } from "@/lib/youtube/youtube-client";
+import { uploadVideoToYouTube, createOAuth2Client, setEncryptedCredentials, refreshAccessToken } from "@/lib/youtube/youtube-client";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 import { markJokeCandidateAsPublishedDE } from "@/lib/ingest-de/storage";
 import { markJokeCandidateAsPublishedPT } from "@/lib/ingest-pt/storage";
-import { getYouTubeChannelByChannelId } from "@/lib/db/youtube-channels";
-import { decrypt } from "@/lib/encryption";
+import { getYouTubeChannelByChannelId, updateYouTubeChannelTokens } from "@/lib/db/youtube-channels";
+import { encrypt } from "@/lib/encryption";
 import * as path from "path";
 import * as fs from "fs/promises";
 
@@ -76,6 +76,36 @@ export async function autoPublishScheduledVideos() {
               channelCreds.accessToken,
               channelCreds.refreshToken
             );
+
+            // Check if token needs refresh (expires in less than 5 minutes)
+            const now = new Date();
+            const expiresAt = channelCreds.tokenExpiresAt ? new Date(channelCreds.tokenExpiresAt) : now;
+            const needsRefresh = expiresAt.getTime() - now.getTime() < 5 * 60 * 1000;
+
+            if (needsRefresh && channelCreds.refreshToken) {
+              console.log(`🔄 Channel token expired or expiring soon, refreshing...`);
+
+              try {
+                const newCredentials = await refreshAccessToken(tempClient);
+
+                // Calculate new expiry date
+                const newExpiresAt = newCredentials.expiry_date
+                  ? new Date(newCredentials.expiry_date)
+                  : new Date(Date.now() + 3600 * 1000);
+
+                // Update tokens in database
+                await updateYouTubeChannelTokens(user.googleId, channelCreds.channelId, {
+                  accessToken: encrypt(newCredentials.access_token!),
+                  refreshToken: newCredentials.refresh_token ? encrypt(newCredentials.refresh_token) : channelCreds.refreshToken,
+                  tokenExpiresAt: newExpiresAt,
+                });
+
+                console.log(`✅ Channel token refreshed successfully`);
+              } catch (error) {
+                console.error(`❌ Failed to refresh channel token:`, error);
+                throw new Error(`Failed to refresh YouTube access token for channel ${channelCreds.channelTitle}. Please re-authorize in Settings.`);
+              }
+            }
 
             oauth2Client = tempClient;
           } else {
