@@ -336,7 +336,7 @@ export async function generateNewsVideo(
       privacyStatus: config.youtube.privacyStatus || "public",
       scheduledAt,
       youtubeChannelId: channelIdToUse,
-      newsId: news._id.toString(), // Link to news source
+      newsId: String(news._id), // Link to news source
       language: "es", // Mark as Spanish news video
     });
 
