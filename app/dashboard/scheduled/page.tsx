@@ -18,6 +18,10 @@ interface ScheduledVideo {
   youtubeVideoId?: string;
   youtubeVideoUrl?: string;
   errorMessage?: string;
+  jokeId?: string;
+  newsId?: string;
+  language?: "es" | "de" | "pt" | "fr";
+  youtubeChannelId?: string;
 }
 
 export default function ScheduledVideosPage() {
@@ -99,6 +103,17 @@ export default function ScheduledVideosPage() {
     }
   };
 
+  const getContentTypeBadge = (video: ScheduledVideo) => {
+    if (video.newsId) {
+      return <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-800">📰 Новости</span>;
+    }
+    if (video.jokeId) {
+      const langLabel = video.language ? ` (${video.language.toUpperCase()})` : "";
+      return <span className="px-2 py-1 text-xs font-semibold rounded bg-orange-100 text-orange-800">🤣 Шутка{langLabel}</span>;
+    }
+    return null;
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("ru-RU", {
       year: "numeric",
@@ -155,6 +170,7 @@ export default function ScheduledVideosPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <h2 className="text-xl font-semibold text-gray-900">{video.title}</h2>
+                    {getContentTypeBadge(video)}
                     {getStatusBadge(video.status)}
                   </div>
                   {video.description && (

@@ -8,14 +8,24 @@ import { uploadVideoToSpaces, isSpacesConfigured } from "@/lib/storage/spaces-cl
 
 const execAsync = promisify(exec);
 
-const LINUX_FONT_CANDIDATES: Record<"bold" | "normal", string[]> = {
+const FONT_CANDIDATES: Record<"bold" | "normal", string[]> = {
   bold: [
+    // macOS fonts
+    "/System/Library/Fonts/Supplemental/Verdana Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "/System/Library/Fonts/HelveticaNeue.ttc",
+    // Linux fonts
     "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
     "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
   ],
   normal: [
+    // macOS fonts
+    "/System/Library/Fonts/Supplemental/Verdana.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+    // Linux fonts
     "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
     "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -34,7 +44,7 @@ function findLinuxFontFile(weight: "bold" | "normal"): string | null {
     return cached;
   }
 
-  for (const candidate of LINUX_FONT_CANDIDATES[weight]) {
+  for (const candidate of FONT_CANDIDATES[weight]) {
     try {
       if (fsSync.existsSync(candidate)) {
         linuxFontCache[weight] = candidate;
@@ -499,24 +509,44 @@ export async function renderVideoNew(
     let isVideoBackground = false;
 
     if (backgroundVideoUrl) {
-      console.log("Downloading background video:", backgroundVideoUrl);
-      const response = await fetch(backgroundVideoUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to download background video: ${response.statusText}`);
+      // Check if it's a local file path or a URL
+      const isLocalFile = backgroundVideoUrl.startsWith('/') || backgroundVideoUrl.startsWith('./') || backgroundVideoUrl.match(/^[a-zA-Z]:\\/);
+
+      if (isLocalFile) {
+        console.log("Using local background video:", backgroundVideoUrl);
+        // Copy local file to temp path
+        await fs.copyFile(backgroundVideoUrl, tempBackgroundPath);
+        console.log("Background video copied from local file");
+      } else {
+        console.log("Downloading background video:", backgroundVideoUrl);
+        const response = await fetch(backgroundVideoUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to download background video: ${response.statusText}`);
+        }
+        const buffer = Buffer.from(await response.arrayBuffer());
+        await fs.writeFile(tempBackgroundPath, buffer);
+        console.log("Background video downloaded");
       }
-      const buffer = Buffer.from(await response.arrayBuffer());
-      await fs.writeFile(tempBackgroundPath, buffer);
-      console.log("Background video downloaded");
       isVideoBackground = true;
     } else if (backgroundImageUrl) {
-      console.log("Downloading background image:", backgroundImageUrl);
-      const response = await fetch(backgroundImageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to download background image: ${response.statusText}`);
+      // Check if it's a local file path or a URL
+      const isLocalFile = backgroundImageUrl.startsWith('/') || backgroundImageUrl.startsWith('./') || backgroundImageUrl.match(/^[a-zA-Z]:\\/);
+
+      if (isLocalFile) {
+        console.log("Using local background image:", backgroundImageUrl);
+        // Copy local file to temp path
+        await fs.copyFile(backgroundImageUrl, tempBackgroundPath);
+        console.log("Background image copied from local file");
+      } else {
+        console.log("Downloading background image:", backgroundImageUrl);
+        const response = await fetch(backgroundImageUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to download background image: ${response.statusText}`);
+        }
+        const buffer = Buffer.from(await response.arrayBuffer());
+        await fs.writeFile(tempBackgroundPath, buffer);
+        console.log("Background image downloaded");
       }
-      const buffer = Buffer.from(await response.arrayBuffer());
-      await fs.writeFile(tempBackgroundPath, buffer);
-      console.log("Background image downloaded");
       isVideoBackground = false;
     } else {
       throw new Error("Either backgroundVideoUrl or backgroundImageUrl must be provided");
@@ -524,18 +554,31 @@ export async function renderVideoNew(
 
     // 2. Скачиваем аудио, если предоставлено
     if (audioUrl && tempAudioPath) {
-      console.log("Downloading audio:", audioUrl);
-      try {
-        const audioResponse = await fetch(audioUrl);
-        if (audioResponse.ok) {
-          const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
-          await fs.writeFile(tempAudioPath, audioBuffer);
-          console.log("Audio downloaded successfully");
-        } else {
-          console.warn("Failed to download audio, continuing without audio");
+      // Check if it's a local file path or a URL
+      const isLocalAudio = audioUrl.startsWith('/') || audioUrl.startsWith('./') || audioUrl.match(/^[a-zA-Z]:\\/);
+
+      if (isLocalAudio) {
+        console.log("Using local audio file:", audioUrl);
+        try {
+          await fs.copyFile(audioUrl, tempAudioPath);
+          console.log("Audio copied from local file");
+        } catch (audioError) {
+          console.warn("Failed to copy local audio file, continuing without audio:", audioError);
         }
-      } catch (audioError) {
-        console.warn("Failed to download audio, continuing without audio:", audioError);
+      } else {
+        console.log("Downloading audio:", audioUrl);
+        try {
+          const audioResponse = await fetch(audioUrl);
+          if (audioResponse.ok) {
+            const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
+            await fs.writeFile(tempAudioPath, audioBuffer);
+            console.log("Audio downloaded successfully");
+          } else {
+            console.warn("Failed to download audio, continuing without audio");
+          }
+        } catch (audioError) {
+          console.warn("Failed to download audio, continuing without audio:", audioError);
+        }
       }
     }
 
@@ -553,18 +596,32 @@ export async function renderVideoNew(
     // 3.5. Скачиваем GIF файлы
     for (let i = 0; i < gifElements.length; i++) {
       const gif = gifElements[i];
-      const gifPath = path.join(videosDir, `gif_${jobId}_${i}.gif`);
+
+      // Detect file extension from URL
+      const urlExt = gif.url.toLowerCase().endsWith('.png') ? '.png' : '.gif';
+      const gifPath = path.join(videosDir, `gif_${jobId}_${i}${urlExt}`);
       gifFilePaths.push(gifPath);
 
       try {
         console.log(`Downloading GIF ${i} from:`, gif.url);
-        const response = await fetch(gif.url);
-        if (response.ok) {
-          const gifBuffer = await response.arrayBuffer();
-          await fs.writeFile(gifPath, Buffer.from(gifBuffer));
-          console.log(`GIF ${i} downloaded successfully`);
+
+        // Check if it's a local file path
+        const isLocalFile = gif.url.startsWith('/') || gif.url.startsWith('./') || gif.url.match(/^[a-zA-Z]:\\/);
+
+        if (isLocalFile) {
+          console.log(`Using local GIF file: ${gif.url}`);
+          // Copy local file instead of downloading
+          await fs.copyFile(gif.url, gifPath);
+          console.log(`GIF ${i} copied from local file`);
         } else {
-          console.warn(`Failed to download GIF ${i}, status:`, response.status);
+          const response = await fetch(gif.url);
+          if (response.ok) {
+            const gifBuffer = await response.arrayBuffer();
+            await fs.writeFile(gifPath, Buffer.from(gifBuffer));
+            console.log(`GIF ${i} downloaded successfully`);
+          } else {
+            console.warn(`Failed to download GIF ${i}, status:`, response.status);
+          }
         }
       } catch (error) {
         console.warn(`Failed to download GIF ${i}, will skip:`, error);
@@ -593,7 +650,6 @@ export async function renderVideoNew(
 
     // 5. Создаем FFmpeg фильтры
     const targetDuration = duration;
-    const videoLoops = isVideoBackground ? Math.ceil(targetDuration / backgroundDuration) - 1 : 0;
 
     return new Promise(async (resolve, reject) => {
       // Начинаем с базового фильтра для фона
@@ -852,7 +908,19 @@ export async function renderVideoNew(
 
         // Создаем фильтр для GIF - масштабируем до нужного размера
         const gifLayer = `[gif${i}]`;
-        const gifFilter = `[${inputIndex}:v]scale=${gif.width}:${gif.height}${gifLayer}`;
+
+        // Check if it's a PNG file (static image) - need to add loop filter
+        const isPng = gifPath.toLowerCase().endsWith('.png');
+
+        let gifFilter: string;
+        if (isPng) {
+          // For PNG, add loop filter to repeat the static image
+          gifFilter = `[${inputIndex}:v]loop=loop=-1:size=32767,scale=${gif.width}:${gif.height}${gifLayer}`;
+        } else {
+          // For GIF, just scale (already looped via input options)
+          gifFilter = `[${inputIndex}:v]scale=${gif.width}:${gif.height}${gifLayer}`;
+        }
+
         filterChain.push(gifFilter);
 
         // Создаем overlay на заданной позиции
@@ -995,10 +1063,21 @@ export async function renderVideoNew(
       for (const gifPath of gifFilePaths) {
         try {
           await fs.stat(gifPath);
-          command = command
-            .input(gifPath)
-            .inputOptions(["-stream_loop", "-1", "-ignore_loop", "0"]);
-          console.log(`Added GIF input with loop: ${gifPath}`);
+
+          // Check if it's a GIF or PNG file
+          const isGif = gifPath.toLowerCase().endsWith('.gif');
+
+          if (isGif) {
+            // For GIF files, add loop options
+            command = command
+              .input(gifPath)
+              .inputOptions(["-stream_loop", "-1", "-ignore_loop", "0"]);
+            console.log(`Added GIF input with loop: ${gifPath}`);
+          } else {
+            // For PNG/static images, just add as input without loop
+            command = command.input(gifPath);
+            console.log(`Added static image input: ${gifPath}`);
+          }
         } catch {
           console.warn(`Skipping GIF input ${gifPath} - file not found`);
         }
@@ -1039,7 +1118,7 @@ export async function renderVideoNew(
         console.log(`Audio trim: ${trimStart}s - ${trimEnd}s (duration: ${trimmedDuration}s)`);
 
         // Сначала обрезаем аудио согласно выбранному региону
-        let trimFilter = `[${audioInputIndex}:a]atrim=${trimStart}:${trimEnd},asetpts=PTS-STARTPTS`;
+        const trimFilter = `[${audioInputIndex}:a]atrim=${trimStart}:${trimEnd},asetpts=PTS-STARTPTS`;
 
         // Если обрезанное аудио короче целевой длительности - зацикливаем
         if (trimmedDuration < targetDuration) {
@@ -1201,6 +1280,337 @@ export async function renderVideoNew(
       }
     } catch {}
     throw error;
-    
+
+  }
+}
+
+// ============================================
+// NEWS VIDEO RENDERING
+// ============================================
+
+export interface RenderNewsVideoOptions {
+  celebrityImageUrl: string; // URL of celebrity photo
+  shortHeadline: string; // Short headline (in rounded rectangle, max 2 lines)
+  newsTitle: string; // News title (bold text)
+  newsSummary: string; // News summary (regular text)
+  audioUrl?: string; // Optional background music
+  audioTrimStart?: number; // Audio trim start in seconds
+  audioTrimEnd?: number; // Audio trim end in seconds
+  duration?: number; // Video duration in seconds (default: 8)
+  jobId: string;
+}
+
+/**
+ * Create a PNG with rounded rectangle, gradient background, and centered text
+ * @param width - Rectangle width
+ * @param height - Rectangle height
+ * @param outputPath - Output PNG file path
+ * @param text - Text to display inside the rectangle
+ * @param cornerRadius - Corner radius in pixels
+ */
+async function createGradientRoundedRectangleWithText(
+  width: number,
+  height: number,
+  outputPath: string,
+  text: string,
+  cornerRadius: number = 20
+): Promise<void> {
+  const { createCanvas } = await import('canvas');
+
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+
+  // Create gradient (red to blue, matching the provided gradient image)
+  const gradient = ctx.createLinearGradient(0, 0, width, 0);
+  gradient.addColorStop(0, '#8B0000'); // Dark red
+  gradient.addColorStop(0.5, '#1a1a4d'); // Dark blue-purple
+  gradient.addColorStop(1, '#0066ff'); // Bright blue
+
+  // Draw rounded rectangle
+  ctx.beginPath();
+  ctx.moveTo(cornerRadius, 0);
+  ctx.lineTo(width - cornerRadius, 0);
+  ctx.quadraticCurveTo(width, 0, width, cornerRadius);
+  ctx.lineTo(width, height - cornerRadius);
+  ctx.quadraticCurveTo(width, height, width - cornerRadius, height);
+  ctx.lineTo(cornerRadius, height);
+  ctx.quadraticCurveTo(0, height, 0, height - cornerRadius);
+  ctx.lineTo(0, cornerRadius);
+  ctx.quadraticCurveTo(0, 0, cornerRadius, 0);
+  ctx.closePath();
+
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // Draw text centered in the rectangle
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 28px Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Word wrap text to fit within box
+  const maxWidth = width - 40; // 20px padding on each side
+  const lineHeight = 34;
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  // Draw lines centered vertically
+  const totalTextHeight = lines.length * lineHeight;
+  const startY = (height - totalTextHeight) / 2 + lineHeight / 2;
+
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], width / 2, startY + i * lineHeight);
+  }
+
+  // Save as PNG
+  const buffer = canvas.toBuffer('image/png');
+  await fs.writeFile(outputPath, buffer);
+}
+
+/**
+ * Render news video with celebrity image on top 1/3 and text on bottom 2/3
+ * Layout:
+ * - Top 1/3 (0-427px): Celebrity image (cover-fit)
+ * - Bottom 2/3 (427-1280px): White background with title (bold) and summary (regular)
+ *
+ * Now uses renderVideoNew for consistent rendering with jokes
+ */
+export async function renderNewsVideo(
+  options: RenderNewsVideoOptions
+): Promise<RenderVideoNewResult> {
+  const {
+    celebrityImageUrl,
+    shortHeadline,
+    newsTitle,
+    newsSummary,
+    audioUrl,
+    audioTrimStart,
+    audioTrimEnd,
+    duration = 8,
+    jobId
+  } = options;
+
+  // Validate inputs
+  if (!celebrityImageUrl) {
+    throw new Error("Celebrity image URL is required");
+  }
+  if (!newsTitle || newsTitle.trim().length === 0) {
+    throw new Error("News title is required");
+  }
+  if (!newsSummary || newsSummary.trim().length === 0) {
+    throw new Error("News summary is required");
+  }
+
+  console.log("Rendering news video using renderVideoNew...");
+  console.log(`Title: ${newsTitle}`);
+  console.log(`Summary: ${newsSummary.substring(0, 100)}...`);
+  console.log(`Image: ${celebrityImageUrl}`);
+  console.log(`Duration: ${duration}s`);
+
+  // Create a white background image layer with stacked celebrity image
+  // We'll use a custom filter approach with color source for white background
+
+  // Download celebrity image temporarily to create composite
+  const isProduction = process.env.NODE_ENV === 'production';
+  const videosDir = isProduction
+    ? path.join('/tmp', 'videos')
+    : path.join(process.cwd(), "public", "videos");
+
+  await fs.mkdir(videosDir, { recursive: true });
+
+  // Use renderVideoNew with custom filter setup
+  // We need to create a composite image: celebrity on top (720x427) + white background (720x853)
+
+  const renderOptions: RenderVideoNewOptions = {
+    // We'll use backgroundImageUrl but override with custom filter
+    backgroundImageUrl: celebrityImageUrl,
+
+    // No image effects for news
+    imageEffect: "none",
+
+    // Text element: sensationalized news text (bold, centered)
+    // Text is generated by GPT to be ~540-660 chars for optimal fill
+    textElements: [
+      {
+        text: newsTitle,
+        x: -1, // Center horizontally
+        y: 500, // Start position in gradient area (gradient area starts at y=426)
+        fontSize: 26, // Smaller font for 540-660 char text
+        color: "white",
+        fontWeight: "bold",
+        lineSpacing: 6,
+        width: 680, // Max width with padding (720 - 40px padding)
+      },
+    ],
+
+    // No emoji or GIF elements
+    emojiElements: [],
+    gifElements: [],
+
+    // Audio
+    audioUrl: audioUrl || undefined,
+    audioTrimStart,
+    audioTrimEnd,
+
+    // Duration
+    duration,
+
+    // Job ID
+    jobId,
+  };
+
+  // Call renderVideoNew which handles everything correctly
+  // But we need to override the background filter to create our custom layout
+  // For now, let's create a workaround by preparing a composite background image
+
+  // Actually, the best approach is to use the existing filter_complex capability
+  // Let's modify the render to inject our custom filter for the celebrity + white bg layout
+
+  // Since renderVideoNew doesn't support our custom layout natively,
+  // we'll create a temporary composite background image
+
+  try {
+    // Create rounded rectangle PNG with headline text inside
+    const headlineBoxPath = path.join(videosDir, `headline_box_${jobId}.png`);
+    console.log("Creating headline box with text...");
+    await createGradientRoundedRectangleWithText(600, 100, headlineBoxPath, shortHeadline, 15);
+    console.log("Headline box with text created");
+
+    // Download celebrity image
+    console.log("Downloading celebrity image:", celebrityImageUrl);
+    const imageResponse = await fetch(celebrityImageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to download celebrity image: ${imageResponse.statusText}`);
+    }
+    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    const tempCelebrityPath = path.join(videosDir, `temp_celebrity_${jobId}.jpg`);
+    await fs.writeFile(tempCelebrityPath, imageBuffer);
+    console.log("Celebrity image downloaded");
+
+    // Create composite background VIDEO with animated glow/shimmer effect
+    // Celebrity image (top 720x426) + white background (bottom 720x854)
+    // IMPORTANT: Both heights must be EVEN numbers for libx264 (426+854=1280)
+    const compositeBackgroundPath = path.join(videosDir, `temp_composite_bg_${jobId}.mp4`);
+
+    // CORRECT approach using eq filter with sine function for pulsing brightness
+    // PLUS zoompan for zoom in/out effect
+    // Based on FFmpeg documentation: eq=brightness='A*sin(2*PI*f*t)':eval=frame
+    // Where A = amplitude (0.15 for subtle pulse), f = frequency (0.4 Hz = 2.5 sec cycle)
+    // 2*PI = 6.283185307, 2*PI*0.4 = 2.513274123
+    const totalFrames = duration * 25; // 25 fps
+    const gradientBgPath = path.join(process.cwd(), 'public', 'gradient-bg.png');
+    const filterComplex =
+      // Scale up to larger size (1080x640) to have headroom for zooming
+      `[0:v]scale=1080:640:force_original_aspect_ratio=increase,crop=1080:640,fps=25,` +
+      // Zoom in/out: oscillates from 0.9x to 1.1x zoom (amplitude 0.1)
+      // Using 'on' variable (frame number) instead of 't' for zoompan
+      // on/25 = time in seconds (at 25 fps)
+      // 1.256637 = 2*PI*0.2 (for 5 second cycle at 0.2 Hz)
+      // d=${totalFrames} means zoom animation lasts for the entire video duration
+      `zoompan=z='1+0.1*sin(on/25*1.256637)':d=${totalFrames}:s=720x426:fps=25,` +
+      // Pulsing brightness: sin wave oscillates between -0.15 and +0.15
+      // Frequency 0.4 Hz = one pulse every 2.5 seconds
+      // 2.513274 = 2*PI*0.4
+      `eq=brightness='0.15*sin(2.513274*t)':eval=frame,` +
+      // Add slight saturation boost for more vivid colors
+      `eq=saturation=1.15[celebrity];` +
+      // Gradient background with left-right pan animation
+      // Scale to 1440x854 (2x width) for pan headroom, then crop with moving x
+      // x oscillates: 360 + 360*sin(...) = range [0, 720] for smooth left-right pan
+      // 1.884955592 = 2*PI*0.3 for 0.3 Hz frequency (one cycle ~3.3 seconds)
+      // -loop 1 in input already loops the image, no need for loop filter
+      `[1:v]fps=25,scale=1440:854:force_original_aspect_ratio=increase,crop=1440:854,` +
+      `crop=720:854:'360+360*sin(1.884955592*t)':0[bg_gradient];` +
+      // Stack vertically (426+854=1280, both even numbers)
+      `[celebrity][bg_gradient]vstack`;
+
+    const compositeCmd = `ffmpeg -loop 1 -i "${tempCelebrityPath}" -loop 1 -i "${gradientBgPath}" -y -filter_complex "${filterComplex}" -t ${duration} -c:v libx264 -preset ultrafast -pix_fmt yuv420p "${compositeBackgroundPath}"`;
+
+    console.log("Creating composite background video with pulsing brightness effect...");
+    await execWithFFmpegEnv(compositeCmd);
+    console.log("Composite background video created");
+
+    // Now use renderVideoNew with the composite background VIDEO
+    const result = await renderVideoNew({
+      ...renderOptions,
+      backgroundVideoUrl: compositeBackgroundPath, // Use composite VIDEO instead of image
+      backgroundImageUrl: undefined, // Clear image URL since we're using video
+
+      // Layout: headline box (with text inside) overlaps boundary between photo (0-426px) and gradient (426-1280px)
+      // The headline text is now rendered INSIDE the PNG image, so it won't be covered by the box
+      textElements: [
+        // Main news text (below headline box)
+        {
+          text: newsTitle,
+          x: -1, // Center horizontally
+          y: 500, // Start position below headline box (box ends at ~476, plus spacing)
+          fontSize: 24, // Smaller font for 540-660 char text
+          color: "white",
+          fontWeight: "bold",
+          lineSpacing: 6,
+          width: 680, // Max width with padding (720 - 40px padding)
+        },
+      ],
+
+      // Headline box with text already rendered inside (PNG image)
+      // Positioned to overlap boundary between photo and gradient
+      // Photo ends at y=426, box height=100, so to center on boundary: y = 426 - 50 = 376
+      gifElements: [
+        {
+          url: headlineBoxPath,
+          x: 60, // Center: (720 - 600) / 2 = 60
+          y: 376, // Center box on photo/gradient boundary (426 - 50 = 376)
+          width: 600,
+          height: 100,
+        },
+        // Animated subscribe sticker with transparent background (GIPHY)
+        // YouTube engagement icons - like, subscribe, bell with cursor clicking
+        {
+          url: "https://media4.giphy.com/media/Ve5hR4qmFYrAKWQbj6/giphy.gif",
+          x: 110, // Centered horizontally: (720 - 500) / 2 = 110
+          y: 980, // Near bottom
+          width: 500,
+          height: 250,
+        },
+      ],
+
+      // No emoji elements - using GIF animations instead
+      emojiElements: [],
+    });
+
+    // Clean up temporary files
+    await fs.unlink(tempCelebrityPath).catch(() => {});
+    await fs.unlink(compositeBackgroundPath).catch(() => {});
+    await fs.unlink(headlineBoxPath).catch(() => {});
+
+    console.log("News video rendering completed:", result.videoUrl);
+    return result;
+  } catch (error) {
+    console.error("Failed to render news video:", error);
+
+    // Clean up temporary files on error
+    const tempCelebrityPath = path.join(videosDir, `temp_celebrity_${jobId}.jpg`);
+    const compositeBackgroundPath = path.join(videosDir, `temp_composite_bg_${jobId}.mp4`);
+    const headlineBoxPath = path.join(videosDir, `headline_box_${jobId}.png`);
+    await fs.unlink(tempCelebrityPath).catch(() => {});
+    await fs.unlink(compositeBackgroundPath).catch(() => {});
+    await fs.unlink(headlineBoxPath).catch(() => {});
+
+    throw error;
   }
 }
