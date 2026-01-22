@@ -347,7 +347,7 @@ export async function generateNewsVideo(
     await updateNewsJobStatus(job._id!, "completed", {
       results: {
         renderedVideoUrl: renderResult.videoUrl,
-        scheduledVideoId: String(scheduledVideo._id),
+        scheduledVideoId: scheduledVideo.id,
         scheduledAt,
       },
     });
