@@ -237,18 +237,22 @@ export async function generateNewsVideo(
       const selectedAudioUrl = selectRandomFromArray(config.template.audio.urls);
       const targetDuration = config.template.audio.duration || 8;
 
-      if (config.template.audio.randomTrim) {
-        const audioCut = await prepareAudioCut(selectedAudioUrl, targetDuration, true);
-        audioUrl = selectedAudioUrl;
-        audioTrimStart = audioCut.start;
-        audioTrimEnd = audioCut.end;
+      if (selectedAudioUrl) {
+        if (config.template.audio.randomTrim) {
+          const audioCut = await prepareAudioCut(selectedAudioUrl, targetDuration, true);
+          audioUrl = selectedAudioUrl;
+          audioTrimStart = audioCut.start;
+          audioTrimEnd = audioCut.end;
 
-        console.log(`Audio selected: ${audioUrl}`);
-        console.log(`Audio trim: ${audioTrimStart}s - ${audioTrimEnd}s`);
+          console.log(`Audio selected: ${audioUrl}`);
+          console.log(`Audio trim: ${audioTrimStart}s - ${audioTrimEnd}s`);
+        } else {
+          audioUrl = selectedAudioUrl;
+          audioTrimStart = 0;
+          audioTrimEnd = targetDuration;
+        }
       } else {
-        audioUrl = selectedAudioUrl;
-        audioTrimStart = 0;
-        audioTrimEnd = targetDuration;
+        console.log("No audio URL selected from array");
       }
     } else {
       console.log("No audio configured, generating video without audio");
