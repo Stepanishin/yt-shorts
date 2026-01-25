@@ -36,6 +36,7 @@ import { selectNextJoke, getAvailableJokesCount, selectNextJokeDE, getAvailableJ
 import { prepareAudioCut, selectRandomFromArray } from "./audio-processor";
 import { renderAutoVideo } from "./video-renderer";
 import { fetchUnsplashImage } from "@/lib/unsplash/client";
+import { polishJokeText } from "@/lib/services/joke-polisher";
 
 /**
  * Main function to generate auto video
@@ -87,9 +88,17 @@ export async function generateAutoVideo(
       throw new Error("Failed to reserve joke");
     }
 
-    const jokeText = joke.editedText || joke.text;
+    const rawJokeText = joke.editedText || joke.text;
     console.log(`Selected joke ID: ${joke._id}`);
-    console.log(`Joke text (${jokeText.length} chars): ${jokeText.substring(0, 100)}...`);
+    console.log(`Raw joke text (${rawJokeText.length} chars): ${rawJokeText.substring(0, 100)}...`);
+
+    // 3.5. Polish joke text (fix spelling, punctuation, line breaks)
+    console.log(`[${jobId}] Step 3.5: Polishing joke text...`);
+    const polished = await polishJokeText(rawJokeText, "es");
+    const jokeText = polished.text;
+    if (polished.wasModified) {
+      console.log(`Joke text polished: ${jokeText.substring(0, 100)}...`);
+    }
 
     // 4. Get background from Unsplash
     console.log(`[${jobId}] Step 4: Fetching background image...`);
@@ -705,9 +714,17 @@ export async function generateAutoVideoDE(
       throw new Error("[DE] Failed to reserve German joke");
     }
 
-    const jokeText = joke.editedText || joke.text;
+    const rawJokeText = joke.editedText || joke.text;
     console.log(`[DE] Selected joke ID: ${joke._id}`);
-    console.log(`[DE] Joke text (${jokeText.length} chars): ${jokeText.substring(0, 100)}...`);
+    console.log(`[DE] Raw joke text (${rawJokeText.length} chars): ${rawJokeText.substring(0, 100)}...`);
+
+    // 3.5. Polish joke text (fix spelling, punctuation, line breaks)
+    console.log(`[DE][${jobId}] Step 3.5: Polishing joke text...`);
+    const polished = await polishJokeText(rawJokeText, "de");
+    const jokeText = polished.text;
+    if (polished.wasModified) {
+      console.log(`[DE] Joke text polished: ${jokeText.substring(0, 100)}...`);
+    }
 
     // 4. Get background from Unsplash
     console.log(`[DE][${jobId}] Step 4: Fetching background image...`);
@@ -944,9 +961,17 @@ export async function generateAutoVideoPT(
       throw new Error("[PT] Failed to reserve Portuguese joke");
     }
 
-    const jokeText = joke.editedText || joke.text;
+    const rawJokeText = joke.editedText || joke.text;
     console.log(`[PT] Selected joke ID: ${joke._id}`);
-    console.log(`[PT] Joke text (${jokeText.length} chars): ${jokeText.substring(0, 100)}...`);
+    console.log(`[PT] Raw joke text (${rawJokeText.length} chars): ${rawJokeText.substring(0, 100)}...`);
+
+    // 3.5. Polish joke text (fix spelling, punctuation, line breaks)
+    console.log(`[PT][${jobId}] Step 3.5: Polishing joke text...`);
+    const polished = await polishJokeText(rawJokeText, "pt");
+    const jokeText = polished.text;
+    if (polished.wasModified) {
+      console.log(`[PT] Joke text polished: ${jokeText.substring(0, 100)}...`);
+    }
 
     // 4. Get background from Unsplash
     console.log(`[PT][${jobId}] Step 4: Fetching background image...`);
@@ -1307,9 +1332,17 @@ export async function generateAutoVideoFR(
       throw new Error("[FR] Failed to reserve French joke");
     }
 
-    const jokeText = joke.editedText || joke.text;
+    const rawJokeText = joke.editedText || joke.text;
     console.log(`[FR] Selected joke ID: ${joke._id}`);
-    console.log(`[FR] Joke text (${jokeText.length} chars): ${jokeText.substring(0, 100)}...`);
+    console.log(`[FR] Raw joke text (${rawJokeText.length} chars): ${rawJokeText.substring(0, 100)}...`);
+
+    // 3.5. Polish joke text (fix spelling, punctuation, line breaks)
+    console.log(`[FR][${jobId}] Step 3.5: Polishing joke text...`);
+    const polished = await polishJokeText(rawJokeText, "fr");
+    const jokeText = polished.text;
+    if (polished.wasModified) {
+      console.log(`[FR] Joke text polished: ${jokeText.substring(0, 100)}...`);
+    }
 
     // 4. Get background from Unsplash
     console.log(`[FR][${jobId}] Step 4: Fetching background image...`);
