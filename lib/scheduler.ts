@@ -1,8 +1,10 @@
 import { autoPublishScheduledVideos } from "./youtube/auto-publisher";
 import { runAutoGeneration } from "./auto-generation/scheduler";
+import { runNewsIngest } from "./ingest-news/run";
 
 const CHECK_INTERVAL = 10 * 60 * 1000; // 10 минут в миллисекундах
 const AUTO_GEN_CHECK_INTERVAL = 1 * 60 * 60 * 1000; // 1 часа в миллисекундах
+const NEWS_INGEST_INTERVAL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах
 let schedulerRunning = false;
 
 /**
@@ -67,7 +69,7 @@ export function startScheduler() {
     });
   }, 5 * 60 * 1000);
 
-  // Затем каждые 3 часа
+  // Затем каждый час
   setInterval(async () => {
     console.log(`\n📹 [${new Date().toISOString()}] Running auto-generation...`);
 
@@ -78,6 +80,30 @@ export function startScheduler() {
       console.error("❌ Error in auto-generation:", error);
     }
   }, AUTO_GEN_CHECK_INTERVAL);
+
+  // === News Ingest Scheduler (каждые 3 часа) ===
+  console.log("📰 Starting News Ingest scheduler...");
+  console.log(`   Will scrape news every ${NEWS_INGEST_INTERVAL / 1000 / 60 / 60} hours`);
+
+  // Первый запуск через 2 минуты после старта
+  setTimeout(() => {
+    console.log("📰 Running initial news ingest...");
+    runNewsIngest().catch(error => {
+      console.error("Error in initial news ingest:", error);
+    });
+  }, 2 * 60 * 1000);
+
+  // Затем каждые 3 часа
+  setInterval(async () => {
+    console.log(`\n📰 [${new Date().toISOString()}] Running news ingest...`);
+
+    try {
+      const result = await runNewsIngest();
+      console.log(`✅ News ingest completed: ${result.totalInserted} inserted, ${result.totalDeleted} deleted`);
+    } catch (error) {
+      console.error("❌ Error in news ingest:", error);
+    }
+  }, NEWS_INGEST_INTERVAL);
 
   console.log("✅ Scheduler started successfully");
 }
