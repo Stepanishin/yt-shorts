@@ -1,10 +1,12 @@
 import { autoPublishScheduledVideos } from "./youtube/auto-publisher";
 import { runAutoGeneration } from "./auto-generation/scheduler";
 import { runNewsIngest } from "./ingest-news/run";
+import { runNewsIngestPT } from "./ingest-news/run-pt";
 
 const CHECK_INTERVAL = 10 * 60 * 1000; // 10 минут в миллисекундах
 const AUTO_GEN_CHECK_INTERVAL = 1 * 60 * 60 * 1000; // 1 часа в миллисекундах
-const NEWS_INGEST_INTERVAL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах
+const NEWS_INGEST_INTERVAL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах (Spanish)
+const NEWS_INGEST_INTERVAL_PT = 2 * 60 * 60 * 1000; // 2 часа в миллисекундах (Portuguese)
 let schedulerRunning = false;
 
 /**
@@ -82,28 +84,52 @@ export function startScheduler() {
   }, AUTO_GEN_CHECK_INTERVAL);
 
   // === News Ingest Scheduler (каждые 3 часа) ===
-  console.log("📰 Starting News Ingest scheduler...");
-  console.log(`   Will scrape news every ${NEWS_INGEST_INTERVAL / 1000 / 60 / 60} hours`);
+  console.log("📰 Starting News Ingest scheduler (Spanish)...");
+  console.log(`   Will scrape Spanish news every ${NEWS_INGEST_INTERVAL / 1000 / 60 / 60} hours`);
 
   // Первый запуск через 2 минуты после старта
   setTimeout(() => {
-    console.log("📰 Running initial news ingest...");
+    console.log("📰 Running initial Spanish news ingest...");
     runNewsIngest().catch(error => {
-      console.error("Error in initial news ingest:", error);
+      console.error("Error in initial Spanish news ingest:", error);
     });
   }, 2 * 60 * 1000);
 
   // Затем каждые 3 часа
   setInterval(async () => {
-    console.log(`\n📰 [${new Date().toISOString()}] Running news ingest...`);
+    console.log(`\n📰 [${new Date().toISOString()}] Running Spanish news ingest...`);
 
     try {
       const result = await runNewsIngest();
-      console.log(`✅ News ingest completed: ${result.totalInserted} inserted, ${result.totalDeleted} deleted`);
+      console.log(`✅ Spanish news ingest completed: ${result.totalInserted} inserted, ${result.totalDeleted} deleted`);
     } catch (error) {
-      console.error("❌ Error in news ingest:", error);
+      console.error("❌ Error in Spanish news ingest:", error);
     }
   }, NEWS_INGEST_INTERVAL);
+
+  // === Portuguese News Ingest Scheduler (каждые 2 часа) ===
+  console.log("📰 Starting News Ingest scheduler (Portuguese)...");
+  console.log(`   Will scrape Portuguese news every ${NEWS_INGEST_INTERVAL_PT / 1000 / 60 / 60} hours`);
+
+  // Первый запуск через 2.5 минуты после старта (немного позже испанского)
+  setTimeout(() => {
+    console.log("📰 Running initial Portuguese news ingest...");
+    runNewsIngestPT().catch(error => {
+      console.error("Error in initial Portuguese news ingest:", error);
+    });
+  }, 2.5 * 60 * 1000);
+
+  // Затем каждые 2 часа
+  setInterval(async () => {
+    console.log(`\n📰 [${new Date().toISOString()}] Running Portuguese news ingest...`);
+
+    try {
+      const result = await runNewsIngestPT();
+      console.log(`✅ Portuguese news ingest completed: ${result.totalInserted} inserted, ${result.totalDeleted} deleted`);
+    } catch (error) {
+      console.error("❌ Error in Portuguese news ingest:", error);
+    }
+  }, NEWS_INGEST_INTERVAL_PT);
 
   console.log("✅ Scheduler started successfully");
 }

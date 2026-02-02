@@ -13,9 +13,10 @@ interface NewsCardProps {
     editedSummary?: string;
   };
   onUpdate?: () => void;
+  basePath?: string; // Base path for news detail page (e.g., "/dashboard/news" or "/dashboard/news-pt")
 }
 
-export default function NewsCard({ news }: NewsCardProps) {
+export default function NewsCard({ news, basePath = "/dashboard/news" }: NewsCardProps) {
   const statusLabels: Record<string, string> = {
     pending: "Pending",
     reserved: "Reserved",
@@ -43,7 +44,7 @@ export default function NewsCard({ news }: NewsCardProps) {
   };
 
   return (
-    <Link href={`/dashboard/news/${news._id}`}>
+    <Link href={`${basePath}/${news._id}`}>
       <div className="bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors p-5 cursor-pointer">
         <div className="flex gap-4">
           {/* Celebrity Image */}
@@ -62,7 +63,19 @@ export default function NewsCard({ news }: NewsCardProps) {
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span className="font-medium">DiezMinutos</span>
+                <span className="font-medium">
+                  {news.source === "caras" && news.language === "pt"
+                    ? "CM Jornal"
+                    : news.source === "flash"
+                    ? "Flash"
+                    : news.source === "noticiasaominuto"
+                    ? "Notícias ao Minuto"
+                    : news.source === "googlenews"
+                    ? "Google News PT"
+                    : news.source === "hola"
+                    ? "Hola"
+                    : "DiezMinutos"}
+                </span>
                 {news.category && (
                   <span className="text-xs text-gray-500">• {news.category}</span>
                 )}
