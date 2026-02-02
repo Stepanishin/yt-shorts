@@ -8,7 +8,7 @@ import {
 } from "@/lib/db/auto-generation-news-pt";
 import { addScheduledVideo } from "@/lib/db/users";
 import { markNewsCandidateStatusPT } from "@/lib/ingest-news/storage-pt";
-import { selectNextNews, getAvailableNewsCount } from "./news-selector";
+import { selectNextNews, getAvailableNewsCount } from "./news-selector-pt";
 import { prepareAudioCut, selectRandomFromArray } from "./audio-processor";
 import { renderNewsVideo } from "@/lib/video/renderer-new";
 import { generateNewsShortsTitle, generateNewsShortsDescription } from "@/lib/youtube/title-generator";
@@ -337,7 +337,7 @@ export async function generateNewsVideo(
       scheduledAt,
       youtubeChannelId: channelIdToUse,
       newsId: String(news._id), // Link to news source
-      language: "es", // Mark as Spanish news video
+      language: "pt", // Mark as Portuguese news video
     });
 
     console.log(`Video scheduled for: ${scheduledAt.toISOString()}`);
