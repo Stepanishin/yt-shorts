@@ -295,3 +295,177 @@ ${newsSummary}
 #Famosos #Noticias #España #UltimaHora #Viral #Exclusiva #Drama #Emotivo`;
   }
 }
+
+// ============================================
+// PORTUGUESE NEWS-SPECIFIC TITLE AND DESCRIPTION GENERATORS
+// ============================================
+
+/**
+ * Генерирует привлекательное название для YouTube Shorts с новостями на португальском
+ * Формат: 😱Nome Apelido (idade) EVENTO EM CAPS (ano) #UltimaHora #Portugal
+ */
+export async function generateNewsShortsTitle_PT(newsTitle: string, newsSummary: string): Promise<string> {
+  const currentYear = new Date().getFullYear();
+
+  try {
+    const prompt = `Cria um título para YouTube Shorts com esta notícia de imprensa cor-de-rosa portuguesa.
+
+Título original: ${newsTitle}
+Resumo: ${newsSummary}
+
+FORMATO OBRIGATÓRIO:
+[emoji][Nome Apelido] ([idade]) [EVENTO EM MAIÚSCULAS] (${currentYear}) #UltimaHora #Portugal
+
+REQUISITOS:
+- Começar com emoji dramático: 😱💔🔥😢⚠️❌💥
+- Nome completo do famoso/a
+- Idade entre parênteses se conhecida ou deduzível
+- Evento principal em MAIÚSCULAS (máximo 5-6 palavras)
+- Ano atual (${currentYear})
+- Terminar com #UltimaHora #Portugal
+- Máximo 90 caracteres no total
+
+EXEMPLOS EXATOS do formato:
+- 😱Cristina Ferreira (47) INTERNADA DE URGÊNCIA (${currentYear}) #UltimaHora #Portugal
+- 😱Manuel Luís Goucha (69) CHORA AO VIVO NA TV (${currentYear}) #UltimaHora #Portugal
+- 💔Tony Carreira (61) SEPARAÇÃO TOTAL CONFIRMADA (${currentYear}) #UltimaHora #Portugal
+- 🔥Cristiano Ronaldo (39) ESCÂNDALO EM MADRID (${currentYear}) #UltimaHora #Portugal
+- 😢Ana Moura (45) DRAMA DE SAÚDE REVELADO (${currentYear}) #UltimaHora #Portugal
+
+Se não conheceres a idade exata, usa uma idade aproximada razoável para o famoso.
+
+Devolve APENAS o título no formato exato, sem explicações.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "És um especialista em criar títulos virais para YouTube Shorts de notícias de famosos e imprensa cor-de-rosa portuguesa. Conheces as idades aproximadas dos famosos portugueses e brasileiros. Segues o formato exato que te pedem.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.8,
+      max_tokens: 120,
+    });
+
+    const title = response.choices[0]?.message?.content?.trim();
+
+    if (!title) {
+      throw new Error("No title generated");
+    }
+
+    return title;
+  } catch (error) {
+    console.error("Failed to generate PT news title:", error);
+    // Fallback com formato básico
+    return `😱${newsTitle.substring(0, 50)} (${currentYear}) #UltimaHora #Portugal`;
+  }
+}
+
+/**
+ * Генерирует оптимизированное описание для YouTube Shorts с новостями на португальском
+ * Стиль: очень драматичный, детальный, сенсационный, с интерактивом
+ */
+export async function generateNewsShortsDescription_PT(newsTitle: string, newsSummary: string): Promise<string> {
+  try {
+    const prompt = `Cria uma descrição MUITO DRAMÁTICA e DETALHADA para YouTube Shorts com esta notícia de imprensa cor-de-rosa portuguesa.
+
+Título: ${newsTitle}
+Resumo: ${newsSummary}
+
+REQUISITOS ESTRITOS:
+- Em português de Portugal
+- Estilo de revista cor-de-rosa sensacionalista (Caras, Nova Gente, TV7 Dias)
+- Tom MUITO dramático, emotivo, quase cinematográfico
+- MÍNIMO 800 caracteres de descrição
+
+ESTRUTURA OBRIGATÓRIA:
+
+1. TÍTULO DRAMÁTICO EM MAIÚSCULAS (terminar com ponto)
+   Exemplo: "COMOÇÃO NA TELEVISÃO: CRISTINA FERREIRA ROMPE EM LÁGRIMAS EM DIRETO."
+
+2. PRIMEIRO PARÁGRAFO - Contexto dramático:
+   - Descrever a situação com detalhes impactantes
+   - Mencionar o nome completo e profissão/título do famoso
+   - Incluir detalhes específicos (local, circunstâncias, reações)
+   - Usar linguagem emotiva e dramática
+   - 3-4 frases no mínimo
+
+3. SEGUNDO PARÁGRAFO - Reflexão e perguntas:
+   - Análise emocional da situação
+   - Referência à sua vida/carreira/lutas anteriores
+   - Mínimo 2-3 perguntas retóricas para gerar intriga
+   - Mencionar a reação do público/Portugal
+   - "Todo o Portugal se solidariza com...", "O que acontecerá agora?", etc.
+   - 3-4 frases no mínimo
+
+4. CHAMADA À AÇÃO INTERATIVA:
+   👇 [PALAVRA EM CAPS]: Envia um emoji de "[emoji]" ou um coração para [ação emotiva relacionada com a notícia].
+
+   Exemplos:
+   - 👇 APOIO: Envia um emoji de "💪" ou um coração para dizer a Cristina que não está sozinha nesta batalha.
+   - 👇 FORÇA: Escreve "❤️" para lhe enviar todo o teu carinho neste momento tão difícil.
+   - 👇 ÂNIMO: Deixa um "🙏" para que recupere em breve.
+
+5. HASHTAGS (mínimo 15):
+   - #NomeCompleto #SóApelido
+   - Hashtags da sua profissão/área (#Televisao, #Musica, #Futebol, etc.)
+   - #TemaDaNoticia (#Saude, #Separacao, #Escandalo, etc.)
+   - Conceitos emotivos (#Luta, #Superacao, #Drama, #Emotivo)
+   - #UltimaHora #Portugal #Noticias #Viral
+   - Hashtag único de apoio (#Forca[Nome], #Animo[Nome])
+
+EXEMPLO COMPLETO:
+COMOÇÃO NA TELEVISÃO: CRISTINA FERREIRA ROMPE EM LÁGRIMAS EM DIRETO.
+
+A apresentadora mais querida de Portugal, Cristina Ferreira, paralisou o seu programa após receber uma notícia médica de última hora. O medo de uma recaída na doença voltou a atingir a comunicadora, que não conseguiu conter as lágrimas perante os telespectadores. Um momento de vulnerabilidade extrema que demonstra que, por trás das câmaras, há uma mulher lutadora mas humana.
+
+O que dizem os médicos? Voltará a afastar-se dos ecrãs? Todo o Portugal se solidariza com Cristina nestas horas críticas. Ouve as suas emotivas palavras e a reação dos seus colegas de profissão. A luta contra a doença tem um novo capítulo.
+
+👇 APOIO: Envia um emoji de "💪" ou um coração para dizer a Cristina que não está sozinha nesta batalha.
+
+#CristinaFerreira #TVI #Televisao #Saude #Luta #Superacao #Mulher #UltimaHora #Portugal #Noticias #Emotivo #Viral #ForcaCristina #Apresentadora #Drama
+
+Devolve APENAS a descrição completa seguindo EXATAMENTE este formato, sem explicações adicionais.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "És o melhor redator de imprensa cor-de-rosa de Portugal. Trabalhas para a Caras, Nova Gente e TV7 Dias. A tua especialidade é criar descrições LONGAS, DRAMÁTICAS e EMOTIVAS que prendem o leitor desde a primeira palavra. Conheces todos os famosos portugueses, as suas histórias, lutas e dramas. Escreves como se cada notícia fosse o capítulo mais importante de uma telenovela.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.85,
+      max_tokens: 800,
+    });
+
+    const description = response.choices[0]?.message?.content?.trim();
+
+    if (!description) {
+      throw new Error("No description generated");
+    }
+
+    return description;
+  } catch (error) {
+    console.error("Failed to generate PT news description:", error);
+    // Fallback
+    return `ÚLTIMA HORA: ${newsTitle}
+
+${newsSummary}
+
+O que acontecerá agora? Todo o Portugal atento a esta notícia.
+
+👇 APOIO: Envia um "❤️" para mostrar o teu apoio.
+
+#Famosos #Noticias #Portugal #UltimaHora #Viral #Exclusivo #Drama #Emotivo`;
+  }
+}

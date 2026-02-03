@@ -11,11 +11,11 @@ import { markNewsCandidateStatusPT } from "@/lib/ingest-news/storage-pt";
 import { selectNextNews, getAvailableNewsCount } from "./news-selector-pt";
 import { prepareAudioCut, selectRandomFromArray } from "./audio-processor";
 import { renderNewsVideo } from "@/lib/video/renderer-new";
-import { generateNewsShortsTitle, generateNewsShortsDescription } from "@/lib/youtube/title-generator";
+import { generateNewsShortsTitle_PT, generateNewsShortsDescription_PT } from "@/lib/youtube/title-generator";
 
 /**
  * Generate short catchy headline for video (max 2 lines)
- * Takes original title and summary, returns short Spanish headline
+ * Takes original title and summary, returns short Portuguese headline
  */
 async function generateShortHeadline(
   title: string,
@@ -27,36 +27,36 @@ async function generateShortHeadline(
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const prompt = `Eres un experto en crear titulares impactantes para prensa del corazón española.
+    const prompt = `És um especialista em criar títulos impactantes para a imprensa cor-de-rosa portuguesa.
 
 Título original: ${title}
-Resumen: ${summary}
+Resumo: ${summary}
 
-TAREA:
-Crea un titular CORTO y LLAMATIVO que capture la esencia de la noticia.
+TAREFA:
+Cria um título CURTO e CHAMATIVO que capture a essência da notícia.
 
-REQUISITOS ESTRICTOS:
-- Longitud: 60-80 caracteres MÁXIMO (incluyendo espacios)
-- Máximo 2 líneas cuando se muestra en pantalla
-- Estilo sensacionalista de prensa del corazón
-- Usar palabras impactantes: "BOMBAZO", "EXCLUSIVA", "REVELACIÓN", etc.
-- En MAYÚSCULAS las palabras clave
-- En ESPAÑOL
+REQUISITOS ESTRITOS:
+- Comprimento: 60-80 caracteres MÁXIMO (incluindo espaços)
+- Máximo 2 linhas quando mostrado no ecrã
+- Estilo sensacionalista de imprensa cor-de-rosa
+- Usar palavras impactantes: "BOMBA", "EXCLUSIVO", "REVELAÇÃO", "ESCÂNDALO", etc.
+- Em MAIÚSCULAS as palavras-chave
+- Em PORTUGUÊS
 
-EJEMPLOS del estilo deseado:
-- "¡BOMBAZO en la Casa Real!"
-- "EXCLUSIVA: Romance secreto confirmado"
-- "¡ESCÁNDALO sin precedentes!"
-- "REVELACIÓN sobre la Reina"
+EXEMPLOS do estilo desejado:
+- "BOMBA na Casa Real!"
+- "EXCLUSIVO: Romance secreto confirmado"
+- "ESCÂNDALO sem precedentes!"
+- "REVELAÇÃO sobre a Rainha"
 
-Devuelve SOLO el titular, sin comillas ni explicaciones.`;
+Devolve APENAS o título, sem aspas nem explicações.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "Eres un redactor experto de prensa del corazón española, especializado en titulares cortos y llamativos.",
+          content: "És um redator especialista de imprensa cor-de-rosa portuguesa, especializado em títulos curtos e chamativos.",
         },
         {
           role: "user",
@@ -86,7 +86,7 @@ Devuelve SOLO el titular, sin comillas ni explicaciones.`;
 
 /**
  * Generate sensationalized "yellow press" style news text for video overlay
- * Takes original title and summary, returns catchy Spanish text optimized for shorts
+ * Takes original title and summary, returns catchy Portuguese text optimized for shorts
  */
 async function generateYellowPressText(
   title: string,
@@ -98,38 +98,38 @@ async function generateYellowPressText(
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const prompt = `Eres un experto en crear textos sensacionalistas para prensa del corazón española.
+    const prompt = `És um especialista em criar textos sensacionalistas para a imprensa cor-de-rosa portuguesa.
 
 Título original: ${title}
-Resumen: ${summary}
+Resumo: ${summary}
 
-TAREA:
-Crea un texto SENSACIONALISTA y DETALLADO en estilo de revista del corazón (¡Hola!, Diez Minutos) que se superpondrá sobre una foto en un video corto.
+TAREFA:
+Cria um texto SENSACIONALISTA e DETALHADO em estilo de revista cor-de-rosa (Caras, Nova Gente, TV7 Dias) que será sobreposto numa foto num vídeo curto.
 
-REQUISITOS ESTRICTOS:
-- Longitud: 540-660 caracteres (incluyendo espacios)
-- Estilo amarillista/sensacionalista de prensa del corazón
-- Usar palabras impactantes: "EXCLUSIVA", "BOMBAZO", "¡INCREÍBLE!", "REVELACIÓN", etc.
-- Emocional, dramático y llamativo
-- En ESPAÑOL
-- 3-5 frases con detalles jugosos
-- Enfocarse en lo más escandaloso/emocionante de la noticia
-- Añadir contexto dramático y detalles llamativos
-- Usar signos de exclamación para énfasis
+REQUISITOS ESTRITOS:
+- Comprimento: 540-660 caracteres (incluindo espaços)
+- Estilo sensacionalista de imprensa cor-de-rosa
+- Usar palavras impactantes: "EXCLUSIVO", "BOMBA", "INCRÍVEL!", "REVELAÇÃO", etc.
+- Emocional, dramático e chamativo
+- Em PORTUGUÊS
+- 3-5 frases com detalhes suculentos
+- Focar-se no mais escandaloso/emocionante da notícia
+- Adicionar contexto dramático e detalhes chamativos
+- Usar pontos de exclamação para ênfase
 
-EJEMPLOS del estilo deseado (más extensos):
-- "¡BOMBAZO en la Casa Real! La Reina Letizia ha dejado a TODOS sin palabras con un look NUNCA antes visto que rompe todas las reglas del protocolo. Los expertos en moda están ASOMBRADOS y la reacción del Rey Felipe no se ha hecho esperar. ¡Las imágenes dan la vuelta al mundo!"
-- "EXCLUSIVA: Se confirma el romance secreto que NADIE esperaba. Las fotos comprometedoras que lo demuestran TODO han salido a la luz y la reacción de la familia ha sido EXPLOSIVA. ¡Los detalles que cambiarán todo lo que creías saber!"
-- "¡ESCÁNDALO sin precedentes! La princesa ha roto el protocolo de la forma más INESPERADA y la Casa Real no sabe cómo reaccionar. Los testigos cuentan lo que realmente pasó esa noche. ¡La verdad que intentaron ocultar!"
+EXEMPLOS do estilo desejado (mais extensos):
+- "BOMBA na Casa Real! A Rainha Letizia deixou TODOS sem palavras com um look NUNCA antes visto que quebra todas as regras do protocolo. Os especialistas em moda estão ESPANTADOS e a reação do Rei Felipe não se fez esperar. As imagens correm o mundo!"
+- "EXCLUSIVO: Confirma-se o romance secreto que NINGUÉM esperava. As fotos comprometedoras que provam TUDO vieram a público e a reação da família foi EXPLOSIVA. Os detalhes que vão mudar tudo o que pensavas saber!"
+- "ESCÂNDALO sem precedentes! A princesa quebrou o protocolo da forma mais INESPERADA e a Casa Real não sabe como reagir. As testemunhas contam o que realmente aconteceu naquela noite. A verdade que tentaram esconder!"
 
-Devuelve SOLO el texto sensacionalista, sin comillas ni explicaciones.`;
+Devolve APENAS o texto sensacionalista, sem aspas nem explicações.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "Eres un redactor experto de prensa del corazón española, especializado en textos sensacionalistas y dramáticos que enganchan al lector.",
+          content: "És um redator especialista de imprensa cor-de-rosa portuguesa, especializado em textos sensacionalistas e dramáticos que prendem o leitor.",
         },
         {
           role: "user",
@@ -302,10 +302,10 @@ export async function generateNewsVideo(
 
     if (config.youtube.useAI) {
       try {
-        // Use news-specific OpenAI-based title/description generators
+        // Use Portuguese news-specific OpenAI-based title/description generators
         const [generatedTitle, generatedDescription] = await Promise.all([
-          generateNewsShortsTitle(newsTitle, newsSummary),
-          generateNewsShortsDescription(newsTitle, newsSummary),
+          generateNewsShortsTitle_PT(newsTitle, newsSummary),
+          generateNewsShortsDescription_PT(newsTitle, newsSummary),
         ]);
 
         youtubeTitle = generatedTitle;
@@ -332,7 +332,7 @@ export async function generateNewsVideo(
       videoUrl: renderResult.videoUrl,
       title: youtubeTitle,
       description: youtubeDescription,
-      tags: config.youtube.tags || ["noticias", "famosos", "españa", "celebrities"],
+      tags: config.youtube.tags || ["noticias", "famosos", "portugal", "celebridades", "fofoca", "shorts"],
       privacyStatus: config.youtube.privacyStatus || "public",
       scheduledAt,
       youtubeChannelId: channelIdToUse,

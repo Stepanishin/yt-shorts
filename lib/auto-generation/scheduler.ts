@@ -3,6 +3,7 @@ import { getActiveAutoGenerationConfigsDE } from "@/lib/db/auto-generation-de";
 import { getActiveAutoGenerationConfigsPT } from "@/lib/db/auto-generation-pt";
 import { getActiveAutoGenerationConfigsFR } from "@/lib/db/auto-generation-fr";
 import { getActiveNewsAutoGenerationConfigs } from "@/lib/db/auto-generation-news";
+import { getActiveNewsAutoGenerationConfigs as getActiveNewsAutoGenerationConfigsPT } from "@/lib/db/auto-generation-news-pt";
 import { getScheduledVideos } from "@/lib/db/users";
 import {
   getScheduledTimesAhead,
@@ -10,7 +11,9 @@ import {
 } from "./schedule-calculator";
 import { generateAutoVideo, generateAutoVideoDE, generateAutoVideoPT, generateAutoVideoFR } from "./generator";
 import { generateNewsVideo } from "./news-generator";
+import { generateNewsVideo as generateNewsVideoPT } from "./news-generator-pt";
 import { runNewsIngest } from "@/lib/ingest-news/run";
+import { runNewsIngestPT } from "@/lib/ingest-news/run-pt";
 
 export interface AutoGenerationResult {
   generated: number;
@@ -42,9 +45,11 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
     const activeConfigsPT = await getActiveAutoGenerationConfigsPT();
     const activeConfigsFR = await getActiveAutoGenerationConfigsFR();
     const activeNewsConfigs = await getActiveNewsAutoGenerationConfigs();
+    const activeNewsConfigsPT = await getActiveNewsAutoGenerationConfigsPT();
 
     // Check if we should run news ingest (once per day at configured time)
     await checkAndRunNewsIngest(activeNewsConfigs);
+    await checkAndRunNewsIngestPT(activeNewsConfigsPT);
 
     // Combine configs with language and type marker
     const allConfigs = [
@@ -53,9 +58,10 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
       ...activeConfigsPT.map(config => ({ config, language: 'pt' as const, type: 'joke' as const })),
       ...activeConfigsFR.map(config => ({ config, language: 'fr' as const, type: 'joke' as const })),
       ...activeNewsConfigs.map(config => ({ config, language: 'es' as const, type: 'news' as const })),
+      ...activeNewsConfigsPT.map(config => ({ config, language: 'pt' as const, type: 'news' as const })),
     ];
 
-    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES jokes, ${activeConfigsDE.length} DE jokes, ${activeConfigsPT.length} PT jokes, ${activeConfigsFR.length} FR jokes, ${activeNewsConfigs.length} ES news)`);
+    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES jokes, ${activeConfigsDE.length} DE jokes, ${activeConfigsPT.length} PT jokes, ${activeConfigsFR.length} FR jokes, ${activeNewsConfigs.length} ES news, ${activeNewsConfigsPT.length} PT news)`);
 
     if (allConfigs.length === 0) {
       console.log("No active configurations found");
@@ -138,7 +144,13 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
 
           try {
             // Use appropriate generation function based on type and language
-            if (type === 'news') {
+            if (type === 'news' && language === 'pt') {
+              await generateNewsVideoPT(
+                config.userId,
+                config._id!.toString(),
+                scheduledTime
+              );
+            } else if (type === 'news') {
               await generateNewsVideo(
                 config.userId,
                 config._id!.toString(),
@@ -261,6 +273,65 @@ async function checkAndRunNewsIngest(newsConfigs: any[]): Promise<void> {
       console.log(`⏭️  Scheduled time is in the future (${Math.abs(timeDiffHours).toFixed(1)}h from now)`);
     } else {
       console.log(`⏭️  Scheduled time was ${timeDiffHours.toFixed(1)}h ago (outside 3h window)`);
+    }
+  }
+}
+
+/**
+ * Check if we should run Portuguese news ingest based on configured schedule
+ * Runs once per day at the configured time
+ */
+async function checkAndRunNewsIngestPT(newsConfigs: any[]): Promise<void> {
+  // Only run if there are active news configs
+  if (newsConfigs.length === 0) {
+    return;
+  }
+
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+
+  console.log(`\n📰 Checking PT news ingest schedule (current time: ${currentHour}:${currentMinute.toString().padStart(2, '0')})`);
+
+  // Check if any config has news ingest scheduled for this time window
+  // Since scheduler runs every 3 hours, we check if scheduled time is within the last 3 hours
+  for (const config of newsConfigs) {
+    const schedule = config.newsIngestSchedule;
+
+    // Skip if not configured or not enabled
+    if (!schedule || !schedule.isEnabled) {
+      continue;
+    }
+
+    const scheduledHour = schedule.hour;
+    const scheduledMinute = schedule.minute;
+
+    console.log(`PT Config for user ${config.userId}: scheduled at ${scheduledHour}:${scheduledMinute.toString().padStart(2, '0')}`);
+
+    // Check if the scheduled time is within the last 3 hours (window since last scheduler run)
+    // This ensures we don't miss the ingest even if scheduler is slightly delayed
+    const scheduledTime = new Date(now);
+    scheduledTime.setHours(scheduledHour, scheduledMinute, 0, 0);
+
+    const timeDiffHours = (now.getTime() - scheduledTime.getTime()) / (1000 * 60 * 60);
+
+    // If scheduled time is within last 3 hours (but not in the future)
+    if (timeDiffHours >= 0 && timeDiffHours < 3) {
+      console.log(`✅ Time to run PT news ingest! (scheduled ${scheduledHour}:${scheduledMinute.toString().padStart(2, '0')}, current ${currentHour}:${currentMinute.toString().padStart(2, '0')})`);
+
+      try {
+        const result = await runNewsIngestPT();
+        console.log(`📰 PT News ingest completed: ${result.totalInserted} new items inserted`);
+
+        // Only run once per scheduler cycle
+        return;
+      } catch (error) {
+        console.error("❌ PT News ingest failed:", error);
+      }
+    } else if (timeDiffHours < 0) {
+      console.log(`⏭️  PT Scheduled time is in the future (${Math.abs(timeDiffHours).toFixed(1)}h from now)`);
+    } else {
+      console.log(`⏭️  PT Scheduled time was ${timeDiffHours.toFixed(1)}h ago (outside 3h window)`);
     }
   }
 }
