@@ -289,6 +289,7 @@ export async function generateNewsVideo(
       audioTrimStart,
       audioTrimEnd,
       duration: config.template.audio?.duration || 8,
+      imageYOffset: -100, // Shift up to show more of portrait heads
       jobId,
     });
 

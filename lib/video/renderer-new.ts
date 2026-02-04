@@ -1297,6 +1297,7 @@ export interface RenderNewsVideoOptions {
   audioTrimStart?: number; // Audio trim start in seconds
   audioTrimEnd?: number; // Audio trim end in seconds
   duration?: number; // Video duration in seconds (default: 8)
+  imageYOffset?: number; // Y offset for image centering (negative = show more top, e.g. -100 for portraits)
   jobId: string;
 }
 
@@ -1402,6 +1403,7 @@ export async function renderNewsVideo(
     audioTrimStart,
     audioTrimEnd,
     duration = 8,
+    imageYOffset = 0,
     jobId
   } = options;
 
@@ -1514,6 +1516,12 @@ export async function renderNewsVideo(
     // 2*PI = 6.283185307, 2*PI*0.4 = 2.513274123
     const totalFrames = duration * 25; // 25 fps
     const gradientBgPath = path.join(process.cwd(), 'public', 'gradient-bg.png');
+    // Y offset for image centering (negative = show more top of image)
+    const yOffsetExpr = imageYOffset !== 0 ? `${imageYOffset}` : '';
+    const yExpr = imageYOffset !== 0
+      ? `y='ih/2-(ih/zoom/2)${imageYOffset >= 0 ? '+' : ''}${imageYOffset}'`
+      : `y='ih/2-(ih/zoom/2)'`;
+
     const filterComplex =
       // Scale up to larger size (1080x640) to have headroom for zooming
       `[0:v]scale=1080:640:force_original_aspect_ratio=increase,crop=1080:640,fps=25,` +
@@ -1522,7 +1530,7 @@ export async function renderNewsVideo(
       // on/25 = time in seconds (at 25 fps)
       // 1.256637 = 2*PI*0.2 (for 5 second cycle at 0.2 Hz)
       // d=${totalFrames} means zoom animation lasts for the entire video duration
-      `zoompan=z='1+0.1*sin(on/25*1.256637)':d=${totalFrames}:s=720x426:fps=25,` +
+      `zoompan=z='1+0.1*sin(on/25*1.256637)':x='iw/2-(iw/zoom/2)':${yExpr}:d=${totalFrames}:s=720x426:fps=25,` +
       // Pulsing brightness: sin wave oscillates between -0.15 and +0.15
       // Frequency 0.4 Hz = one pulse every 2.5 seconds
       // 2.513274 = 2*PI*0.4
