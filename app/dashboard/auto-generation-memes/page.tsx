@@ -380,7 +380,7 @@ export default function MemeAutoGenerationPage() {
                     ...config.template,
                     audio: {
                       ...config.template.audio,
-                      urls: e.target.value.split("\n").filter(Boolean),
+                      urls: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
                       randomTrim: config.template.audio?.randomTrim ?? true,
                     },
                   },

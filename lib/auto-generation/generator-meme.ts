@@ -77,7 +77,7 @@ export async function generateAutoVideoMeme(
     let audioTrimEnd: number | undefined;
 
     if (config.template.audio && config.template.audio.urls.length > 0) {
-      const selectedAudioUrl = selectRandomFromArray(config.template.audio.urls);
+      const selectedAudioUrl = selectRandomFromArray(config.template.audio.urls)?.trim();
       const targetDuration = config.template.duration || 10;
 
       if (selectedAudioUrl) {
