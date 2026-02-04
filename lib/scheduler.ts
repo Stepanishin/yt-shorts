@@ -2,11 +2,13 @@ import { autoPublishScheduledVideos } from "./youtube/auto-publisher";
 import { runAutoGeneration } from "./auto-generation/scheduler";
 import { runNewsIngest } from "./ingest-news/run";
 import { runNewsIngestPT } from "./ingest-news/run-pt";
+import { runRedditIngest } from "./ingest-reddit/run";
 
 const CHECK_INTERVAL = 10 * 60 * 1000; // 10 минут в миллисекундах
 const AUTO_GEN_CHECK_INTERVAL = 1 * 60 * 60 * 1000; // 1 часа в миллисекундах
 const NEWS_INGEST_INTERVAL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах (Spanish)
 const NEWS_INGEST_INTERVAL_PT = 2 * 60 * 60 * 1000; // 2 часа в миллисекундах (Portuguese)
+const REDDIT_INGEST_INTERVAL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах (Reddit Memes)
 let schedulerRunning = false;
 
 /**
@@ -130,6 +132,30 @@ export function startScheduler() {
       console.error("❌ Error in Portuguese news ingest:", error);
     }
   }, NEWS_INGEST_INTERVAL_PT);
+
+  // === Reddit Memes Ingest Scheduler (каждые 3 часа) ===
+  console.log("🎭 Starting Reddit Memes Ingest scheduler...");
+  console.log(`   Will scrape Reddit memes every ${REDDIT_INGEST_INTERVAL / 1000 / 60 / 60} hours`);
+
+  // Первый запуск через 3.5 минуты после старта
+  setTimeout(() => {
+    console.log("🎭 Running initial Reddit memes ingest...");
+    runRedditIngest().catch(error => {
+      console.error("Error in initial Reddit memes ingest:", error);
+    });
+  }, 3.5 * 60 * 1000);
+
+  // Затем каждые 3 часа
+  setInterval(async () => {
+    console.log(`\n🎭 [${new Date().toISOString()}] Running Reddit memes ingest...`);
+
+    try {
+      const result = await runRedditIngest();
+      console.log(`✅ Reddit memes ingest completed: ${result.totalInserted} inserted, ${result.totalDuplicates} duplicates`);
+    } catch (error) {
+      console.error("❌ Error in Reddit memes ingest:", error);
+    }
+  }, REDDIT_INGEST_INTERVAL);
 
   console.log("✅ Scheduler started successfully");
 }

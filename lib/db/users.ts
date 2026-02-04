@@ -31,7 +31,8 @@ export interface ScheduledVideo {
   errorMessage?: string;
   jokeId?: string; // ID анекдота, если видео создано из анекдота
   newsId?: string; // ID новости, если видео создано из новости
-  language?: "es" | "de" | "pt" | "fr"; // Язык контента: es - испанский, de - немецкий, pt - португальский, fr - французский
+  memeId?: string; // ID мема, если видео создано из Reddit мема
+  language?: "es" | "de" | "pt" | "fr";
   youtubeChannelId?: string; // Optional: specific YouTube channel ID (if user has multiple channels)
 }
 

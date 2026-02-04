@@ -4,6 +4,7 @@ import { getActiveAutoGenerationConfigsPT } from "@/lib/db/auto-generation-pt";
 import { getActiveAutoGenerationConfigsFR } from "@/lib/db/auto-generation-fr";
 import { getActiveNewsAutoGenerationConfigs } from "@/lib/db/auto-generation-news";
 import { getActiveNewsAutoGenerationConfigs as getActiveNewsAutoGenerationConfigsPT } from "@/lib/db/auto-generation-news-pt";
+import { getActiveMemeAutoGenerationConfigs } from "@/lib/db/auto-generation-meme";
 import { getScheduledVideos } from "@/lib/db/users";
 import {
   getScheduledTimesAhead,
@@ -12,6 +13,7 @@ import {
 import { generateAutoVideo, generateAutoVideoDE, generateAutoVideoPT, generateAutoVideoFR } from "./generator";
 import { generateNewsVideo } from "./news-generator";
 import { generateNewsVideo as generateNewsVideoPT } from "./news-generator-pt";
+import { generateAutoVideoMeme } from "./generator-meme";
 import { runNewsIngest } from "@/lib/ingest-news/run";
 import { runNewsIngestPT } from "@/lib/ingest-news/run-pt";
 
@@ -46,6 +48,7 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
     const activeConfigsFR = await getActiveAutoGenerationConfigsFR();
     const activeNewsConfigs = await getActiveNewsAutoGenerationConfigs();
     const activeNewsConfigsPT = await getActiveNewsAutoGenerationConfigsPT();
+    const activeMemeConfigs = await getActiveMemeAutoGenerationConfigs();
 
     // Check if we should run news ingest (once per day at configured time)
     await checkAndRunNewsIngest(activeNewsConfigs);
@@ -59,9 +62,10 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
       ...activeConfigsFR.map(config => ({ config, language: 'fr' as const, type: 'joke' as const })),
       ...activeNewsConfigs.map(config => ({ config, language: 'es' as const, type: 'news' as const })),
       ...activeNewsConfigsPT.map(config => ({ config, language: 'pt' as const, type: 'news' as const })),
+      ...activeMemeConfigs.map(config => ({ config, language: 'es' as const, type: 'meme' as const })),
     ];
 
-    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES jokes, ${activeConfigsDE.length} DE jokes, ${activeConfigsPT.length} PT jokes, ${activeConfigsFR.length} FR jokes, ${activeNewsConfigs.length} ES news, ${activeNewsConfigsPT.length} PT news)`);
+    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES jokes, ${activeConfigsDE.length} DE jokes, ${activeConfigsPT.length} PT jokes, ${activeConfigsFR.length} FR jokes, ${activeNewsConfigs.length} ES news, ${activeNewsConfigsPT.length} PT news, ${activeMemeConfigs.length} memes)`);
 
     if (allConfigs.length === 0) {
       console.log("No active configurations found");
@@ -144,7 +148,13 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
 
           try {
             // Use appropriate generation function based on type and language
-            if (type === 'news' && language === 'pt') {
+            if (type === 'meme') {
+              await generateAutoVideoMeme(
+                config.userId,
+                config._id!.toString(),
+                scheduledTime
+              );
+            } else if (type === 'news' && language === 'pt') {
               await generateNewsVideoPT(
                 config.userId,
                 config._id!.toString(),
