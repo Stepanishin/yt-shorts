@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
           urls: [],
           randomTrim: true,
         },
+        gif: body.template?.gif,
       },
       youtube: {
         privacyStatus: body.youtube?.privacyStatus ?? "public",

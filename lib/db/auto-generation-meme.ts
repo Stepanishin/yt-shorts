@@ -19,6 +19,11 @@ export interface MemeAutoGenerationTemplate {
     urls: string[]; // List of audio URLs for random selection
     randomTrim: boolean;
   };
+  gif?: {
+    urls: string[]; // List of GIF URLs for random selection
+    width: number;
+    height: number;
+  };
 }
 
 export interface YouTubeMemeSettings {

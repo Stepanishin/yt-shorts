@@ -24,6 +24,11 @@ interface MemeConfig {
       urls: string[];
       randomTrim: boolean;
     };
+    gif?: {
+      urls: string[];
+      width: number;
+      height: number;
+    };
   };
   youtube: {
     privacyStatus: "public" | "private" | "unlisted";
@@ -72,6 +77,11 @@ const DEFAULT_CONFIG: Omit<MemeConfig, "userId"> = {
     audio: {
       urls: [],
       randomTrim: true,
+    },
+    gif: {
+      urls: [],
+      width: 150,
+      height: 150,
     },
   },
   youtube: {
@@ -390,6 +400,89 @@ export default function MemeAutoGenerationPage() {
               placeholder="https://example.com/music1.mp3&#10;https://example.com/music2.mp3"
               className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
             />
+          </div>
+
+          {/* GIF URLs */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              GIF URLs (one per line)
+            </label>
+            <textarea
+              value={config.template.gif?.urls.join("\n") || ""}
+              onChange={(e) =>
+                setConfig({
+                  ...config,
+                  template: {
+                    ...config.template,
+                    gif: {
+                      ...config.template.gif,
+                      urls: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+                      width: config.template.gif?.width ?? 150,
+                      height: config.template.gif?.height ?? 150,
+                    },
+                  },
+                })
+              }
+              rows={4}
+              placeholder="https://example.com/gif1.gif&#10;https://example.com/gif2.gif"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+            />
+          </div>
+
+          {/* GIF Size */}
+          <div className="flex gap-6 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                GIF Width (px)
+              </label>
+              <input
+                type="number"
+                min="50"
+                max="400"
+                value={config.template.gif?.width ?? 150}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    template: {
+                      ...config.template,
+                      gif: {
+                        ...config.template.gif,
+                        urls: config.template.gif?.urls ?? [],
+                        width: parseInt(e.target.value) || 150,
+                        height: config.template.gif?.height ?? 150,
+                      },
+                    },
+                  })
+                }
+                className="w-32 px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                GIF Height (px)
+              </label>
+              <input
+                type="number"
+                min="50"
+                max="400"
+                value={config.template.gif?.height ?? 150}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    template: {
+                      ...config.template,
+                      gif: {
+                        ...config.template.gif,
+                        urls: config.template.gif?.urls ?? [],
+                        width: config.template.gif?.width ?? 150,
+                        height: parseInt(e.target.value) || 150,
+                      },
+                    },
+                  })
+                }
+                className="w-32 px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
           </div>
 
           {/* Tags */}

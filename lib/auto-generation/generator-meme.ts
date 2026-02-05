@@ -99,6 +99,17 @@ export async function generateAutoVideoMeme(
       console.log("No audio configured, generating video without audio");
     }
 
+    // 4.5. Select random GIF (if configured)
+    console.log(`[${jobId}] Step 4.5: Selecting GIF...`);
+    let gifUrl: string | undefined;
+
+    if (config.template.gif && config.template.gif.urls.length > 0) {
+      gifUrl = selectRandomFromArray(config.template.gif.urls)?.trim();
+      console.log(`Selected GIF: ${gifUrl || "None"}`);
+    } else {
+      console.log("No GIF configured, generating video without GIF");
+    }
+
     // 5. Create job record
     console.log(`[${jobId}] Step 5: Creating job record...`);
     const job = await createMemeAutoGenerationJob({
@@ -126,7 +137,17 @@ export async function generateAutoVideoMeme(
       imageEffect: config.template.imageEffect || "zoom-in-out",
       textElements: [], // No text overlay - meme already has text
       emojiElements: [],
-      gifElements: [],
+      gifElements: gifUrl && config.template.gif
+        ? [
+            {
+              url: gifUrl,
+              x: 720 - config.template.gif.width - 70,
+              y: 1280 - config.template.gif.height - 70,
+              width: config.template.gif.width,
+              height: config.template.gif.height,
+            },
+          ]
+        : [],
       audioUrl,
       audioTrimStart,
       audioTrimEnd,
