@@ -218,14 +218,34 @@ export async function autoPublishScheduledVideos() {
       } catch (error: any) {
         console.error(`❌ Failed to publish video ${video.id}:`, error);
 
-        await updateScheduledVideoStatus(userId, video.id, "failed", {
-          errorMessage: error.message || "Unknown error",
-        });
+        const errorMessage = error.message || "Unknown error";
+
+        // Check if this is a quota exceeded error
+        const isQuotaExceeded = errorMessage.toLowerCase().includes("exceeded") ||
+                                errorMessage.toLowerCase().includes("quota");
+
+        if (isQuotaExceeded) {
+          // Reschedule video for 30 minutes later instead of marking as failed
+          const retryTime = new Date();
+          retryTime.setMinutes(retryTime.getMinutes() + 30);
+
+          console.log(`⏰ Quota exceeded - rescheduling video ${video.id} to ${retryTime.toISOString()}`);
+
+          await updateScheduledVideoStatus(userId, video.id, "planned", {
+            scheduledAt: retryTime,
+            errorMessage: `Quota exceeded - rescheduled to ${retryTime.toLocaleString()}`,
+          });
+        } else {
+          // For other errors, mark as failed
+          await updateScheduledVideoStatus(userId, video.id, "failed", {
+            errorMessage,
+          });
+        }
 
         results.failed++;
         results.errors.push({
           videoId: video.id,
-          error: error.message || "Unknown error",
+          error: errorMessage,
         });
       }
     }

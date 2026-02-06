@@ -324,7 +324,7 @@ export async function updateScheduledVideoStatus(
   userId: string,
   videoId: string,
   status: ScheduledVideo["status"],
-  updates?: Partial<Pick<ScheduledVideo, "publishedAt" | "youtubeVideoId" | "youtubeVideoUrl" | "errorMessage">>
+  updates?: Partial<Pick<ScheduledVideo, "publishedAt" | "youtubeVideoId" | "youtubeVideoUrl" | "errorMessage" | "scheduledAt">>
 ): Promise<void> {
   const db = await getMongoDatabase();
 
@@ -338,6 +338,7 @@ export async function updateScheduledVideoStatus(
     if (updates.youtubeVideoId) updateFields["scheduledVideos.$.youtubeVideoId"] = updates.youtubeVideoId;
     if (updates.youtubeVideoUrl) updateFields["scheduledVideos.$.youtubeVideoUrl"] = updates.youtubeVideoUrl;
     if (updates.errorMessage) updateFields["scheduledVideos.$.errorMessage"] = updates.errorMessage;
+    if (updates.scheduledAt) updateFields["scheduledVideos.$.scheduledAt"] = updates.scheduledAt;
   }
 
   // Поддерживаем как ObjectId так и другие форматы userId
