@@ -88,6 +88,51 @@ export default function ScheduledVideosPage() {
     }
   };
 
+  const handleUploadNow = async (videoId: string) => {
+    if (!confirm("Загрузить это видео на YouTube прямо сейчас?")) {
+      return;
+    }
+
+    try {
+      // Обновляем статус локально на "publishing"
+      setScheduledVideos(prev => prev.map(v =>
+        v.id === videoId ? { ...v, status: "publishing" as const } : v
+      ));
+
+      const response = await fetch(`/api/youtube/upload-now/${videoId}`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to upload video");
+      }
+
+      const data = await response.json();
+
+      // Обновляем видео с результатами загрузки
+      setScheduledVideos(prev => prev.map(v =>
+        v.id === videoId ? {
+          ...v,
+          status: "published" as const,
+          publishedAt: data.publishedAt,
+          youtubeVideoId: data.youtubeVideoId,
+          youtubeVideoUrl: data.youtubeVideoUrl,
+        } : v
+      ));
+
+      alert("✅ Видео успешно загружено на YouTube!");
+    } catch (err) {
+      console.error("Error uploading video:", err);
+      alert(`❌ Не удалось загрузить видео: ${err instanceof Error ? err.message : "Unknown error"}`);
+
+      // Возвращаем статус обратно в "planned"
+      setScheduledVideos(prev => prev.map(v =>
+        v.id === videoId ? { ...v, status: "planned" as const } : v
+      ));
+    }
+  };
+
   const getStatusBadge = (status: ScheduledVideo["status"]) => {
     switch (status) {
       case "planned":
@@ -232,12 +277,20 @@ export default function ScheduledVideosPage() {
                   </a>
                 )}
                 {video.status === "planned" && (
-                  <button
-                    onClick={() => handleDelete(video.id)}
-                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                  >
-                    🗑️ Отменить
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleUploadNow(video.id)}
+                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                    >
+                      ⬆️ Загрузить сейчас
+                    </button>
+                    <button
+                      onClick={() => handleDelete(video.id)}
+                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                    >
+                      🗑️ Отменить
+                    </button>
+                  </>
                 )}
                 {video.videoUrl && (
                   <a
