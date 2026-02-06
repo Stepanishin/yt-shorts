@@ -197,6 +197,7 @@ export interface RenderVideoNewOptions {
   audioTrimStart?: number; // Начало обрезки аудио в секундах
   audioTrimEnd?: number; // Конец обрезки аудио в секундах
   duration?: number; // Длительность видео в секундах (по умолчанию 10)
+  fitImageToFrame?: boolean; // Если true, изображение вписывается полностью с черными полосами (для мемов)
   jobId: string;
 }
 
@@ -465,6 +466,7 @@ export async function renderVideoNew(
     audioTrimStart,
     audioTrimEnd,
     duration = 10,
+    fitImageToFrame = false,
     jobId
   } = options;
 
@@ -666,10 +668,22 @@ export async function renderVideoNew(
 
         if (kenBurnsFilter) {
           // Если есть Ken Burns эффект, применяем zoompan который уже включает fps и scale
-          filterChain.push(`[0:v]scale=1440:2560:force_original_aspect_ratio=decrease,${kenBurnsFilter}[base]`);
+          if (fitImageToFrame) {
+            // Для мемов: вписываем изображение полностью с черными полосами
+            filterChain.push(`[0:v]scale=1440:2560:force_original_aspect_ratio=decrease,pad=1440:2560:(ow-iw)/2:(oh-ih)/2,${kenBurnsFilter}[base]`);
+          } else {
+            // Для обычных фонов: масштабируем с сохранением соотношения
+            filterChain.push(`[0:v]scale=1440:2560:force_original_aspect_ratio=decrease,${kenBurnsFilter}[base]`);
+          }
         } else {
           // Без эффекта - просто статичное изображение
-          filterChain.push(`[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280[base]`);
+          if (fitImageToFrame) {
+            // Для мемов: вписываем изображение полностью с черными полосами
+            filterChain.push(`[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2[base]`);
+          } else {
+            // Для обычных фонов: заполняем кадр с обрезкой
+            filterChain.push(`[0:v]fps=25,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280[base]`);
+          }
         }
       }
 

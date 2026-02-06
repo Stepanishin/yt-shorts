@@ -152,6 +152,7 @@ export async function generateAutoVideoMeme(
       audioTrimStart,
       audioTrimEnd,
       duration: config.template.duration || 10,
+      fitImageToFrame: true, // Вписываем мем полностью с черными полосами если нужно
       jobId,
     });
 
