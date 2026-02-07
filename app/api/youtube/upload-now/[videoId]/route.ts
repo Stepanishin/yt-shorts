@@ -19,8 +19,10 @@ import * as fs from "fs/promises";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { videoId: string } }
+  { params }: { params: Promise<{ videoId: string }> }
 ) {
+  const { videoId } = await params;
+
   try {
     const session = await auth();
 
@@ -35,8 +37,6 @@ export async function POST(
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-
-    const videoId = params.videoId;
 
     // Get the scheduled video
     const db = await getMongoDatabase();
@@ -240,7 +240,7 @@ export async function POST(
         if (user) {
           await updateScheduledVideoStatus(
             user._id!.toString(),
-            params.videoId,
+            videoId,
             "failed",
             {
               errorMessage: error.message || "Unknown error",
