@@ -292,6 +292,22 @@ export default function ScheduledVideosPage() {
                     </button>
                   </>
                 )}
+                {video.status === "failed" && (
+                  <>
+                    <button
+                      onClick={() => handleUploadNow(video.id)}
+                      className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
+                    >
+                      🔄 Повторить загрузку
+                    </button>
+                    <button
+                      onClick={() => handleDelete(video.id)}
+                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                    >
+                      🗑️ Удалить
+                    </button>
+                  </>
+                )}
                 {video.videoUrl && (
                   <a
                     href={video.videoUrl}
