@@ -289,7 +289,7 @@ export async function generateNewsVideo(
       audioTrimStart,
       audioTrimEnd,
       duration: config.template.audio?.duration || 8,
-      imageYOffset: 200, // Shift down 200px to avoid cutting off faces
+      imageYOffset: 350, // Shift down 350px to avoid cutting off faces
       jobId,
     });
 
