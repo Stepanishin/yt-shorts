@@ -32,6 +32,8 @@ export default function NewsDetailPage() {
   const [editedImageUrl, setEditedImageUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generateResult, setGenerateResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const id = params?.id as string;
 
@@ -107,6 +109,43 @@ export default function NewsDetailPage() {
       console.error("Failed to save:", err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!news?._id) return;
+
+    if (!confirm("Generate video for this news item and schedule it for publishing?")) {
+      return;
+    }
+
+    setGenerating(true);
+    setGenerateResult(null);
+    try {
+      const response = await fetch("/api/auto-generation-news/generate-for-news", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newsId: news._id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate video");
+      }
+
+      const scheduledAt = new Date(data.job.scheduledAt);
+      setGenerateResult({
+        success: true,
+        message: `Video scheduled for ${scheduledAt.toLocaleString()}`,
+      });
+    } catch (err) {
+      setGenerateResult({
+        success: false,
+        message: err instanceof Error ? err.message : "An error occurred",
+      });
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -200,14 +239,56 @@ export default function NewsDetailPage() {
           >
             ← Back to list
           </Link>
-          <button
-            onClick={handleDelete}
-            disabled={deleting || news.status === "deleted"}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-sm"
-          >
-            {deleting ? "Deleting..." : news.status === "deleted" ? "Deleted" : "🗑️ Delete news"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleGenerateVideo}
+              disabled={generating || news.status === "used" || news.status === "deleted"}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-sm"
+            >
+              {generating ? "Generating..." : "🎬 Generate video"}
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting || news.status === "deleted"}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-sm"
+            >
+              {deleting ? "Deleting..." : news.status === "deleted" ? "Deleted" : "🗑️ Delete news"}
+            </button>
+          </div>
         </div>
+
+        {generateResult && (
+          <div
+            className={`mb-4 rounded-lg border p-4 ${
+              generateResult.success
+                ? "border-green-200 bg-green-50"
+                : "border-red-200 bg-red-50"
+            }`}
+          >
+            <div
+              className={`text-sm font-medium ${
+                generateResult.success ? "text-green-800" : "text-red-800"
+              }`}
+            >
+              {generateResult.success ? "Video generation started!" : "Error"}
+            </div>
+            <div
+              className={`text-sm mt-1 ${
+                generateResult.success ? "text-green-700" : "text-red-600"
+              }`}
+            >
+              {generateResult.message}
+            </div>
+            {generateResult.success && (
+              <a
+                href="/dashboard/scheduled"
+                className="text-sm text-green-700 underline mt-1 inline-block"
+              >
+                View scheduled videos →
+              </a>
+            )}
+          </div>
+        )}
 
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
           {/* Header and metadata */}

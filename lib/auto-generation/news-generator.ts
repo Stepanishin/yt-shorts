@@ -7,7 +7,7 @@ import {
   NewsAutoGenerationJob,
 } from "@/lib/db/auto-generation-news";
 import { addScheduledVideo } from "@/lib/db/users";
-import { markNewsCandidateStatus } from "@/lib/ingest-news/storage";
+import { markNewsCandidateStatus, findNewsCandidateById } from "@/lib/ingest-news/storage";
 import { selectNextNews, getAvailableNewsCount } from "./news-selector";
 import { prepareAudioCut, selectRandomFromArray } from "./audio-processor";
 import { renderNewsVideo } from "@/lib/video/renderer-new";
@@ -164,12 +164,14 @@ Devuelve SOLO el texto sensacionalista, sin comillas ni explicaciones.`;
  * @param userId - User ID
  * @param configId - News auto-generation config ID
  * @param scheduledAt - Scheduled publish time
+ * @param specificNewsId - Optional specific news ID to generate video for (bypasses auto-selection)
  * @returns Created job
  */
 export async function generateNewsVideo(
   userId: string,
   configId: string,
-  scheduledAt: Date
+  scheduledAt: Date,
+  specificNewsId?: string
 ): Promise<NewsAutoGenerationJob> {
   const jobId = new ObjectId().toString();
 
@@ -178,6 +180,9 @@ export async function generateNewsVideo(
   console.log(`User ID: ${userId}`);
   console.log(`Config ID: ${configId}`);
   console.log(`Scheduled At: ${scheduledAt.toISOString()}`);
+  if (specificNewsId) {
+    console.log(`Specific News ID: ${specificNewsId}`);
+  }
 
   try {
     // 1. Get configuration
@@ -188,22 +193,34 @@ export async function generateNewsVideo(
       throw new Error("News auto-generation config not found");
     }
 
-    if (!config.isEnabled) {
+    if (!specificNewsId && !config.isEnabled) {
       throw new Error("News auto-generation is disabled");
     }
 
-    // 2. Check available news
-    console.log(`[${jobId}] Step 2: Checking available news...`);
-    const availableNews = await getAvailableNewsCount();
-    console.log(`Available news items: ${availableNews}`);
+    // 2. Check available news (skip when using specific news ID)
+    if (!specificNewsId) {
+      console.log(`[${jobId}] Step 2: Checking available news...`);
+      const availableNews = await getAvailableNewsCount();
+      console.log(`Available news items: ${availableNews}`);
 
-    if (availableNews === 0) {
-      throw new Error("No news available for generation");
+      if (availableNews === 0) {
+        throw new Error("No news available for generation");
+      }
     }
 
     // 3. Reserve news item
     console.log(`[${jobId}] Step 3: Reserving news item...`);
-    const news = await selectNextNews();
+    let news;
+    if (specificNewsId) {
+      news = await findNewsCandidateById(specificNewsId);
+      if (!news) {
+        throw new Error(`News item ${specificNewsId} not found`);
+      }
+      // Reserve it manually
+      await markNewsCandidateStatus({ id: specificNewsId, status: "reserved" });
+    } else {
+      news = await selectNextNews();
+    }
 
     if (!news) {
       throw new Error("Failed to reserve news item");
