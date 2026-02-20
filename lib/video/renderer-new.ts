@@ -117,7 +117,6 @@ async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; std
   // Убираем дубликаты и сортируем для консистентности
   const uniquePaths = [...new Set(libraryPaths)].sort();
 
-  const currentLdLibraryPath = process.env.LD_LIBRARY_PATH || "";
   // Добавляем системные пути в конец
   const systemPaths = [
     "/usr/lib/x86_64-linux-gnu",
@@ -125,8 +124,11 @@ async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; std
     "/lib/x86_64-linux-gnu",
     "/lib",
   ];
-  
-  const newLdLibraryPath = [...uniquePaths, ...systemPaths, currentLdLibraryPath]
+
+  // Разбиваем существующий LD_LIBRARY_PATH на отдельные пути (не как одну строку)
+  const currentLdPaths = (process.env.LD_LIBRARY_PATH || "").split(":").filter(Boolean);
+
+  const newLdLibraryPath = [...uniquePaths, ...systemPaths, ...currentLdPaths]
     .filter(Boolean)
     .filter((p, i, arr) => arr.indexOf(p) === i) // Убираем дубликаты
     .join(":");
@@ -999,7 +1001,6 @@ export async function renderVideoNew(
       }
       
       const uniquePaths = [...new Set(libraryPaths)].sort();
-      const currentLdLibraryPath = process.env.LD_LIBRARY_PATH || "";
       // Добавляем системные пути в конец
       const systemPaths = [
         "/usr/lib/x86_64-linux-gnu",
@@ -1007,8 +1008,9 @@ export async function renderVideoNew(
         "/lib/x86_64-linux-gnu",
         "/lib",
       ];
-      
-      const newLdLibraryPath = [...uniquePaths, ...systemPaths, currentLdLibraryPath]
+      const currentLdPaths = (process.env.LD_LIBRARY_PATH || "").split(":").filter(Boolean);
+
+      const newLdLibraryPath = [...uniquePaths, ...systemPaths, ...currentLdPaths]
         .filter(Boolean)
         .filter((p, i, arr) => arr.indexOf(p) === i) // Убираем дубликаты
         .join(":");
