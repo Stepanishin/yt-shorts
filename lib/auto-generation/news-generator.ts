@@ -33,23 +33,21 @@ Título original: ${title}
 Resumen: ${summary}
 
 TAREA:
-Crea un titular CORTO y LLAMATIVO que capture la esencia de la noticia.
+Crea un titular CORTO y LLAMATIVO en UNA SOLA LÍNEA.
 
 REQUISITOS ESTRICTOS:
-- Longitud: 60-80 caracteres MÁXIMO (incluyendo espacios)
-- Máximo 2 líneas cuando se muestra en pantalla
+- UNA SOLA LÍNEA, sin saltos de línea
+- Longitud MÁXIMA: 80 caracteres (cuenta los espacios)
 - Estilo sensacionalista de prensa del corazón
-- Usar palabras impactantes: "BOMBAZO", "EXCLUSIVA", "REVELACIÓN", etc.
 - En MAYÚSCULAS las palabras clave
 - En ESPAÑOL
 
 EJEMPLOS del estilo deseado:
-- "¡BOMBAZO en la Casa Real!"
-- "EXCLUSIVA: Romance secreto confirmado"
-- "¡ESCÁNDALO sin precedentes!"
-- "REVELACIÓN sobre la Reina"
+- "¡BOMBAZO en la Casa Real! Romance secreto confirmado"
+- "¡ESCÁNDALO! La presentadora abandona el programa en directo"
+- "¡REVELACIÓN! El secreto que destruyó la familia real"
 
-Devuelve SOLO el titular, sin comillas ni explicaciones.`;
+Devuelve SOLO el titular en una línea, sin comillas ni explicaciones.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -67,13 +65,17 @@ Devuelve SOLO el titular, sin comillas ni explicaciones.`;
       max_tokens: 50,
     });
 
-    const generatedHeadline = response.choices[0]?.message?.content?.trim();
+    // Strip newlines just in case GPT ignores the one-line instruction
+    const generatedHeadline = response.choices[0]?.message?.content
+      ?.replace(/[\r\n]+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
 
-    if (generatedHeadline && generatedHeadline.length >= 30 && generatedHeadline.length <= 90) {
+    if (generatedHeadline && generatedHeadline.length >= 20 && generatedHeadline.length <= 80) {
       console.log(`✨ Generated short headline (${generatedHeadline.length} chars): ${generatedHeadline}`);
       return generatedHeadline;
     } else {
-      console.warn(`Generated headline length out of range (${generatedHeadline?.length} chars), using fallback`);
+      console.warn(`Generated headline out of range (${generatedHeadline?.length} chars), using fallback`);
       // Fallback: use first 80 chars of title
       return title.length > 80 ? title.substring(0, 77) + "..." : title;
     }
@@ -98,31 +100,29 @@ async function generateYellowPressText(
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const prompt = `Eres un experto en crear textos sensacionalistas para prensa del corazón española.
+    const prompt = `Eres un experto en crear textos narrativos y dramáticos para prensa del corazón española.
 
 Título original: ${title}
 Resumen: ${summary}
 
 TAREA:
-Crea un texto SENSACIONALISTA y DETALLADO en estilo de revista del corazón (¡Hola!, Diez Minutos) que se superpondrá sobre una foto en un video corto.
+Crea un texto narrativo y EMOCIONALMENTE PODEROSO que se superpondrá sobre una foto en un video corto. El drama surge de los HECHOS, no de adjetivos vacíos.
 
 REQUISITOS ESTRICTOS:
 - Longitud: 540-660 caracteres (incluyendo espacios)
-- Estilo amarillista/sensacionalista de prensa del corazón
-- Usar palabras impactantes: "EXCLUSIVA", "BOMBAZO", "¡INCREÍBLE!", "REVELACIÓN", etc.
-- Emocional, dramático y llamativo
+- Estilo cinematográfico: cuenta una historia, no una lista de sensaciones
+- PROHIBIDO usar: "EXCLUSIVA", "BOMBAZO", "REVELACIÓN", "INCREÍBLE", "ASOMBROSO"
+- Empezar con un dato concreto: fecha, lugar, o hecho impactante
+- Frases CORTAS que golpean. Una idea por frase.
+- Detalles específicos: nombres completos, lugares, números, citas textuales si las hay
+- Terminar con una pregunta retórica que invite a reflexionar
 - En ESPAÑOL
-- 3-5 frases con detalles jugosos
-- Enfocarse en lo más escandaloso/emocionante de la noticia
-- Añadir contexto dramático y detalles llamativos
-- Usar signos de exclamación para énfasis
 
-EJEMPLOS del estilo deseado (más extensos):
-- "¡BOMBAZO en la Casa Real! La Reina Letizia ha dejado a TODOS sin palabras con un look NUNCA antes visto que rompe todas las reglas del protocolo. Los expertos en moda están ASOMBRADOS y la reacción del Rey Felipe no se ha hecho esperar. ¡Las imágenes dan la vuelta al mundo!"
-- "EXCLUSIVA: Se confirma el romance secreto que NADIE esperaba. Las fotos comprometedoras que lo demuestran TODO han salido a la luz y la reacción de la familia ha sido EXPLOSIVA. ¡Los detalles que cambiarán todo lo que creías saber!"
-- "¡ESCÁNDALO sin precedentes! La princesa ha roto el protocolo de la forma más INESPERADA y la Casa Real no sabe cómo reaccionar. Los testigos cuentan lo que realmente pasó esa noche. ¡La verdad que intentaron ocultar!"
+EJEMPLOS del estilo deseado:
+- "Madrid, 2007. Emma Penella se apagaba para siempre. Era la vecina gruñona más querida de España. Pero detrás de su sonrisa ácida, cargaba una cruz insoportable. Su padre era el hombre que entregó a Federico García Lorca para ser fusilado. Emma vivió huyendo de esa sombra. Se cambió el nombre. Ocultó su origen. Murió con miedo a ser juzgada por un crimen que no cometió. ¿Creen que los hijos deben pagar por los pecados de sus padres?"
+- "Solo pasaron 14 días. Lola Flores murió y su hijo Antonio quedó devastado. 'Ella me espera', repetía con la mirada perdida. Se encerró en la cabaña familiar. Dos semanas de agonía. Lo encontraron sin vida en la misma casa donde su madre partió. Los médicos dijeron que fue un accidente. España sabe la verdad."
 
-Devuelve SOLO el texto sensacionalista, sin comillas ni explicaciones.`;
+Devuelve SOLO el texto narrativo, sin comillas ni explicaciones.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -306,6 +306,7 @@ export async function generateNewsVideo(
       audioTrimStart,
       audioTrimEnd,
       duration: config.template.audio?.duration || 8,
+      templateId: config.selectedTemplate || "template1",
       jobId,
     });
 

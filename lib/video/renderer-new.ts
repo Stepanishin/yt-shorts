@@ -1314,6 +1314,7 @@ export interface RenderNewsVideoOptions {
   audioTrimEnd?: number; // Audio trim end in seconds
   duration?: number; // Video duration in seconds (default: 8)
   imageYOffset?: number; // Y offset for image centering (negative = show more top, e.g. -100 for portraits)
+  templateId?: "template1" | "template2"; // Template 1 = gradient bg (default), Template 2 = red headline + yellow text box
   jobId: string;
 }
 
@@ -1368,6 +1369,7 @@ async function createGradientRoundedRectangleWithText(
   // Word wrap text to fit within box
   const maxWidth = width - 40; // 20px padding on each side
   const lineHeight = 34;
+  const MAX_LINES = 3;
   const words = text.split(' ');
   const lines: string[] = [];
   let currentLine = '';
@@ -1386,6 +1388,13 @@ async function createGradientRoundedRectangleWithText(
     lines.push(currentLine);
   }
 
+  // Limit to MAX_LINES, truncate last line with "..." if needed
+  if (lines.length > MAX_LINES) {
+    lines.splice(MAX_LINES);
+    const last = lines[MAX_LINES - 1];
+    lines[MAX_LINES - 1] = last.length > 3 ? last.slice(0, -3) + '...' : '...';
+  }
+
   // Draw lines centered vertically
   const totalTextHeight = lines.length * lineHeight;
   const startY = (height - totalTextHeight) / 2 + lineHeight / 2;
@@ -1395,6 +1404,88 @@ async function createGradientRoundedRectangleWithText(
   }
 
   // Save as PNG
+  const buffer = canvas.toBuffer('image/png');
+  await fs.writeFile(outputPath, buffer);
+}
+
+/**
+ * Create a PNG with solid red rounded rectangle and white text with black stroke outline
+ * Used for Template 2 headline box
+ */
+async function createRedRoundedRectangleWithText(
+  width: number,
+  height: number,
+  outputPath: string,
+  text: string,
+  cornerRadius: number = 20
+): Promise<void> {
+  const { createCanvas } = await import('canvas');
+
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+
+  // Draw rounded rectangle with solid red background
+  ctx.beginPath();
+  ctx.moveTo(cornerRadius, 0);
+  ctx.lineTo(width - cornerRadius, 0);
+  ctx.quadraticCurveTo(width, 0, width, cornerRadius);
+  ctx.lineTo(width, height - cornerRadius);
+  ctx.quadraticCurveTo(width, height, width - cornerRadius, height);
+  ctx.lineTo(cornerRadius, height);
+  ctx.quadraticCurveTo(0, height, 0, height - cornerRadius);
+  ctx.lineTo(0, cornerRadius);
+  ctx.quadraticCurveTo(0, 0, cornerRadius, 0);
+  ctx.closePath();
+
+  ctx.fillStyle = '#CC0000'; // Bold red
+  ctx.fill();
+
+  // Draw text: white fill with black stroke (outline)
+  ctx.font = 'bold 32px Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+
+  const maxWidth = width - 40;
+  const lineHeight = 40;
+  const MAX_LINES = 3;
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+
+  // Limit to MAX_LINES, truncate last line with "..." if needed
+  if (lines.length > MAX_LINES) {
+    lines.splice(MAX_LINES);
+    const last = lines[MAX_LINES - 1];
+    lines[MAX_LINES - 1] = last.length > 3 ? last.slice(0, -3) + '...' : '...';
+  }
+
+  const totalTextHeight = lines.length * lineHeight;
+  const startY = (height - totalTextHeight) / 2 + lineHeight / 2;
+
+  for (let i = 0; i < lines.length; i++) {
+    const y = startY + i * lineHeight;
+    // Draw black stroke (outline) first
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 6;
+    ctx.strokeText(lines[i], width / 2, y);
+    // Draw white fill on top
+    ctx.fillStyle = 'white';
+    ctx.fillText(lines[i], width / 2, y);
+  }
+
   const buffer = canvas.toBuffer('image/png');
   await fs.writeFile(outputPath, buffer);
 }
@@ -1420,6 +1511,7 @@ export async function renderNewsVideo(
     audioTrimEnd,
     duration = 8,
     imageYOffset = 0,
+    templateId = "template1",
     jobId
   } = options;
 
@@ -1503,10 +1595,14 @@ export async function renderNewsVideo(
   // we'll create a temporary composite background image
 
   try {
-    // Create rounded rectangle PNG with headline text inside
+    // Create headline box PNG with text inside (style depends on template)
     const headlineBoxPath = path.join(videosDir, `headline_box_${jobId}.png`);
-    console.log("Creating headline box with text...");
-    await createGradientRoundedRectangleWithText(600, 100, headlineBoxPath, shortHeadline, 15);
+    console.log(`Creating headline box with text (${templateId})...`);
+    if (templateId === "template2") {
+      await createRedRoundedRectangleWithText(600, 140, headlineBoxPath, shortHeadline, 15);
+    } else {
+      await createGradientRoundedRectangleWithText(600, 100, headlineBoxPath, shortHeadline, 15);
+    }
     console.log("Headline box with text created");
 
     // Download celebrity image
@@ -1538,36 +1634,53 @@ export async function renderNewsVideo(
       ? `y='ih/2-(ih/zoom/2)${imageYOffset >= 0 ? '+' : ''}${imageYOffset}'`
       : `y='ih/2-(ih/zoom/2)'`;
 
-    const filterComplex =
-      // Scale up to larger size (1080x640) to have headroom for zooming
+    // Celebrity image animation (shared between templates)
+    const celebrityFilter =
       `[0:v]scale=1080:640:force_original_aspect_ratio=increase,crop=1080:640,fps=25,` +
-      // Zoom in/out: oscillates from 0.9x to 1.1x zoom (amplitude 0.1)
-      // Using 'on' variable (frame number) instead of 't' for zoompan
-      // on/25 = time in seconds (at 25 fps)
-      // 1.256637 = 2*PI*0.2 (for 5 second cycle at 0.2 Hz)
-      // d=${totalFrames} means zoom animation lasts for the entire video duration
       `zoompan=z='1+0.1*sin(on/25*1.256637)':x='iw/2-(iw/zoom/2)':${yExpr}:d=${totalFrames}:s=720x426:fps=25,` +
-      // Pulsing brightness: sin wave oscillates between -0.15 and +0.15
-      // Frequency 0.4 Hz = one pulse every 2.5 seconds
-      // 2.513274 = 2*PI*0.4
       `eq=brightness='0.15*sin(2.513274*t)':eval=frame,` +
-      // Add slight saturation boost for more vivid colors
-      `eq=saturation=1.15[celebrity];` +
-      // Gradient background with left-right pan animation
-      // Scale to 1440x854 (2x width) for pan headroom, then crop with moving x
-      // x oscillates: 360 + 360*sin(...) = range [0, 720] for smooth left-right pan
-      // 1.884955592 = 2*PI*0.3 for 0.3 Hz frequency (one cycle ~3.3 seconds)
-      // -loop 1 in input already loops the image, no need for loop filter
+      `eq=saturation=1.15[celebrity]`;
+
+    let filterComplex: string;
+    let compositeCmd: string;
+
+    // Both templates use the same gradient background with pan animation
+    filterComplex =
+      `${celebrityFilter};` +
       `[1:v]fps=25,scale=1440:854:force_original_aspect_ratio=increase,crop=1440:854,` +
       `crop=720:854:'360+360*sin(1.884955592*t)':0[bg_gradient];` +
-      // Stack vertically (426+854=1280, both even numbers)
       `[celebrity][bg_gradient]vstack`;
 
-    const compositeCmd = `ffmpeg -loop 1 -i "${tempCelebrityPath}" -loop 1 -i "${gradientBgPath}" -y -filter_complex "${filterComplex}" -t ${duration} -c:v libx264 -preset ultrafast -pix_fmt yuv420p "${compositeBackgroundPath}"`;
+    compositeCmd = `ffmpeg -loop 1 -i "${tempCelebrityPath}" -loop 1 -i "${gradientBgPath}" -y -filter_complex "${filterComplex}" -t ${duration} -c:v libx264 -preset ultrafast -pix_fmt yuv420p "${compositeBackgroundPath}"`;
 
-    console.log("Creating composite background video with pulsing brightness effect...");
+    console.log(`Creating composite background video (${templateId})...`);
     await execWithFFmpegEnv(compositeCmd);
     console.log("Composite background video created");
+
+    // Text elements differ by template
+    const mainTextElement: TextElement = templateId === "template2"
+      ? {
+          text: newsTitle,
+          x: -1,
+          y: 500,
+          fontSize: 24,
+          color: "black@1",         // Black bold text
+          fontWeight: "bold",
+          lineSpacing: 6,
+          width: 680,
+          backgroundColor: "yellow@1",  // Yellow container
+          boxPadding: 20,
+        }
+      : {
+          text: newsTitle,
+          x: -1,
+          y: 500,
+          fontSize: 24,
+          color: "white",
+          fontWeight: "bold",
+          lineSpacing: 6,
+          width: 680,
+        };
 
     // Now use renderVideoNew with the composite background VIDEO
     const result = await renderVideoNew({
@@ -1575,35 +1688,21 @@ export async function renderNewsVideo(
       backgroundVideoUrl: compositeBackgroundPath, // Use composite VIDEO instead of image
       backgroundImageUrl: undefined, // Clear image URL since we're using video
 
-      // Layout: headline box (with text inside) overlaps boundary between photo (0-426px) and gradient (426-1280px)
-      // The headline text is now rendered INSIDE the PNG image, so it won't be covered by the box
-      textElements: [
-        // Main news text (below headline box)
-        {
-          text: newsTitle,
-          x: -1, // Center horizontally
-          y: 500, // Start position below headline box (box ends at ~476, plus spacing)
-          fontSize: 24, // Smaller font for 540-660 char text
-          color: "white",
-          fontWeight: "bold",
-          lineSpacing: 6,
-          width: 680, // Max width with padding (720 - 40px padding)
-        },
-      ],
+      // Layout: headline box (with text inside) overlaps boundary between photo (0-426px) and background (426-1280px)
+      textElements: [mainTextElement],
 
       // Headline box with text already rendered inside (PNG image)
-      // Positioned to overlap boundary between photo and gradient
-      // Photo ends at y=426, box height=100, so to center on boundary: y = 426 - 50 = 376
+      // Positioned to overlap boundary between photo and background
+      // Photo ends at y=426, box height=140, so to center on boundary: y = 426 - 70 = 356
       gifElements: [
         {
           url: headlineBoxPath,
           x: 60, // Center: (720 - 600) / 2 = 60
-          y: 376, // Center box on photo/gradient boundary (426 - 50 = 376)
+          y: 356, // Center box on photo/background boundary (426 - 70 = 356)
           width: 600,
-          height: 100,
+          height: 140,
         },
         // Animated subscribe sticker with transparent background (GIPHY)
-        // YouTube engagement icons - like, subscribe, bell with cursor clicking
         {
           url: "https://media4.giphy.com/media/Ve5hR4qmFYrAKWQbj6/giphy.gif",
           x: 110, // Centered horizontally: (720 - 500) / 2 = 110

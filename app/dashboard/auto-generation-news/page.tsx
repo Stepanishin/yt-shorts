@@ -30,6 +30,7 @@ interface NewsAutoGenConfig {
   videosPerDay: number;
   publishTimes: PublishTime[];
   newsIngestSchedule?: NewsIngestSchedule;
+  selectedTemplate?: "template1" | "template2";
   template: {
     celebrityImage: {
       height: number;
@@ -520,6 +521,81 @@ export default function AutoGenerationNewsPage() {
               </span>
             </div>
           )}
+        </div>
+
+        {/* Template Selection */}
+        <div className="mb-8 bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Video Template</h2>
+          <p className="text-sm text-gray-500 mb-4">Choose the visual style for generated news videos</p>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Template 1 */}
+            <label
+              className={`cursor-pointer border-2 rounded-lg p-4 transition-colors ${
+                (config.selectedTemplate || "template1") === "template1"
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <input
+                type="radio"
+                value="template1"
+                checked={(config.selectedTemplate || "template1") === "template1"}
+                onChange={() => setConfig({ ...config, selectedTemplate: "template1" })}
+                className="sr-only"
+              />
+              <div className="text-center">
+                <div className="text-sm font-semibold text-gray-900 mb-3">Template 1 (Default)</div>
+                {/* Mini preview */}
+                <div className="mx-auto w-24 h-40 border border-gray-300 rounded overflow-hidden">
+                  <div className="h-14 bg-gray-400 flex items-center justify-center">
+                    <span className="text-white text-xs">📸 Photo</span>
+                  </div>
+                  <div className="mx-2 -mt-3 h-5 bg-gradient-to-r from-red-900 via-blue-900 to-blue-600 rounded flex items-center justify-center">
+                    <span className="text-white" style={{ fontSize: "6px" }}>HEADLINE</span>
+                  </div>
+                  <div className="flex-1 bg-gradient-to-b from-blue-900 to-purple-900 p-1 mt-1">
+                    <div className="text-white opacity-80" style={{ fontSize: "5px" }}>Sensationalized text over gradient background...</div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Gradient bg · White text</p>
+              </div>
+            </label>
+
+            {/* Template 2 */}
+            <label
+              className={`cursor-pointer border-2 rounded-lg p-4 transition-colors ${
+                config.selectedTemplate === "template2"
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <input
+                type="radio"
+                value="template2"
+                checked={config.selectedTemplate === "template2"}
+                onChange={() => setConfig({ ...config, selectedTemplate: "template2" })}
+                className="sr-only"
+              />
+              <div className="text-center">
+                <div className="text-sm font-semibold text-gray-900 mb-3">Template 2</div>
+                {/* Mini preview */}
+                <div className="mx-auto w-24 h-40 border border-gray-300 rounded overflow-hidden">
+                  <div className="h-14 bg-gray-400 flex items-center justify-center">
+                    <span className="text-white text-xs">📸 Photo</span>
+                  </div>
+                  <div className="mx-2 -mt-3 h-5 bg-red-600 rounded flex items-center justify-center">
+                    <span className="text-white font-bold" style={{ fontSize: "6px", textShadow: "0 0 2px black" }}>HEADLINE</span>
+                  </div>
+                  <div className="bg-white p-1 mt-1 flex-1">
+                    <div className="bg-yellow-400 rounded p-0.5">
+                      <span className="text-black font-bold" style={{ fontSize: "5px" }}>Black bold text on yellow container...</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Red headline · Yellow text box</p>
+              </div>
+            </label>
+          </div>
         </div>
 
         {/* YouTube Settings */}
