@@ -134,38 +134,39 @@ export async function generateNewsShortsTitle(newsTitle: string, newsSummary: st
   const currentYear = new Date().getFullYear();
 
   try {
-    const prompt = `Crea un título en DOS LÍNEAS para YouTube Shorts con esta noticia de prensa del corazón española.
+    const prompt = `Crea un título para YouTube Shorts con esta noticia de prensa del corazón española.
 
 Título original: ${newsTitle}
 Resumen: ${newsSummary}
 
 FORMATO OBLIGATORIO:
-Línea 1: ¡[GANCHO EMOCIONAL O REVELACIÓN IMPACTANTE]!
-Línea 2: [CONTEXTO O MISTERIO QUE GENERA INTRIGA]
+[emoji][Nombre Apellido] ([edad]) [EVENTO EN MAYÚSCULAS] (${currentYear}) #UltimaHora #España
 
 REQUISITOS:
-- Dos líneas separadas por salto de línea
-- Sin emojis
-- Sin palabras vacías: nada de "BOMBAZO", "EXCLUSIVA", "REVELACIÓN", "INCREÍBLE"
-- El drama viene de los HECHOS, no de adjetivos
-- Línea 1: impacto directo, termina con !
-- Línea 2: consecuencia, misterio o ironía de la historia
-- Máximo 90 caracteres en total
+- Empezar con emoji dramático: 😱💔🔥😢⚠️❌💥
+- Nombre completo del famoso/a
+- Edad entre paréntesis si se conoce o se puede deducir razonablemente
+- Evento principal en MAYÚSCULAS (máximo 5-6 palabras): elegir el hecho MÁS impactante y concreto
+- Año actual (${currentYear})
+- Terminar con #UltimaHora #España
+- Máximo 100 caracteres en total
 
 EJEMPLOS EXACTOS del formato:
-- ¡LA HIJA DEL ASESINO DE LORCA!\nEL SECRETO QUE LA PERSIGUIÓ HASTA LA TUMBA
-- ¡NO PUDO VIVIR SIN ELLA!\nLA TRAGEDIA QUE MATÓ A MADRE E HIJO EN 15 DÍAS
-- ¡MURIÓ SIN SABER LA VERDAD!\nEL ENGAÑO QUE DESTRUYÓ SU FAMILIA
-- ¡SE FUE SIN DESPEDIRSE!\nLA ÚLTIMA LLAMADA QUE NADIE CONTESTÓ
+- 😱Carmen Lomana (77) ICTUS GRAVE EN SU MANSIÓN (${currentYear}) #UltimaHora #España
+- 💔Ana Obregón (69) RUPTURA TOTAL CON SU FAMILIA (${currentYear}) #UltimaHora #España
+- 🔥Tamara Falcó (42) ABANDONA EL PROGRAMA EN DIRECTO (${currentYear}) #UltimaHora #España
+- 😢Isabel Pantoja (68) INGRESADA DE URGENCIA (${currentYear}) #UltimaHora #España
 
-Devuelve SOLO el título en dos líneas, sin explicaciones.`;
+Si no conoces la edad exacta, usa una edad aproximada razonable para el famoso.
+
+Devuelve SOLO el título en el formato exacto, sin explicaciones.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "Eres un experto en crear títulos virales para YouTube Shorts de noticias de famosos y prensa del corazón española. Tu estilo es cinematográfico: el drama surge de los hechos, no de adjetivos vacíos. Sigues el formato exacto que te piden.",
+          content: "Eres un experto en crear títulos virales para YouTube Shorts de noticias de famosos y prensa del corazón española. Conoces las edades aproximadas de los famosos españoles. Sigues el formato exacto que te piden.",
         },
         {
           role: "user",
@@ -196,62 +197,52 @@ Devuelve SOLO el título en dos líneas, sin explicaciones.`;
  */
 export async function generateNewsShortsDescription(newsTitle: string, newsSummary: string): Promise<string> {
   try {
-    const prompt = `Crea una descripción narrativa y emocionalmente poderosa para YouTube Shorts con esta noticia de prensa del corazón española.
+    const prompt = `Crea una descripción para YouTube Shorts con esta noticia de prensa del corazón española. Estilo híbrido: gancho sensacionalista + narrativa cinematográfica con hechos concretos.
 
 Título: ${newsTitle}
 Resumen: ${newsSummary}
 
 REQUISITOS ESTRICTOS:
 - En español de España
-- Estilo cinematográfico: cuenta una historia, no una lista de sensaciones
-- PROHIBIDO usar: "BOMBAZO", "EXCLUSIVA", "REVELACIÓN", "INCREÍBLE", "ASOMBROSO"
-- El drama surge de los HECHOS concretos, no de adjetivos vacíos
 - MÍNIMO 800 caracteres de descripción
+- Las palabras impactantes (¡BOMBAZO!, ¡ESCÁNDALO!, etc.) solo si el hecho las justifica — nunca en el vacío
 
 ESTRUCTURA OBLIGATORIA:
 
-1. TITULAR EN MAYÚSCULAS (dos líneas, formato del título del video):
-   Línea 1: ¡[GANCHO EMOCIONAL]!
-   Línea 2: [CONTEXTO O MISTERIO]
+1. TITULAR EN MAYÚSCULAS (una o dos líneas):
+   ¡[GANCHO SENSACIONALISTA basado en el hecho más impactante]!
 
-2. PRIMER PÁRRAFO - Narrativa cinematográfica:
+2. PRIMER PÁRRAFO - Narrativa con hechos:
    - Empezar con dato concreto: fecha, lugar, o hecho impactante
    - Frases CORTAS que golpean. Una idea por frase.
    - Detalles específicos: nombres completos, lugares, números, citas textuales
-   - Construir la historia progresivamente
    - 4-5 frases mínimo
 
 3. SEGUNDO PÁRRAFO - Profundidad emocional:
    - La ironía del destino, la tragedia oculta, el peso de la historia
-   - Terminar con 1-2 preguntas retóricas que inviten a reflexionar
-   - "¿Crees que...?", "¿Qué harías tú...?"
+   - Terminar con 1-2 preguntas retóricas: "¿Crees que...?", "¿Qué harías tú...?"
    - 3-4 frases mínimo
 
-4. LLAMADA A LA ACCIÓN integrada en la historia:
-   ¡Dale LIKE si [acción relacionada con el tema] y SUSCRÍBETE para [motivo relacionado]!
-
-   Ejemplos:
-   - ¡Dale LIKE si rezas por los Flores y SUSCRÍBETE para no olvidar a las leyendas!
-   - ¡Dale LIKE si crees que el amor de madre es eterno y SUSCRÍBETE para más historias!
+4. LLAMADA A LA ACCIÓN:
+   ¡Dale LIKE si [acción relacionada] y SUSCRÍBETE para [motivo relacionado]!
 
 5. HASHTAGS (mínimo 15):
    - #NombreCompleto #SoloApellido
    - Hashtags de su profesión/ámbito (#Radio, #Television, #Cine, etc.)
    - #TemaDeLaNoticia (#Tragedia, #Salud, #Ruptura, #Historia, etc.)
-   - Conceptos emotivos (#Memoria, #Legado, #Amor, #Familia)
-   - #España #Noticias #Viral #Famosos
+   - #España #Noticias #Viral #Famosos #UltimaHora
 
 EJEMPLO COMPLETO:
-¡NO PUDO VIVIR SIN ELLA!
-LA TRAGEDIA QUE MATÓ A MADRE E HIJO EN 15 DÍAS
+¡TRAGEDIA que partió a España en dos!
+LA MADRE Y EL HIJO MUERTOS EN 15 DÍAS
 
-España se detuvo cuando murió "La Faraona". Lola Flores era inmortal. Pero nadie imaginaba que la tragedia real acababa de empezar. Su hijo Antonio, la luz de sus ojos, quedó devastado. "Ella me espera", repetía con la mirada perdida en el funeral. Se encerró en la cabaña del jardín familiar, "El Lerele", sumido en una tristeza negra.
+España se detuvo cuando murió "La Faraona". Lola Flores era inmortal. Pero nadie imaginaba que la tragedia real acababa de empezar. Su hijo Antonio quedó devastado. "Ella me espera", repetía con la mirada perdida. Se encerró en la cabaña familiar, "El Lerele", sumido en una tristeza negra.
 
-Solo pasaron 14 días. Dos semanas de agonía. Lo encontraron sin vida en la misma casa donde su madre acababa de partir. Los médicos dijeron que fue un accidente, pero España sabe la verdad: Antonio murió de amor. ¿Crees que el amor de madre es el vínculo más fuerte del mundo?
+Solo pasaron 14 días. Lo encontraron sin vida en la misma casa donde su madre acababa de partir. Los médicos dijeron que fue un accidente, pero España sabe la verdad: Antonio murió de amor. ¿Crees que el amor de madre es el vínculo más fuerte del mundo?
 
 ¡Dale LIKE si rezas por los Flores y SUSCRÍBETE para no olvidar a las leyendas!
 
-#LolaFlores #AntonioFlores #LaFaraona #Tragedia #Familia #Amor #España #Famosos #Historia #Legado #Memoria #Viral #Noticias #Emotivo #Flamenco
+#LolaFlores #AntonioFlores #LaFaraona #Tragedia #Familia #Amor #España #Famosos #Historia #Legado #Memoria #Viral #Noticias #Emotivo #UltimaHora
 
 Devuelve SOLO la descripción completa siguiendo EXACTAMENTE este formato, sin explicaciones adicionales.`;
 
@@ -260,7 +251,7 @@ Devuelve SOLO la descripción completa siguiendo EXACTAMENTE este formato, sin e
       messages: [
         {
           role: "system",
-          content: "Eres el mejor guionista de historias reales de España. Tu estilo es cinematográfico: cada noticia es una historia con personajes, contexto y emoción real. No usas adjetivos vacíos ni palabras de relleno. El drama surge de los hechos, las fechas, los nombres, las citas textuales. Escribes como si cada historia fuera un documental de Netflix.",
+          content: "Eres el mejor redactor de prensa del corazón de España. Tu estilo mezcla el gancho sensacionalista de ¡Hola! y Lecturas con la narrativa cinematográfica de un documental: empiezas con un impacto, luego despliegas la historia con hechos concretos. Conoces a todos los famosos españoles.",
         },
         {
           role: "user",

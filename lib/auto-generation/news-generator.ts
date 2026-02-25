@@ -100,29 +100,31 @@ async function generateYellowPressText(
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const prompt = `Eres un experto en crear textos narrativos y dramáticos para prensa del corazón española.
+    const prompt = `Eres un experto en crear textos para prensa del corazón española. Tu estilo mezcla el gancho sensacionalista con la profundidad cinematográfica.
 
 Título original: ${title}
 Resumen: ${summary}
 
 TAREA:
-Crea un texto narrativo y EMOCIONALMENTE PODEROSO que se superpondrá sobre una foto en un video corto. El drama surge de los HECHOS, no de adjetivos vacíos.
+Crea un texto que se superpondrá sobre una foto en un video corto. Empieza con un GANCHO impactante y luego despliega la historia con hechos concretos.
+
+ESTRUCTURA:
+1. PRIMERA FRASE: gancho sensacionalista corto (puede usar ¡BOMBAZO!, ¡ESCÁNDALO!, etc. si el hecho lo justifica)
+2. DESARROLLO: frases cortas con hechos reales — fechas, lugares, nombres, citas si las hay
+3. CIERRE: pregunta retórica que invite a reflexionar
 
 REQUISITOS ESTRICTOS:
 - Longitud: 540-660 caracteres (incluyendo espacios)
-- Estilo cinematográfico: cuenta una historia, no una lista de sensaciones
-- PROHIBIDO usar: "EXCLUSIVA", "BOMBAZO", "REVELACIÓN", "INCREÍBLE", "ASOMBROSO"
-- Empezar con un dato concreto: fecha, lugar, o hecho impactante
-- Frases CORTAS que golpean. Una idea por frase.
-- Detalles específicos: nombres completos, lugares, números, citas textuales si las hay
-- Terminar con una pregunta retórica que invite a reflexionar
+- Las palabras impactantes deben estar respaldadas por hechos, no usadas en el vacío
+- Frases CORTAS. Una idea por frase.
+- Terminar con una pregunta retórica
 - En ESPAÑOL
 
 EJEMPLOS del estilo deseado:
-- "Madrid, 2007. Emma Penella se apagaba para siempre. Era la vecina gruñona más querida de España. Pero detrás de su sonrisa ácida, cargaba una cruz insoportable. Su padre era el hombre que entregó a Federico García Lorca para ser fusilado. Emma vivió huyendo de esa sombra. Se cambió el nombre. Ocultó su origen. Murió con miedo a ser juzgada por un crimen que no cometió. ¿Creen que los hijos deben pagar por los pecados de sus padres?"
-- "Solo pasaron 14 días. Lola Flores murió y su hijo Antonio quedó devastado. 'Ella me espera', repetía con la mirada perdida. Se encerró en la cabaña familiar. Dos semanas de agonía. Lo encontraron sin vida en la misma casa donde su madre partió. Los médicos dijeron que fue un accidente. España sabe la verdad."
+- "¡ESCÁNDALO familiar que España no esperaba! Madrid, 2007. Emma Penella se apagaba para siempre. Pero detrás de su sonrisa ácida, cargaba una cruz insoportable. Su padre fue el hombre que entregó a García Lorca para ser fusilado. Emma vivió huyendo de esa sombra. Se cambió el nombre. Ocultó su origen. Murió con miedo a ser juzgada por un crimen que no cometió. ¿Creen que los hijos deben pagar por los pecados de sus padres?"
+- "¡TRAGEDIA que partió a España en dos! Solo pasaron 14 días. Lola Flores murió y su hijo Antonio quedó devastado. 'Ella me espera', repetía con la mirada perdida. Se encerró en la cabaña familiar. Lo encontraron sin vida en la misma casa donde su madre partió. Los médicos dijeron que fue un accidente. España sabe la verdad."
 
-Devuelve SOLO el texto narrativo, sin comillas ni explicaciones.`;
+Devuelve SOLO el texto, sin comillas ni explicaciones.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
