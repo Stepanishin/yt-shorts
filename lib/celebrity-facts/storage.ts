@@ -32,7 +32,8 @@ export const insertCelebrityFact = async (fact: CelebrityFact) => {
     status: "pending",
   };
 
-  const result = await collection.insertOne(document as unknown as StoredCelebrityFact & Document);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await collection.insertOne(document as any);
   return { insertedId: result.insertedId };
 };
 
