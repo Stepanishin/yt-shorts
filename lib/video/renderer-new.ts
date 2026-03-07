@@ -1737,3 +1737,191 @@ export async function renderNewsVideo(
     throw error;
   }
 }
+
+// ============================================
+// CELEBRITY FACTS VIDEO RENDERING (2 photos)
+// ============================================
+
+export interface RenderCelebrityFactsVideoOptions {
+  imageUrl1: string; // First celebrity photo URL
+  imageUrl2: string; // Second celebrity photo URL
+  shortHeadline: string; // Short headline in rounded rectangle
+  factText: string; // Main text overlay
+  audioUrl?: string;
+  audioTrimStart?: number;
+  audioTrimEnd?: number;
+  duration?: number;
+  templateId?: "template1" | "template2";
+  jobId: string;
+}
+
+/**
+ * Render a celebrity facts video with TWO photos side by side in the top area.
+ * Layout: top 426px split 50/50 between two photos; bottom 854px = gradient + text.
+ */
+export async function renderCelebrityFactsVideo(
+  options: RenderCelebrityFactsVideoOptions
+): Promise<RenderVideoNewResult> {
+  const {
+    imageUrl1,
+    imageUrl2,
+    shortHeadline,
+    factText,
+    audioUrl,
+    audioTrimStart,
+    audioTrimEnd,
+    duration = 8,
+    templateId = "template1",
+    jobId,
+  } = options;
+
+  if (!imageUrl1 || !imageUrl2) throw new Error("Both celebrity image URLs are required");
+  if (!factText?.trim()) throw new Error("Fact text is required");
+
+  const isProduction = process.env.NODE_ENV === "production";
+  const videosDir = isProduction
+    ? path.join("/tmp", "videos")
+    : path.join(process.cwd(), "public", "videos");
+
+  await fs.mkdir(videosDir, { recursive: true });
+
+  const tempImg1Path = path.join(videosDir, `temp_fact_img1_${jobId}.jpg`);
+  const tempImg2Path = path.join(videosDir, `temp_fact_img2_${jobId}.jpg`);
+  const compositeBackgroundPath = path.join(videosDir, `temp_fact_composite_${jobId}.mp4`);
+  const headlineBoxPath = path.join(videosDir, `fact_headline_box_${jobId}.png`);
+
+  try {
+    // 1. Download both images and pre-crop to 360x426 (top-center) for correct face framing
+    console.log(`[${jobId}] Downloading celebrity images for facts video...`);
+    const tempImg1Raw = path.join(videosDir, `temp_fact_img1_raw_${jobId}.jpg`);
+    const tempImg2Raw = path.join(videosDir, `temp_fact_img2_raw_${jobId}.jpg`);
+
+    const [resp1, resp2] = await Promise.all([fetch(imageUrl1), fetch(imageUrl2)]);
+    if (!resp1.ok) throw new Error(`Failed to download image 1: ${resp1.statusText}`);
+    if (!resp2.ok) throw new Error(`Failed to download image 2: ${resp2.statusText}`);
+    await fs.writeFile(tempImg1Raw, Buffer.from(await resp1.arrayBuffer()));
+    await fs.writeFile(tempImg2Raw, Buffer.from(await resp2.arrayBuffer()));
+    console.log(`[${jobId}] Both images downloaded, pre-cropping to 360x426...`);
+
+    // Pre-crop: scale so smallest dimension covers 360x426, crop from top-center
+    // This ensures faces (top of portrait photos) are not cut off
+    const cropCmd1 = `ffmpeg -i "${tempImg1Raw}" -y -vf "scale=360:426:force_original_aspect_ratio=increase,crop=360:426:(iw-360)/2:0" "${tempImg1Path}"`;
+    const cropCmd2 = `ffmpeg -i "${tempImg2Raw}" -y -vf "scale=360:426:force_original_aspect_ratio=increase,crop=360:426:(iw-360)/2:0" "${tempImg2Path}"`;
+    await execWithFFmpegEnv(cropCmd1);
+    await execWithFFmpegEnv(cropCmd2);
+    await fs.unlink(tempImg1Raw).catch(() => {});
+    await fs.unlink(tempImg2Raw).catch(() => {});
+    console.log(`[${jobId}] Images pre-cropped to 360x426`);
+
+    // 2. Create headline box
+    if (templateId === "template2") {
+      await createRedRoundedRectangleWithText(600, 140, headlineBoxPath, shortHeadline, 15);
+    } else {
+      await createGradientRoundedRectangleWithText(600, 100, headlineBoxPath, shortHeadline, 15);
+    }
+
+    // 3. Build composite background video: two 360x426 photos side by side, stacked over gradient
+    const totalFrames = duration * 25;
+    const gradientBgPath = path.join(process.cwd(), "public", "gradient-bg.png");
+
+    // Photos are already pre-cropped to 360x426 — apply zoom/pan animation only
+    const photo1Filter =
+      `[0:v]fps=25,` +
+      `zoompan=z='1+0.08*sin(on/25*1.256637)':x='iw/2-(iw/zoom/2)':y=0:d=${totalFrames}:s=360x426:fps=25,` +
+      `eq=brightness='0.1*sin(2.513274*t)':eval=frame,eq=saturation=1.1[photo1]`;
+
+    const photo2Filter =
+      `[1:v]fps=25,` +
+      `zoompan=z='1+0.08*sin(on/25*1.256637+1.571)':x='iw/2-(iw/zoom/2)':y=0:d=${totalFrames}:s=360x426:fps=25,` +
+      `eq=brightness='0.1*sin(2.513274*t+1.571)':eval=frame,eq=saturation=1.1[photo2]`;
+
+    const gradientFilter =
+      `[2:v]fps=25,scale=1440:854:force_original_aspect_ratio=increase,crop=1440:854,` +
+      `crop=720:854:'360+360*sin(1.884955592*t)':0[bg_gradient]`;
+
+    const filterComplex =
+      `${photo1Filter};${photo2Filter};${gradientFilter};` +
+      `[photo1][photo2]hstack[celebrity];` +
+      `[celebrity][bg_gradient]vstack`;
+
+    const compositeCmd =
+      `ffmpeg -loop 1 -i "${tempImg1Path}" -loop 1 -i "${tempImg2Path}" -loop 1 -i "${gradientBgPath}" ` +
+      `-y -filter_complex "${filterComplex}" -t ${duration} -c:v libx264 -preset ultrafast -pix_fmt yuv420p "${compositeBackgroundPath}"`;
+
+    console.log(`[${jobId}] Creating 2-photo composite background...`);
+    await execWithFFmpegEnv(compositeCmd);
+    console.log(`[${jobId}] Composite background created`);
+
+    // 4. Render final video via renderVideoNew
+    const mainTextElement: TextElement = templateId === "template2"
+      ? {
+          text: factText,
+          x: -1,
+          y: 500,
+          fontSize: 24,
+          color: "black@1",
+          fontWeight: "bold",
+          lineSpacing: 6,
+          width: 680,
+          backgroundColor: "yellow@1",
+          boxPadding: 20,
+        }
+      : {
+          text: factText,
+          x: -1,
+          y: 500,
+          fontSize: 24,
+          color: "white",
+          fontWeight: "bold",
+          lineSpacing: 6,
+          width: 680,
+        };
+
+    const result = await renderVideoNew({
+      backgroundVideoUrl: compositeBackgroundPath,
+      backgroundImageUrl: undefined,
+      imageEffect: "none",
+      textElements: [mainTextElement],
+      gifElements: [
+        {
+          url: headlineBoxPath,
+          x: 60,
+          y: 356,
+          width: 600,
+          height: 140,
+        },
+        {
+          url: "https://media4.giphy.com/media/Ve5hR4qmFYrAKWQbj6/giphy.gif",
+          x: 110,
+          y: 980,
+          width: 500,
+          height: 250,
+        },
+      ],
+      emojiElements: [],
+      audioUrl,
+      audioTrimStart,
+      audioTrimEnd,
+      duration,
+      jobId,
+    });
+
+    // Cleanup
+    await fs.unlink(tempImg1Path).catch(() => {});
+    await fs.unlink(tempImg2Path).catch(() => {});
+    await fs.unlink(compositeBackgroundPath).catch(() => {});
+    await fs.unlink(headlineBoxPath).catch(() => {});
+
+    console.log(`[${jobId}] Celebrity facts video rendered: ${result.videoUrl}`);
+    return result;
+  } catch (error) {
+    console.error(`[${jobId}] Failed to render celebrity facts video:`, error);
+    await fs.unlink(path.join(videosDir, `temp_fact_img1_raw_${jobId}.jpg`)).catch(() => {});
+    await fs.unlink(path.join(videosDir, `temp_fact_img2_raw_${jobId}.jpg`)).catch(() => {});
+    await fs.unlink(tempImg1Path).catch(() => {});
+    await fs.unlink(tempImg2Path).catch(() => {});
+    await fs.unlink(compositeBackgroundPath).catch(() => {});
+    await fs.unlink(headlineBoxPath).catch(() => {});
+    throw error;
+  }
+}
