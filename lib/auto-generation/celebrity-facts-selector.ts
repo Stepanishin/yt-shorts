@@ -1,4 +1,5 @@
-import { getCelebrityFactCollection, StoredCelebrityFact } from "@/lib/celebrity-facts/storage";
+import { getCelebrityFactCollection } from "@/lib/celebrity-facts/storage";
+import { StoredCelebrityFact } from "@/lib/celebrity-facts/types";
 import { ObjectId } from "mongodb";
 
 /**
