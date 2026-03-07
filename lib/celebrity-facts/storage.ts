@@ -32,7 +32,7 @@ export const insertCelebrityFact = async (fact: CelebrityFact) => {
     status: "pending",
   };
 
-  const result = await collection.insertOne(document as StoredCelebrityFact & Document);
+  const result = await collection.insertOne(document as unknown as StoredCelebrityFact & Document);
   return { insertedId: result.insertedId };
 };
 
