@@ -5,6 +5,7 @@ import { getActiveAutoGenerationConfigsFR } from "@/lib/db/auto-generation-fr";
 import { getActiveNewsAutoGenerationConfigs } from "@/lib/db/auto-generation-news";
 import { getActiveNewsAutoGenerationConfigs as getActiveNewsAutoGenerationConfigsPT } from "@/lib/db/auto-generation-news-pt";
 import { getActiveMemeAutoGenerationConfigs } from "@/lib/db/auto-generation-meme";
+import { getActiveCelebrityFactsAutoGenerationConfigs } from "@/lib/db/auto-generation-celebrity-facts";
 import { getScheduledVideos } from "@/lib/db/users";
 import {
   getScheduledTimesAhead,
@@ -14,6 +15,7 @@ import { generateAutoVideo, generateAutoVideoDE, generateAutoVideoPT, generateAu
 import { generateNewsVideo } from "./news-generator";
 import { generateNewsVideo as generateNewsVideoPT } from "./news-generator-pt";
 import { generateAutoVideoMeme } from "./generator-meme";
+import { generateCelebrityFactsVideo } from "./celebrity-facts-generator";
 import { runNewsIngest } from "@/lib/ingest-news/run";
 import { runNewsIngestPT } from "@/lib/ingest-news/run-pt";
 
@@ -49,6 +51,7 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
     const activeNewsConfigs = await getActiveNewsAutoGenerationConfigs();
     const activeNewsConfigsPT = await getActiveNewsAutoGenerationConfigsPT();
     const activeMemeConfigs = await getActiveMemeAutoGenerationConfigs();
+    const activeCelebrityFactsConfigs = await getActiveCelebrityFactsAutoGenerationConfigs();
 
     // Check if we should run news ingest (once per day at configured time)
     await checkAndRunNewsIngest(activeNewsConfigs);
@@ -63,9 +66,10 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
       ...activeNewsConfigs.map(config => ({ config, language: 'es' as const, type: 'news' as const })),
       ...activeNewsConfigsPT.map(config => ({ config, language: 'pt' as const, type: 'news' as const })),
       ...activeMemeConfigs.map(config => ({ config, language: 'es' as const, type: 'meme' as const })),
+      ...activeCelebrityFactsConfigs.map(config => ({ config, language: 'es' as const, type: 'celebrity-facts' as const })),
     ];
 
-    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES jokes, ${activeConfigsDE.length} DE jokes, ${activeConfigsPT.length} PT jokes, ${activeConfigsFR.length} FR jokes, ${activeNewsConfigs.length} ES news, ${activeNewsConfigsPT.length} PT news, ${activeMemeConfigs.length} memes)`);
+    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES jokes, ${activeConfigsDE.length} DE jokes, ${activeConfigsPT.length} PT jokes, ${activeConfigsFR.length} FR jokes, ${activeNewsConfigs.length} ES news, ${activeNewsConfigsPT.length} PT news, ${activeMemeConfigs.length} memes, ${activeCelebrityFactsConfigs.length} celebrity facts)`);
 
     if (allConfigs.length === 0) {
       console.log("No active configurations found");
@@ -148,7 +152,13 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
 
           try {
             // Use appropriate generation function based on type and language
-            if (type === 'meme') {
+            if (type === 'celebrity-facts') {
+              await generateCelebrityFactsVideo(
+                config.userId,
+                config._id!.toString(),
+                scheduledTime
+              );
+            } else if (type === 'meme') {
               await generateAutoVideoMeme(
                 config.userId,
                 config._id!.toString(),
