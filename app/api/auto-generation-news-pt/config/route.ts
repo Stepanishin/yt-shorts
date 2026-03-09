@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
       isEnabled: body.isEnabled ?? false,
       videosPerDay: body.videosPerDay || 6,
       publishTimes: body.publishTimes || [],
+      blackAndWhitePhoto: body.blackAndWhitePhoto ?? false,
       template: body.template,
       youtube: body.youtube,
       stats: existingConfig?.stats || {

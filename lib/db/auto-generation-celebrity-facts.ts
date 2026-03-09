@@ -19,6 +19,7 @@ export interface CelebrityFactsAutoGenerationConfig {
   videosPerDay: number;
   publishTimes: PublishTime[];
   selectedTemplate?: "template1" | "template2";
+  blackAndWhitePhotos?: boolean;
   template: {
     audio?: {
       urls: string[];

@@ -75,6 +75,7 @@ export interface NewsAutoGenerationConfig {
   videosPerDay: number; // 6-10 videos per day
   publishTimes: PublishTime[];
   newsIngestSchedule?: NewsIngestSchedule; // Время автоматического скрапинга новостей
+  blackAndWhitePhoto?: boolean;
   template: NewsGenerationTemplate;
   youtube: YouTubeNewsSettings;
   stats: NewsAutoGenerationStats;

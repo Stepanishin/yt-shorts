@@ -121,6 +121,7 @@ export async function generateCelebrityFactsVideo(
       audioTrimEnd,
       duration: config.template.audio?.duration || 8,
       templateId: config.selectedTemplate || "template1",
+      blackAndWhite: config.blackAndWhitePhotos ?? false,
       jobId,
     });
 

@@ -23,6 +23,7 @@ interface FactsAutoGenConfig {
   videosPerDay: number;
   publishTimes: PublishTime[];
   selectedTemplate?: "template1" | "template2";
+  blackAndWhitePhotos?: boolean;
   template: {
     audio?: {
       urls: string[];
@@ -370,6 +371,25 @@ export default function AutoGenerationCelebrityFactsPage() {
               </label>
             ))}
           </div>
+        </div>
+
+        {/* Photo Filters */}
+        <div className="mb-8 bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Photo Filters</h2>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={config.blackAndWhitePhotos ?? false}
+              onChange={(e) => setConfig({ ...config, blackAndWhitePhotos: e.target.checked })}
+              className="w-5 h-5 text-purple-600 rounded"
+            />
+            <span className="text-gray-900">Apply black &amp; white filter to celebrity photos</span>
+          </label>
+          {config.blackAndWhitePhotos && (
+            <div className="mt-3 text-sm text-gray-600 bg-gray-50 rounded-md p-3">
+              Photos will be rendered in grayscale.
+            </div>
+          )}
         </div>
 
         {/* YouTube Settings */}

@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       videosPerDay: body.videosPerDay || 6,
       publishTimes: body.publishTimes || [],
       selectedTemplate: body.selectedTemplate || "template1",
+      blackAndWhitePhotos: body.blackAndWhitePhotos ?? false,
       template: body.template,
       youtube: body.youtube,
       stats: existingConfig?.stats || { totalGenerated: 0, totalPublished: 0 },

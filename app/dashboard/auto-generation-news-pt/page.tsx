@@ -30,6 +30,7 @@ interface NewsAutoGenConfig {
   videosPerDay: number;
   publishTimes: PublishTime[];
   newsIngestSchedule?: NewsIngestSchedule;
+  blackAndWhitePhoto?: boolean;
   template: {
     celebrityImage: {
       height: number;
@@ -518,6 +519,25 @@ export default function AutoGenerationNewsPTPage() {
               <span className="text-sm text-gray-500">
                 ({String(config.newsIngestSchedule?.hour ?? 6).padStart(2, '0')}:{String(config.newsIngestSchedule?.minute ?? 0).padStart(2, '0')})
               </span>
+            </div>
+          )}
+        </div>
+
+        {/* Photo Filters */}
+        <div className="mb-8 bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Photo Filters</h2>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={config.blackAndWhitePhoto ?? false}
+              onChange={(e) => setConfig({ ...config, blackAndWhitePhoto: e.target.checked })}
+              className="w-5 h-5 text-blue-600 rounded"
+            />
+            <span className="text-gray-900">Apply black &amp; white filter to celebrity photo</span>
+          </label>
+          {config.blackAndWhitePhoto && (
+            <div className="mt-3 text-sm text-gray-600 bg-gray-50 rounded-md p-3">
+              Photo will be rendered in grayscale.
             </div>
           )}
         </div>

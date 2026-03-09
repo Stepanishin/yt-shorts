@@ -1315,6 +1315,7 @@ export interface RenderNewsVideoOptions {
   duration?: number; // Video duration in seconds (default: 8)
   imageYOffset?: number; // Y offset for image centering (negative = show more top, e.g. -100 for portraits)
   templateId?: "template1" | "template2"; // Template 1 = gradient bg (default), Template 2 = red headline + yellow text box
+  blackAndWhite?: boolean;
   jobId: string;
 }
 
@@ -1512,6 +1513,7 @@ export async function renderNewsVideo(
     duration = 8,
     imageYOffset = 0,
     templateId = "template1",
+    blackAndWhite = false,
     jobId
   } = options;
 
@@ -1635,11 +1637,12 @@ export async function renderNewsVideo(
       : `y='ih/2-(ih/zoom/2)'`;
 
     // Celebrity image animation (shared between templates)
+    const saturationNews = blackAndWhite ? 0 : 1.15;
     const celebrityFilter =
       `[0:v]scale=1080:640:force_original_aspect_ratio=increase,crop=1080:640,fps=25,` +
       `zoompan=z='1+0.1*sin(on/25*1.256637)':x='iw/2-(iw/zoom/2)':${yExpr}:d=${totalFrames}:s=720x426:fps=25,` +
       `eq=brightness='0.15*sin(2.513274*t)':eval=frame,` +
-      `eq=saturation=1.15[celebrity]`;
+      `eq=saturation=${saturationNews}[celebrity]`;
 
     let filterComplex: string;
     let compositeCmd: string;
@@ -1752,6 +1755,7 @@ export interface RenderCelebrityFactsVideoOptions {
   audioTrimEnd?: number;
   duration?: number;
   templateId?: "template1" | "template2";
+  blackAndWhite?: boolean;
   jobId: string;
 }
 
@@ -1772,6 +1776,7 @@ export async function renderCelebrityFactsVideo(
     audioTrimEnd,
     duration = 8,
     templateId = "template1",
+    blackAndWhite = false,
     jobId,
   } = options;
 
@@ -1825,15 +1830,16 @@ export async function renderCelebrityFactsVideo(
     const gradientBgPath = path.join(process.cwd(), "public", "gradient-bg.png");
 
     // Photos are already pre-cropped to 360x426 — apply zoom/pan animation only
+    const saturation = blackAndWhite ? 0 : 1.1;
     const photo1Filter =
       `[0:v]fps=25,` +
       `zoompan=z='1+0.08*sin(on/25*1.256637)':x='iw/2-(iw/zoom/2)':y=0:d=${totalFrames}:s=360x426:fps=25,` +
-      `eq=brightness='0.1*sin(2.513274*t)':eval=frame,eq=saturation=1.1[photo1]`;
+      `eq=brightness='0.1*sin(2.513274*t)':eval=frame,eq=saturation=${saturation}[photo1]`;
 
     const photo2Filter =
       `[1:v]fps=25,` +
       `zoompan=z='1+0.08*sin(on/25*1.256637+1.571)':x='iw/2-(iw/zoom/2)':y=0:d=${totalFrames}:s=360x426:fps=25,` +
-      `eq=brightness='0.1*sin(2.513274*t+1.571)':eval=frame,eq=saturation=1.1[photo2]`;
+      `eq=brightness='0.1*sin(2.513274*t+1.571)':eval=frame,eq=saturation=${saturation}[photo2]`;
 
     const gradientFilter =
       `[2:v]fps=25,scale=1440:854:force_original_aspect_ratio=increase,crop=1440:854,` +
