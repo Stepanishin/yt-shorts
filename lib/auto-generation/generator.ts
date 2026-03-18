@@ -409,8 +409,9 @@ function generateVideoDescription(
       // Use default track name
     }
 
-    description += `\n\nMusic: "${trackName}" by Bensound.com
-License: https://www.bensound.com/licensing`;
+    description += `\n\nMusic: "${trackName}" by Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/`;
   }
 
   return description;
@@ -533,8 +534,9 @@ function generateVideoDescriptionDE(
       // Use default track name
     }
 
-    description += `\n\nMusik: "${trackName}" von Bensound.com
-Lizenz: https://www.bensound.com/licensing`;
+    description += `\n\nMusik: "${trackName}" von Kevin MacLeod (incompetech.com)
+Lizenziert unter Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/`;
   }
 
   return description;
@@ -657,8 +659,9 @@ function generateVideoDescriptionPT(
       // Use default track name
     }
 
-    description += `\n\nMúsica: "${trackName}" por Bensound.com
-Licença: https://www.bensound.com/licensing`;
+    description += `\n\nMúsica: "${trackName}" por Kevin MacLeod (incompetech.com)
+Licenciado sob Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/`;
   }
 
   return description;
@@ -1275,8 +1278,9 @@ function generateVideoDescriptionFR(
       // Use default track name
     }
 
-    description += `\n\nMusique: "${trackName}" par Bensound.com
-Licence: https://www.bensound.com/licensing`;
+    description += `\n\nMusique: "${trackName}" par Kevin MacLeod (incompetech.com)
+Licence Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/`;
   }
 
   return description;

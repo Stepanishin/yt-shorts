@@ -142,6 +142,18 @@ export async function generateCelebrityFactsVideo(
       }
     }
 
+    // Add music attribution if audio is used
+    if (audioUrl) {
+      let trackName = "Track";
+      try {
+        const fileName = decodeURIComponent(audioUrl.split("/").pop()?.split("?")[0] || "");
+        if (fileName.endsWith(".mp3")) {
+          trackName = fileName.replace(".mp3", "").replace(/[-_]/g, " ");
+        }
+      } catch { /* use default */ }
+      youtubeDescription += `\n\nMusic: "${trackName}" by Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/`;
+    }
+
     // 10. Schedule video
     const channelIdToUse =
       config.youtube.savedChannelId ||

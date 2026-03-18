@@ -186,6 +186,8 @@ export async function generateNewsVideo(
     console.log(`Specific News ID: ${specificNewsId}`);
   }
 
+  let news: Awaited<ReturnType<typeof selectNextNews>> | Awaited<ReturnType<typeof findNewsCandidateById>>;
+
   try {
     // 1. Get configuration
     console.log(`[${jobId}] Step 1: Fetching news auto-generation configuration...`);
@@ -212,7 +214,6 @@ export async function generateNewsVideo(
 
     // 3. Reserve news item
     console.log(`[${jobId}] Step 3: Reserving news item...`);
-    let news;
     if (specificNewsId) {
       news = await findNewsCandidateById(specificNewsId);
       if (!news) {
@@ -339,6 +340,18 @@ export async function generateNewsVideo(
       }
     }
 
+    // Add music attribution if audio is used
+    if (audioUrl) {
+      let trackName = "Track";
+      try {
+        const fileName = decodeURIComponent(audioUrl.split("/").pop()?.split("?")[0] || "");
+        if (fileName.endsWith(".mp3")) {
+          trackName = fileName.replace(".mp3", "").replace(/[-_]/g, " ");
+        }
+      } catch { /* use default */ }
+      youtubeDescription += `\n\nMusic: "${trackName}" by Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/`;
+    }
+
     // 9. Add to scheduled videos
     console.log(`[${jobId}] Step 9: Adding to scheduled videos...`);
 
@@ -393,18 +406,34 @@ export async function generateNewsVideo(
     console.error(`Job ID: ${jobId}`);
     console.error(`Error:`, error);
 
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Reset reserved news back to pending so it can be retried
+    if (news && news._id) {
+      try {
+        await markNewsCandidateStatus({
+          id: news._id,
+          status: "pending",
+          notes: `[${new Date().toISOString()}] Generation failed (job ${jobId}): ${errorMessage}`,
+        });
+        console.log(`Reset news ${news._id} back to pending with error note`);
+      } catch (resetError) {
+        console.error(`Failed to reset news ${news._id} status:`, resetError);
+      }
+    }
+
     // Try to create or update job with error status
     try {
       const existingJob = await createNewsAutoGenerationJob({
         userId,
         configId,
         status: "failed",
-        newsId: "",
-        newsTitle: "",
-        newsSummary: "",
-        newsImageUrl: "",
+        newsId: news?._id ? String(news._id) : "",
+        newsTitle: news?.title || "",
+        newsSummary: news?.summary || "",
+        newsImageUrl: news?.imageUrl || "",
         selectedResources: {},
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage,
         retryCount: 0,
       });
 
