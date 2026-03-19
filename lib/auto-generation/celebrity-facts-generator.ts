@@ -164,7 +164,7 @@ export async function generateCelebrityFactsVideo(
       videoUrl: renderResult.videoUrl,
       title: youtubeTitle,
       description: youtubeDescription,
-      tags: config.youtube.tags || ["celebrity", "facts", "shorts"],
+      tags: config.youtube.tags || ["datoscuriosos", "famosos", "celebridades", "shorts", "españa", "sabíasque"],
       privacyStatus: config.youtube.privacyStatus || "public",
       scheduledAt,
       youtubeChannelId: channelIdToUse,
