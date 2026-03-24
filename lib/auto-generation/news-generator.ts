@@ -50,7 +50,7 @@ EJEMPLOS del estilo deseado:
 Devuelve SOLO el titular en una línea, sin comillas ni explicaciones.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5",
       messages: [
         {
           role: "system",
@@ -127,7 +127,7 @@ EJEMPLOS del estilo deseado:
 Devuelve SOLO el texto, sin comillas ni explicaciones.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5",
       messages: [
         {
           role: "system",

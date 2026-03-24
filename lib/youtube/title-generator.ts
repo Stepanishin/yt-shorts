@@ -31,7 +31,7 @@ ${jokeTitle ? `Оригинальное название: ${jokeTitle}` : ""}
 Верни ТОЛЬКО название, без кавычек и пояснений.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5",
       messages: [
         {
           role: "system",
@@ -88,7 +88,7 @@ export async function generateShortsDescription(jokeText: string): Promise<strin
 Верни ТОЛЬКО текст описания без дополнительных пояснений.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5",
       messages: [
         {
           role: "system",
@@ -162,7 +162,7 @@ Si no conoces la edad exacta, usa una edad aproximada razonable para el famoso.
 Devuelve SOLO el título en el formato exacto, sin explicaciones.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5",
       messages: [
         {
           role: "system",
@@ -247,7 +247,7 @@ Solo pasaron 14 días. Lo encontraron sin vida en la misma casa donde su madre a
 Devuelve SOLO la descripción completa siguiendo EXACTAMENTE este formato, sin explicaciones adicionales.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5",
       messages: [
         {
           role: "system",
@@ -325,7 +325,7 @@ Se não conheceres a idade exata, usa uma idade aproximada razoável para o famo
 Devolve APENAS o título no formato exato, sem explicações.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5",
       messages: [
         {
           role: "system",
@@ -421,7 +421,7 @@ O que dizem os médicos? Voltará a afastar-se dos ecrãs? Todo o Portugal se so
 Devolve APENAS a descrição completa seguindo EXATAMENTE este formato, sem explicações adicionais.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5",
       messages: [
         {
           role: "system",
