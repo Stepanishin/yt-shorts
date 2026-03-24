@@ -43,7 +43,7 @@ ${jokeTitle ? `Оригинальное название: ${jokeTitle}` : ""}
         },
       ],
       temperature: 0.9,
-      max_tokens: 100,
+      max_completion_tokens: 100,
     });
 
     const title = response.choices[0]?.message?.content?.trim();
@@ -100,7 +100,7 @@ export async function generateShortsDescription(jokeText: string): Promise<strin
         },
       ],
       temperature: 0.7,
-      max_tokens: 300,
+      max_completion_tokens: 300,
     });
 
     const description = response.choices[0]?.message?.content?.trim();
@@ -174,7 +174,7 @@ Devuelve SOLO el título en el formato exacto, sin explicaciones.`;
         },
       ],
       temperature: 0.8,
-      max_tokens: 120,
+      max_completion_tokens: 120,
     });
 
     const title = response.choices[0]?.message?.content?.trim();
@@ -259,7 +259,7 @@ Devuelve SOLO la descripción completa siguiendo EXACTAMENTE este formato, sin e
         },
       ],
       temperature: 0.85,
-      max_tokens: 800,
+      max_completion_tokens: 800,
     });
 
     const description = response.choices[0]?.message?.content?.trim();
@@ -337,7 +337,7 @@ Devolve APENAS o título no formato exato, sem explicações.`;
         },
       ],
       temperature: 0.8,
-      max_tokens: 120,
+      max_completion_tokens: 120,
     });
 
     const title = response.choices[0]?.message?.content?.trim();
@@ -433,7 +433,7 @@ Devolve APENAS a descrição completa seguindo EXATAMENTE este formato, sem expl
         },
       ],
       temperature: 0.85,
-      max_tokens: 800,
+      max_completion_tokens: 800,
     });
 
     const description = response.choices[0]?.message?.content?.trim();

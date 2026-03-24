@@ -62,7 +62,7 @@ Devuelve SOLO el titular en una línea, sin comillas ni explicaciones.`;
         },
       ],
       temperature: 0.9,
-      max_tokens: 50,
+      max_completion_tokens: 50,
     });
 
     // Strip newlines just in case GPT ignores the one-line instruction
@@ -139,7 +139,7 @@ Devuelve SOLO el texto, sin comillas ni explicaciones.`;
         },
       ],
       temperature: 0.9,
-      max_tokens: 300, // Increased for longer text (540-660 chars)
+      max_completion_tokens: 300, // Increased for longer text (540-660 chars)
     });
 
     const generatedText = response.choices[0]?.message?.content?.trim();
