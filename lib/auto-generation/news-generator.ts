@@ -114,7 +114,9 @@ ESTRUCTURA:
 3. CIERRE: pregunta retórica que invite a reflexionar
 
 REQUISITOS ESTRICTOS:
-- Longitud: 540-660 caracteres (incluyendo espacios)
+- Longitud MÍNIMA OBLIGATORIA: 540 caracteres (incluyendo espacios). NUNCA menos de 540.
+- Longitud MÁXIMA: 660 caracteres (incluyendo espacios)
+- Si tu texto tiene menos de 540 caracteres, AÑADE más detalles, hechos, contexto o citas hasta alcanzar el mínimo
 - Las palabras impactantes deben estar respaldadas por hechos, no usadas en el vacío
 - Frases CORTAS. Una idea por frase.
 - Terminar con una pregunta retórica
@@ -139,7 +141,7 @@ Devuelve SOLO el texto, sin comillas ni explicaciones.`;
         },
       ],
 
-      max_completion_tokens: 300, // Increased for longer text (540-660 chars)
+      max_completion_tokens: 600, // Increased for longer text (540-660 chars)
     });
 
     const generatedText = response.choices[0]?.message?.content?.trim();
