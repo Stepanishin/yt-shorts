@@ -42,7 +42,7 @@ ${jokeTitle ? `Оригинальное название: ${jokeTitle}` : ""}
           content: prompt,
         },
       ],
-      temperature: 0.9,
+
       max_completion_tokens: 100,
     });
 
@@ -99,7 +99,7 @@ export async function generateShortsDescription(jokeText: string): Promise<strin
           content: prompt,
         },
       ],
-      temperature: 0.7,
+
       max_completion_tokens: 300,
     });
 
@@ -173,7 +173,7 @@ Devuelve SOLO el título en el formato exacto, sin explicaciones.`;
           content: prompt,
         },
       ],
-      temperature: 0.8,
+
       max_completion_tokens: 120,
     });
 
@@ -258,7 +258,7 @@ Devuelve SOLO la descripción completa siguiendo EXACTAMENTE este formato, sin e
           content: prompt,
         },
       ],
-      temperature: 0.85,
+
       max_completion_tokens: 800,
     });
 
@@ -336,7 +336,7 @@ Devolve APENAS o título no formato exato, sem explicações.`;
           content: prompt,
         },
       ],
-      temperature: 0.8,
+
       max_completion_tokens: 120,
     });
 
@@ -432,7 +432,7 @@ Devolve APENAS a descrição completa seguindo EXATAMENTE este formato, sem expl
           content: prompt,
         },
       ],
-      temperature: 0.85,
+
       max_completion_tokens: 800,
     });
 

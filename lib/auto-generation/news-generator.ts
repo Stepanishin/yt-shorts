@@ -61,7 +61,7 @@ Devuelve SOLO el titular en una línea, sin comillas ni explicaciones.`;
           content: prompt,
         },
       ],
-      temperature: 0.9,
+
       max_completion_tokens: 50,
     });
 
@@ -138,7 +138,7 @@ Devuelve SOLO el texto, sin comillas ni explicaciones.`;
           content: prompt,
         },
       ],
-      temperature: 0.9,
+
       max_completion_tokens: 300, // Increased for longer text (540-660 chars)
     });
 
