@@ -62,8 +62,10 @@ Devuelve SOLO el titular en una línea, sin comillas ni explicaciones.`;
         },
       ],
 
-      max_completion_tokens: 50,
     });
+
+    // Log raw response for debugging GPT-5 format
+    console.log(`🔍 Raw headline response:`, JSON.stringify(response.choices[0]?.message));
 
     // Strip newlines just in case GPT ignores the one-line instruction
     const generatedHeadline = response.choices[0]?.message?.content
@@ -141,8 +143,10 @@ Devuelve SOLO el texto, sin comillas ni explicaciones.`;
         },
       ],
 
-      max_completion_tokens: 600, // Increased for longer text (540-660 chars)
     });
+
+    // Log raw response for debugging GPT-5 format
+    console.log(`🔍 Raw yellow press response:`, JSON.stringify(response.choices[0]?.message));
 
     const generatedText = response.choices[0]?.message?.content?.trim();
 
