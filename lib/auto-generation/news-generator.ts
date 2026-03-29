@@ -12,6 +12,7 @@ import { selectNextNews, getAvailableNewsCount } from "./news-selector";
 import { prepareAudioCut, selectRandomFromArray } from "./audio-processor";
 import { renderNewsVideo } from "@/lib/video/renderer-new";
 import { generateNewsShortsTitle, generateNewsShortsDescription } from "@/lib/youtube/title-generator";
+import { generateNewsTags } from "./news-tags";
 
 /**
  * Generate short catchy headline for video (max 2 lines)
@@ -371,7 +372,7 @@ export async function generateNewsVideo(
       videoUrl: renderResult.videoUrl,
       title: youtubeTitle,
       description: youtubeDescription,
-      tags: config.youtube.tags || ["noticias", "famosos", "españa", "celebrities"],
+      tags: await generateNewsTags(newsTitle, newsSummary, config.youtube.tags),
       privacyStatus: config.youtube.privacyStatus || "public",
       scheduledAt,
       youtubeChannelId: channelIdToUse,
