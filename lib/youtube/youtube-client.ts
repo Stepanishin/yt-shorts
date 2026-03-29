@@ -58,6 +58,7 @@ export function getAuthUrl(oauth2Client: OAuth2Client, state?: string): string {
   const scopes = [
     "https://www.googleapis.com/auth/youtube.upload",
     "https://www.googleapis.com/auth/youtube",
+    "https://www.googleapis.com/auth/yt-analytics.readonly",
   ];
 
   return oauth2Client.generateAuthUrl({
@@ -99,7 +100,7 @@ export async function uploadVideoToYouTube(options: UploadVideoOptions) {
     title,
     description,
     tags = [],
-    categoryId = "23", // 23 = Comedy
+    categoryId = "24", // 24 = Entertainment
     privacyStatus = "public",
     channelId,
     language = "es", // Default to Spanish for backward compatibility

@@ -11,7 +11,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 0
   },
   {
@@ -898,7 +898,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 55
   },
   {
@@ -1275,7 +1275,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 78
   },
   {
@@ -1564,7 +1564,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 96
   },
   {
@@ -1821,7 +1821,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 112
   },
   {
@@ -1854,7 +1854,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 114
   },
   {
@@ -1869,7 +1869,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 115
   },
   {
@@ -2144,7 +2144,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 132
   },
   {
@@ -2327,7 +2327,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 143
   },
   {
@@ -2342,7 +2342,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 144
   },
   {
@@ -2357,7 +2357,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 145
   },
   {
@@ -2577,7 +2577,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 159
   },
   {
@@ -2623,7 +2623,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 162
   },
   {
@@ -3886,7 +3886,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 238
   },
   {
@@ -4396,7 +4396,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 269
   },
   {
@@ -4903,7 +4903,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 300
   },
   {
@@ -5492,7 +5492,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 336
   },
   {
@@ -5627,7 +5627,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 344
   },
   {
@@ -5950,7 +5950,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 364
   },
   {
@@ -6152,7 +6152,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 376
   },
   {
@@ -6253,7 +6253,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 382
   },
   {
@@ -6355,7 +6355,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 388
   },
   {
@@ -6709,7 +6709,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 409
   },
   {
@@ -6776,7 +6776,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 413
   },
   {
@@ -6989,7 +6989,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 426
   },
   {
@@ -7362,7 +7362,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 449
   },
   {
@@ -7547,7 +7547,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 460
   },
   {
@@ -8114,7 +8114,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 494
   },
   {
@@ -8366,7 +8366,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 509
   },
   {
@@ -8720,7 +8720,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 530
   },
   {
@@ -8820,7 +8820,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 536
   },
   {
@@ -9032,7 +9032,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 549
   },
   {
@@ -9049,7 +9049,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 550
   },
   {
@@ -9211,7 +9211,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 560
   },
   {
@@ -11681,7 +11681,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 710
   },
   {
@@ -11730,7 +11730,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 713
   },
   {
@@ -11745,7 +11745,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 714
   },
   {
@@ -12019,7 +12019,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 731
   },
   {
@@ -12826,7 +12826,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 780
   },
   {
@@ -13313,7 +13313,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 809
   },
   {
@@ -13865,7 +13865,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 843
   },
   {
@@ -15141,7 +15141,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 921
   },
   {
@@ -15293,7 +15293,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 930
   },
   {
@@ -15341,7 +15341,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 933
   },
   {
@@ -15703,7 +15703,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 955
   },
   {
@@ -16361,7 +16361,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 995
   },
   {
@@ -17052,7 +17052,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1037
   },
   {
@@ -17332,7 +17332,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1054
   },
   {
@@ -17450,7 +17450,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1061
   },
   {
@@ -17483,7 +17483,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1063
   },
   {
@@ -17791,7 +17791,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1082
   },
   {
@@ -18282,7 +18282,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1112
   },
   {
@@ -18391,7 +18391,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1119
   },
   {
@@ -18406,7 +18406,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1120
   },
   {
@@ -18421,7 +18421,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1121
   },
   {
@@ -18634,7 +18634,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1134
   },
   {
@@ -19082,7 +19082,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1161
   },
   {
@@ -19194,7 +19194,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1168
   },
   {
@@ -19210,7 +19210,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1169
   },
   {
@@ -19821,7 +19821,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1206
   },
   {
@@ -21485,7 +21485,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1306
   },
   {
@@ -21519,7 +21519,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1308
   },
   {
@@ -21584,7 +21584,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1312
   },
   {
@@ -21750,7 +21750,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1322
   },
   {
@@ -22770,7 +22770,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1384
   },
   {
@@ -23212,7 +23212,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1411
   },
   {
@@ -23261,7 +23261,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1414
   },
   {
@@ -23442,7 +23442,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1425
   },
   {
@@ -23458,7 +23458,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1426
   },
   {
@@ -23763,7 +23763,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1446
   },
   {
@@ -24245,7 +24245,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1479
   },
   {
@@ -24367,7 +24367,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1486
   },
   {
@@ -24386,7 +24386,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1487
   },
   {
@@ -25172,7 +25172,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1533
   },
   {
@@ -25272,7 +25272,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1539
   },
   {
@@ -25658,7 +25658,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1562
   },
   {
@@ -25852,7 +25852,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1573
   },
   {
@@ -25936,7 +25936,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1578
   },
   {
@@ -26406,7 +26406,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1606
   },
   {
@@ -26703,7 +26703,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1624
   },
   {
@@ -28458,7 +28458,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1730
   },
   {
@@ -28847,7 +28847,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1754
   },
   {
@@ -28866,7 +28866,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1755
   },
   {
@@ -28900,7 +28900,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1757
   },
   {
@@ -28983,7 +28983,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1762
   },
   {
@@ -29245,7 +29245,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1778
   },
   {
@@ -30046,7 +30046,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1827
   },
   {
@@ -30460,7 +30460,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1853
   },
   {
@@ -30644,7 +30644,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1865
   },
   {
@@ -30993,7 +30993,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1888
   },
   {
@@ -31407,7 +31407,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1915
   },
   {
@@ -31801,7 +31801,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1940
   },
   {
@@ -31910,7 +31910,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1947
   },
   {
@@ -32508,7 +32508,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1985
   },
   {
@@ -32646,7 +32646,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 1993
   },
   {
@@ -32757,7 +32757,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2000
   },
   {
@@ -33681,7 +33681,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2058
   },
   {
@@ -34096,7 +34096,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2083
   },
   {
@@ -34272,7 +34272,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2094
   },
   {
@@ -34321,7 +34321,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2097
   },
   {
@@ -34930,7 +34930,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2134
   },
   {
@@ -34997,7 +34997,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2138
   },
   {
@@ -35666,7 +35666,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2179
   },
   {
@@ -35715,7 +35715,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2182
   },
   {
@@ -37064,7 +37064,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2264
   },
   {
@@ -37302,7 +37302,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2278
   },
   {
@@ -37624,7 +37624,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2297
   },
   {
@@ -38822,7 +38822,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2372
   },
   {
@@ -38837,7 +38837,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2373
   },
   {
@@ -38890,7 +38890,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2376
   },
   {
@@ -38995,7 +38995,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2383
   },
   {
@@ -39284,7 +39284,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2402
   },
   {
@@ -39541,7 +39541,7 @@
     ],
     "origen": "1000 chistes",
     "votos": null,
-    "added": false,
+    "added": true,
     "index": 2419
   },
   {
@@ -39646,7 +39646,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 14,
-    "added": false,
+    "added": true,
     "index": 2427
   },
   {
@@ -39994,7 +39994,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 12,
-    "added": false,
+    "added": true,
     "index": 2456
   },
   {
@@ -40078,7 +40078,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 5,
-    "added": false,
+    "added": true,
     "index": 2463
   },
   {
@@ -40894,7 +40894,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2531
   },
   {
@@ -41194,7 +41194,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 2556
   },
   {
@@ -41626,7 +41626,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 2592
   },
   {
@@ -42250,7 +42250,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2644
   },
   {
@@ -42346,7 +42346,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2652
   },
   {
@@ -42550,7 +42550,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 2669
   },
   {
@@ -42718,7 +42718,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2683
   },
   {
@@ -42850,7 +42850,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2694
   },
   {
@@ -42862,7 +42862,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2695
   },
   {
@@ -43186,7 +43186,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2722
   },
   {
@@ -43234,7 +43234,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2726
   },
   {
@@ -43270,7 +43270,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2729
   },
   {
@@ -43318,7 +43318,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2733
   },
   {
@@ -43426,7 +43426,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2742
   },
   {
@@ -43990,7 +43990,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2789
   },
   {
@@ -44098,7 +44098,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2798
   },
   {
@@ -44158,7 +44158,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2803
   },
   {
@@ -44638,7 +44638,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2843
   },
   {
@@ -44746,7 +44746,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2852
   },
   {
@@ -44758,7 +44758,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2853
   },
   {
@@ -44914,7 +44914,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2866
   },
   {
@@ -45034,7 +45034,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2876
   },
   {
@@ -45070,7 +45070,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2879
   },
   {
@@ -45154,7 +45154,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2886
   },
   {
@@ -45190,7 +45190,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2889
   },
   {
@@ -45298,7 +45298,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2898
   },
   {
@@ -45466,7 +45466,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2912
   },
   {
@@ -45610,7 +45610,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2924
   },
   {
@@ -45790,7 +45790,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2939
   },
   {
@@ -46150,7 +46150,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 2969
   },
   {
@@ -47422,7 +47422,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3075
   },
   {
@@ -47590,7 +47590,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3089
   },
   {
@@ -48178,7 +48178,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3138
   },
   {
@@ -48358,7 +48358,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3153
   },
   {
@@ -49908,7 +49908,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3282
   },
   {
@@ -50172,7 +50172,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3304
   },
   {
@@ -50208,7 +50208,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3307
   },
   {
@@ -50244,7 +50244,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3310
   },
   {
@@ -50364,7 +50364,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3320
   },
   {
@@ -50484,7 +50484,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3330
   },
   {
@@ -50520,7 +50520,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3333
   },
   {
@@ -50556,7 +50556,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3336
   },
   {
@@ -50616,7 +50616,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3341
   },
   {
@@ -50820,7 +50820,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3358
   },
   {
@@ -50832,7 +50832,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3359
   },
   {
@@ -51084,7 +51084,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3380
   },
   {
@@ -51132,7 +51132,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3384
   },
   {
@@ -51180,7 +51180,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3388
   },
   {
@@ -51228,7 +51228,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3392
   },
   {
@@ -51252,7 +51252,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3394
   },
   {
@@ -51636,7 +51636,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": -1,
-    "added": false,
+    "added": true,
     "index": 3426
   },
   {
@@ -51864,7 +51864,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3445
   },
   {
@@ -52428,7 +52428,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3492
   },
   {
@@ -52644,7 +52644,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3510
   },
   {
@@ -53052,7 +53052,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3544
   },
   {
@@ -53232,7 +53232,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3559
   },
   {
@@ -53280,7 +53280,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3563
   },
   {
@@ -53304,7 +53304,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3565
   },
   {
@@ -53412,7 +53412,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3574
   },
   {
@@ -53424,7 +53424,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3575
   },
   {
@@ -53460,7 +53460,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3578
   },
   {
@@ -53472,7 +53472,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3579
   },
   {
@@ -53604,7 +53604,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3590
   },
   {
@@ -53616,7 +53616,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3591
   },
   {
@@ -53628,7 +53628,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3592
   },
   {
@@ -53664,7 +53664,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3595
   },
   {
@@ -53700,7 +53700,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3598
   },
   {
@@ -53724,7 +53724,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3600
   },
   {
@@ -53796,7 +53796,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3606
   },
   {
@@ -53808,7 +53808,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3607
   },
   {
@@ -53844,7 +53844,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3610
   },
   {
@@ -53880,7 +53880,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3613
   },
   {
@@ -53904,7 +53904,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3615
   },
   {
@@ -53928,7 +53928,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3617
   },
   {
@@ -53940,7 +53940,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3618
   },
   {
@@ -54060,7 +54060,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3628
   },
   {
@@ -54204,7 +54204,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3640
   },
   {
@@ -54240,7 +54240,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3643
   },
   {
@@ -54252,7 +54252,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3644
   },
   {
@@ -54288,7 +54288,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3647
   },
   {
@@ -54468,7 +54468,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3662
   },
   {
@@ -54696,7 +54696,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3681
   },
   {
@@ -55128,7 +55128,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3717
   },
   {
@@ -55512,7 +55512,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3749
   },
   {
@@ -55536,7 +55536,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3751
   },
   {
@@ -55548,7 +55548,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3752
   },
   {
@@ -55656,7 +55656,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3761
   },
   {
@@ -55788,7 +55788,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3772
   },
   {
@@ -55812,7 +55812,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3774
   },
   {
@@ -55896,7 +55896,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3781
   },
   {
@@ -56016,7 +56016,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3791
   },
   {
@@ -56064,7 +56064,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3795
   },
   {
@@ -56184,7 +56184,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3805
   },
   {
@@ -56208,7 +56208,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3807
   },
   {
@@ -56256,7 +56256,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3811
   },
   {
@@ -56328,7 +56328,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3817
   },
   {
@@ -56556,7 +56556,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3836
   },
   {
@@ -56748,7 +56748,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3852
   },
   {
@@ -56904,7 +56904,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3865
   },
   {
@@ -57120,7 +57120,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3883
   },
   {
@@ -57144,7 +57144,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3885
   },
   {
@@ -57960,7 +57960,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3953
   },
   {
@@ -57984,7 +57984,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3955
   },
   {
@@ -58308,7 +58308,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3982
   },
   {
@@ -58332,7 +58332,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3984
   },
   {
@@ -58440,7 +58440,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3993
   },
   {
@@ -58512,7 +58512,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 3999
   },
   {
@@ -58740,7 +58740,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 4018
   },
   {
@@ -58824,7 +58824,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4025
   },
   {
@@ -59040,7 +59040,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4043
   },
   {
@@ -59148,7 +59148,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4052
   },
   {
@@ -59208,7 +59208,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4057
   },
   {
@@ -59232,7 +59232,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4059
   },
   {
@@ -59244,7 +59244,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4060
   },
   {
@@ -59268,7 +59268,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4062
   },
   {
@@ -59316,7 +59316,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4066
   },
   {
@@ -59376,7 +59376,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4071
   },
   {
@@ -59520,7 +59520,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4083
   },
   {
@@ -59568,7 +59568,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4087
   },
   {
@@ -59616,7 +59616,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4091
   },
   {
@@ -59676,7 +59676,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4096
   },
   {
@@ -59700,7 +59700,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4098
   },
   {
@@ -59748,7 +59748,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4102
   },
   {
@@ -59784,7 +59784,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4105
   },
   {
@@ -59796,7 +59796,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4106
   },
   {
@@ -59832,7 +59832,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4109
   },
   {
@@ -59904,7 +59904,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4115
   },
   {
@@ -59916,7 +59916,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4116
   },
   {
@@ -59928,7 +59928,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4117
   },
   {
@@ -60024,7 +60024,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4125
   },
   {
@@ -60096,7 +60096,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4131
   },
   {
@@ -60288,7 +60288,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4147
   },
   {
@@ -60588,7 +60588,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4172
   },
   {
@@ -60600,7 +60600,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4173
   },
   {
@@ -60780,7 +60780,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4188
   },
   {
@@ -61032,7 +61032,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4209
   },
   {
@@ -61092,7 +61092,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4214
   },
   {
@@ -61116,7 +61116,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4216
   },
   {
@@ -61164,7 +61164,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4220
   },
   {
@@ -61272,7 +61272,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4229
   },
   {
@@ -61368,7 +61368,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4237
   },
   {
@@ -61380,7 +61380,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4238
   },
   {
@@ -61392,7 +61392,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4239
   },
   {
@@ -61500,7 +61500,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4248
   },
   {
@@ -61560,7 +61560,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4253
   },
   {
@@ -61572,7 +61572,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4254
   },
   {
@@ -61632,7 +61632,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4259
   },
   {
@@ -61824,7 +61824,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4275
   },
   {
@@ -62016,7 +62016,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4291
   },
   {
@@ -62028,7 +62028,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4292
   },
   {
@@ -62148,7 +62148,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4302
   },
   {
@@ -62172,7 +62172,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4304
   },
   {
@@ -62376,7 +62376,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4321
   },
   {
@@ -62400,7 +62400,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4323
   },
   {
@@ -62700,7 +62700,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4348
   },
   {
@@ -62724,7 +62724,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4350
   },
   {
@@ -62736,7 +62736,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4351
   },
   {
@@ -62868,7 +62868,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4362
   },
   {
@@ -62892,7 +62892,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4364
   },
   {
@@ -62976,7 +62976,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4371
   },
   {
@@ -62988,7 +62988,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4372
   },
   {
@@ -63192,7 +63192,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4389
   },
   {
@@ -63276,7 +63276,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4396
   },
   {
@@ -63324,7 +63324,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4400
   },
   {
@@ -63336,7 +63336,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4401
   },
   {
@@ -63408,7 +63408,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4407
   },
   {
@@ -63432,7 +63432,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4409
   },
   {
@@ -63528,7 +63528,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4417
   },
   {
@@ -63612,7 +63612,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4424
   },
   {
@@ -63636,7 +63636,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4426
   },
   {
@@ -64428,7 +64428,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4492
   },
   {
@@ -64584,7 +64584,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4505
   },
   {
@@ -64620,7 +64620,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4508
   },
   {
@@ -64632,7 +64632,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4509
   },
   {
@@ -64824,7 +64824,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4525
   },
   {
@@ -64896,7 +64896,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4531
   },
   {
@@ -64956,7 +64956,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 6,
-    "added": false,
+    "added": true,
     "index": 4536
   },
   {
@@ -64980,7 +64980,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 15,
-    "added": false,
+    "added": true,
     "index": 4538
   },
   {
@@ -65004,7 +65004,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 12,
-    "added": false,
+    "added": true,
     "index": 4540
   },
   {
@@ -65112,7 +65112,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4549
   },
   {
@@ -65124,7 +65124,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4550
   },
   {
@@ -65136,7 +65136,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4551
   },
   {
@@ -65292,7 +65292,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4564
   },
   {
@@ -65352,7 +65352,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4569
   },
   {
@@ -65448,7 +65448,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4577
   },
   {
@@ -65496,7 +65496,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4581
   },
   {
@@ -65592,7 +65592,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4589
   },
   {
@@ -66060,7 +66060,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4628
   },
   {
@@ -66072,7 +66072,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4629
   },
   {
@@ -66084,7 +66084,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4630
   },
   {
@@ -66120,7 +66120,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4633
   },
   {
@@ -66444,7 +66444,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4660
   },
   {
@@ -66468,7 +66468,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4662
   },
   {
@@ -66552,7 +66552,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4669
   },
   {
@@ -66672,7 +66672,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4679
   },
   {
@@ -66960,7 +66960,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4703
   },
   {
@@ -66972,7 +66972,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4704
   },
   {
@@ -67020,7 +67020,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4708
   },
   {
@@ -67044,7 +67044,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4710
   },
   {
@@ -67056,7 +67056,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4711
   },
   {
@@ -67068,7 +67068,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4712
   },
   {
@@ -67104,7 +67104,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4715
   },
   {
@@ -67176,7 +67176,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4721
   },
   {
@@ -67380,7 +67380,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4738
   },
   {
@@ -67572,7 +67572,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4754
   },
   {
@@ -67656,7 +67656,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4761
   },
   {
@@ -67668,7 +67668,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4762
   },
   {
@@ -67812,7 +67812,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4774
   },
   {
@@ -67836,7 +67836,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 4776
   },
   {
@@ -67860,7 +67860,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4778
   },
   {
@@ -68100,7 +68100,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4798
   },
   {
@@ -68148,7 +68148,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4802
   },
   {
@@ -68268,7 +68268,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4812
   },
   {
@@ -68400,7 +68400,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4823
   },
   {
@@ -68556,7 +68556,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4836
   },
   {
@@ -68592,7 +68592,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4839
   },
   {
@@ -68676,7 +68676,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4846
   },
   {
@@ -69048,7 +69048,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4877
   },
   {
@@ -69480,7 +69480,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 4913
   },
   {
@@ -69864,7 +69864,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4945
   },
   {
@@ -70020,7 +70020,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4958
   },
   {
@@ -70488,7 +70488,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 4997
   },
   {
@@ -70524,7 +70524,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5000
   },
   {
@@ -70608,7 +70608,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5007
   },
   {
@@ -70788,7 +70788,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5022
   },
   {
@@ -70812,7 +70812,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5024
   },
   {
@@ -70860,7 +70860,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5028
   },
   {
@@ -70992,7 +70992,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5039
   },
   {
@@ -71040,7 +71040,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5043
   },
   {
@@ -71052,7 +71052,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5044
   },
   {
@@ -71076,7 +71076,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5046
   },
   {
@@ -71112,7 +71112,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5049
   },
   {
@@ -71148,7 +71148,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5052
   },
   {
@@ -71208,7 +71208,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5057
   },
   {
@@ -71340,7 +71340,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5068
   },
   {
@@ -71388,7 +71388,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5072
   },
   {
@@ -71400,7 +71400,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5073
   },
   {
@@ -71412,7 +71412,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5074
   },
   {
@@ -71436,7 +71436,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5076
   },
   {
@@ -71460,7 +71460,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5078
   },
   {
@@ -71532,7 +71532,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5084
   },
   {
@@ -71592,7 +71592,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5089
   },
   {
@@ -71604,7 +71604,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5090
   },
   {
@@ -71616,7 +71616,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5091
   },
   {
@@ -71640,7 +71640,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 5093
   },
   {
@@ -71760,7 +71760,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5103
   },
   {
@@ -71808,7 +71808,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5107
   },
   {
@@ -71880,7 +71880,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5113
   },
   {
@@ -72084,7 +72084,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5130
   },
   {
@@ -72120,7 +72120,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5133
   },
   {
@@ -72192,7 +72192,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5139
   },
   {
@@ -72240,7 +72240,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5143
   },
   {
@@ -72252,7 +72252,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5144
   },
   {
@@ -72348,7 +72348,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5152
   },
   {
@@ -72384,7 +72384,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5155
   },
   {
@@ -72396,7 +72396,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5156
   },
   {
@@ -72444,7 +72444,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5160
   },
   {
@@ -72480,7 +72480,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5163
   },
   {
@@ -72492,7 +72492,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5164
   },
   {
@@ -72504,7 +72504,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5165
   },
   {
@@ -72552,7 +72552,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5169
   },
   {
@@ -72672,7 +72672,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5179
   },
   {
@@ -72696,7 +72696,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5181
   },
   {
@@ -72768,7 +72768,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5187
   },
   {
@@ -72816,7 +72816,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5191
   },
   {
@@ -72948,7 +72948,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5202
   },
   {
@@ -72972,7 +72972,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5204
   },
   {
@@ -72996,7 +72996,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5206
   },
   {
@@ -73008,7 +73008,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5207
   },
   {
@@ -73056,7 +73056,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5211
   },
   {
@@ -73080,7 +73080,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5213
   },
   {
@@ -73188,7 +73188,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5222
   },
   {
@@ -73224,7 +73224,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5225
   },
   {
@@ -73368,7 +73368,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5237
   },
   {
@@ -73380,7 +73380,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5238
   },
   {
@@ -73452,7 +73452,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5244
   },
   {
@@ -73500,7 +73500,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5248
   },
   {
@@ -73692,7 +73692,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 3,
-    "added": false,
+    "added": true,
     "index": 5264
   },
   {
@@ -73812,7 +73812,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5274
   },
   {
@@ -74004,7 +74004,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5290
   },
   {
@@ -74160,7 +74160,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5303
   },
   {
@@ -74196,7 +74196,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5306
   },
   {
@@ -74292,7 +74292,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5314
   },
   {
@@ -74340,7 +74340,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5318
   },
   {
@@ -74412,7 +74412,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5324
   },
   {
@@ -74448,7 +74448,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5327
   },
   {
@@ -74544,7 +74544,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5335
   },
   {
@@ -74640,7 +74640,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5343
   },
   {
@@ -74772,7 +74772,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5354
   },
   {
@@ -74820,7 +74820,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5358
   },
   {
@@ -74832,7 +74832,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5359
   },
   {
@@ -75012,7 +75012,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 5374
   },
   {
@@ -75252,7 +75252,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5394
   },
   {
@@ -75264,7 +75264,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5395
   },
   {
@@ -75288,7 +75288,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5397
   },
   {
@@ -75312,7 +75312,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5399
   },
   {
@@ -75324,7 +75324,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5400
   },
   {
@@ -75336,7 +75336,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5401
   },
   {
@@ -75360,7 +75360,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5403
   },
   {
@@ -75372,7 +75372,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5404
   },
   {
@@ -75492,7 +75492,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5414
   },
   {
@@ -75528,7 +75528,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5417
   },
   {
@@ -75684,7 +75684,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5430
   },
   {
@@ -75732,7 +75732,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5434
   },
   {
@@ -75756,7 +75756,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5436
   },
   {
@@ -76824,7 +76824,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5525
   },
   {
@@ -77292,7 +77292,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5564
   },
   {
@@ -77436,7 +77436,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5576
   },
   {
@@ -77472,7 +77472,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5579
   },
   {
@@ -77532,7 +77532,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5584
   },
   {
@@ -77544,7 +77544,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5585
   },
   {
@@ -77568,7 +77568,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5587
   },
   {
@@ -77580,7 +77580,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5588
   },
   {
@@ -77616,7 +77616,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5591
   },
   {
@@ -77712,7 +77712,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5599
   },
   {
@@ -77784,7 +77784,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5605
   },
   {
@@ -77820,7 +77820,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5608
   },
   {
@@ -77868,7 +77868,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5612
   },
   {
@@ -77916,7 +77916,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5616
   },
   {
@@ -78084,7 +78084,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5630
   },
   {
@@ -78132,7 +78132,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5634
   },
   {
@@ -78168,7 +78168,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5637
   },
   {
@@ -78192,7 +78192,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5639
   },
   {
@@ -78216,7 +78216,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5641
   },
   {
@@ -78324,7 +78324,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5650
   },
   {
@@ -78444,7 +78444,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5660
   },
   {
@@ -78504,7 +78504,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5665
   },
   {
@@ -78576,7 +78576,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5671
   },
   {
@@ -78708,7 +78708,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5682
   },
   {
@@ -78816,7 +78816,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5691
   },
   {
@@ -78864,7 +78864,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5695
   },
   {
@@ -78996,7 +78996,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5706
   },
   {
@@ -79008,7 +79008,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5707
   },
   {
@@ -79092,7 +79092,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5714
   },
   {
@@ -79140,7 +79140,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5718
   },
   {
@@ -79164,7 +79164,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5720
   },
   {
@@ -79212,7 +79212,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5724
   },
   {
@@ -79260,7 +79260,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5728
   },
   {
@@ -79452,7 +79452,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5744
   },
   {
@@ -79608,7 +79608,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5757
   },
   {
@@ -80028,7 +80028,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5792
   },
   {
@@ -80856,7 +80856,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5861
   },
   {
@@ -80988,7 +80988,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5872
   },
   {
@@ -81120,7 +81120,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5883
   },
   {
@@ -81432,7 +81432,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5909
   },
   {
@@ -81696,7 +81696,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5931
   },
   {
@@ -81804,7 +81804,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5940
   },
   {
@@ -82224,7 +82224,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5975
   },
   {
@@ -82260,7 +82260,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 5978
   },
   {
@@ -82728,7 +82728,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6017
   },
   {
@@ -82812,7 +82812,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6024
   },
   {
@@ -83088,7 +83088,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6047
   },
   {
@@ -83148,7 +83148,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6052
   },
   {
@@ -83160,7 +83160,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6053
   },
   {
@@ -83424,7 +83424,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6075
   },
   {
@@ -83472,7 +83472,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6079
   },
   {
@@ -83928,7 +83928,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6117
   },
   {
@@ -83976,7 +83976,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6121
   },
   {
@@ -84048,7 +84048,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6127
   },
   {
@@ -84180,7 +84180,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6138
   },
   {
@@ -84984,7 +84984,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6205
   },
   {
@@ -85068,7 +85068,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6212
   },
   {
@@ -85104,7 +85104,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6215
   },
   {
@@ -85620,7 +85620,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6258
   },
   {
@@ -87108,7 +87108,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 6382
   },
   {
@@ -87144,7 +87144,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6385
   },
   {
@@ -87216,7 +87216,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 6391
   },
   {
@@ -87252,7 +87252,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 6394
   },
   {
@@ -87336,7 +87336,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6401
   },
   {
@@ -87588,7 +87588,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6422
   },
   {
@@ -87720,7 +87720,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6433
   },
   {
@@ -87768,7 +87768,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6437
   },
   {
@@ -87780,7 +87780,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6438
   },
   {
@@ -87972,7 +87972,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6454
   },
   {
@@ -88008,7 +88008,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6457
   },
   {
@@ -88224,7 +88224,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 6475
   },
   {
@@ -88788,7 +88788,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6522
   },
   {
@@ -92940,7 +92940,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6868
   },
   {
@@ -93324,7 +93324,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 4,
-    "added": false,
+    "added": true,
     "index": 6900
   },
   {
@@ -93396,7 +93396,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 2,
-    "added": false,
+    "added": true,
     "index": 6906
   },
   {
@@ -93504,7 +93504,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6915
   },
   {
@@ -93516,7 +93516,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 1,
-    "added": false,
+    "added": true,
     "index": 6916
   },
   {
@@ -93792,7 +93792,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 0,
-    "added": false,
+    "added": true,
     "index": 6939
   },
   {
@@ -93852,7 +93852,7 @@
     "palabras_clave": [],
     "origen": "Pintamania",
     "votos": 2,
-    "added": false,
+    "added": true,
     "index": 6944
   },
   {
