@@ -28,34 +28,37 @@ async function generateShortHeadline(
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const prompt = `Eres un experto en crear titulares impactantes para prensa del corazón española.
+    const prompt = `Crea un titular corto con CURIOSITY GAP para superponer sobre una foto en un video.
 
-Título original: ${title}
+Noticia: ${title}
 Resumen: ${summary}
 
-TAREA:
-Crea un titular CORTO y LLAMATIVO en UNA SOLA LÍNEA.
+FORMATO: Dos partes separadas por "—" (guión largo). La primera engancha, la segunda deja en suspenso.
 
 REQUISITOS ESTRICTOS:
 - UNA SOLA LÍNEA, sin saltos de línea
+- Longitud MÍNIMA: 40 caracteres
 - Longitud MÁXIMA: 80 caracteres (cuenta los espacios)
-- Estilo sensacionalista de prensa del corazón
-- En MAYÚSCULAS las palabras clave
+- Incluir un NÚMERO concreto (edad, años, cantidad)
+- NO poner el nombre del famoso (ya aparece en la foto)
 - En ESPAÑOL
+- SIN emojis, SIN hashtags, SIN comillas
 
 EJEMPLOS del estilo deseado:
-- "¡BOMBAZO en la Casa Real! Romance secreto confirmado"
-- "¡ESCÁNDALO! La presentadora abandona el programa en directo"
-- "¡REVELACIÓN! El secreto que destruyó la familia real"
+- "Dejó todo a los 48 — y nadie entendió por qué"
+- "Lo amó 40 años — él nunca lo supo"
+- "Tenía 11 años — tuvo que dar la cara solo"
+- "La operaron 3 veces — y siguió en el escenario"
+- "Se casaron a los 19 — duró solo una semana"
 
-Devuelve SOLO el titular en una línea, sin comillas ni explicaciones.`;
+Devuelve SOLO el titular en una línea.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-5",
       messages: [
         {
           role: "system",
-          content: "Eres un redactor experto de prensa del corazón española, especializado en titulares cortos y llamativos.",
+          content: "Eres un experto en curiosity gap y titulares virales para videos cortos de famosos españoles. Nunca revelas el nombre — solo la intriga.",
         },
         {
           role: "user",
