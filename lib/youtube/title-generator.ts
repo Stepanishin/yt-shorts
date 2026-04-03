@@ -132,38 +132,39 @@ export async function generateNewsShortsTitle(newsTitle: string, newsSummary: st
   const currentYear = new Date().getFullYear();
 
   try {
-    const prompt = `Crea un título para YouTube Shorts con esta noticia de famosos españoles.
+    const prompt = `Crea un título para YouTube Shorts con esta noticia de prensa del corazón española.
 
 Título original: ${newsTitle}
 Resumen: ${newsSummary}
 
-FORMATO: Curiosity gap — dos partes separadas por guión largo (--). La primera parte engancha, la segunda sorprende. El nombre del famoso va SOLO como hashtag al final, NO en el texto del título.
+FORMATO OBLIGATORIO:
+[emoji][Nombre Apellido] ([edad]) [EVENTO EN MAYÚSCULAS] (${currentYear}) #UltimaHora #España
 
 REQUISITOS:
-- Máximo 90 caracteres en total (incluyendo hashtags)
-- Primera parte: dato concreto con número (edad, años, cantidad)
-- Guión largo "--" como separador
-- Segunda parte: giro emocional o trágico que sorprenda
-- Al final: #NombreApellido #amor o #destino o #familia o #España
-- SIN emojis al principio
-- En ESPAÑOL
-- El nombre del famoso NO aparece en el texto, solo en el hashtag
+- Empezar con emoji dramático: 😱💔🔥😢⚠️❌💥
+- Nombre completo del famoso/a
+- Edad entre paréntesis si se conoce o se puede deducir razonablemente
+- Evento principal en MAYÚSCULAS (máximo 5-6 palabras): elegir el hecho MÁS impactante y concreto
+- Año actual (${currentYear})
+- Terminar con #UltimaHora #España
+- Máximo 100 caracteres en total
 
-EJEMPLOS EXACTOS:
-- "Dejó la tele a los 48 -- nadie supo la verdadera razón #SonsolesÓnega #destino"
-- "Lo amó 40 años -- él se fue y ella nunca volvió a cantar #IsabelPantoja #amor"
-- "Murió a los 36 -- ella lo esperó cuarenta años sin olvidarlo #Paquirri #amor"
-- "Tenía 11 años -- su madre no estaba y él dio la cara solo #JacquesDeMónaco #familia"
-- "Dejó Hollywood por él -- él se fue y ella enterró a su hija a los 17 #SilviaPinal #destino"
+EJEMPLOS EXACTOS del formato:
+- 😱Carmen Lomana (77) ICTUS GRAVE EN SU MANSIÓN (${currentYear}) #UltimaHora #España
+- 💔Ana Obregón (69) RUPTURA TOTAL CON SU FAMILIA (${currentYear}) #UltimaHora #España
+- 🔥Tamara Falcó (42) ABANDONA EL PROGRAMA EN DIRECTO (${currentYear}) #UltimaHora #España
+- 😢Isabel Pantoja (68) INGRESADA DE URGENCIA (${currentYear}) #UltimaHora #España
 
-Devuelve SOLO el título, sin explicaciones.`;
+Si no conoces la edad exacta, usa una edad aproximada razonable para el famoso.
+
+Devuelve SOLO el título en el formato exacto, sin explicaciones.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-5",
       messages: [
         {
           role: "system",
-          content: "Eres un experto en crear títulos virales con curiosity gap para YouTube Shorts de famosos españoles. Dominas la técnica de ocultar el nombre en el hashtag y crear intriga con números y giros emocionales.",
+          content: "Eres un experto en crear títulos virales para YouTube Shorts de noticias de famosos y prensa del corazón española. Conoces las edades aproximadas de los famosos españoles. Sigues el formato exacto que te piden.",
         },
         {
           role: "user",
@@ -183,7 +184,7 @@ Devuelve SOLO el título, sin explicaciones.`;
   } catch (error) {
     console.error("Failed to generate news title:", error);
     // Fallback с formato básico
-    return `${newsTitle.substring(0, 70)} #España #destino`;
+    return `😱${newsTitle.substring(0, 50)} (${currentYear}) #UltimaHora #España`;
   }
 }
 
