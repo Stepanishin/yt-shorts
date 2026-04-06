@@ -156,6 +156,39 @@ export async function uploadVideoToYouTube(options: UploadVideoOptions) {
 }
 
 /**
+ * Set a custom thumbnail for a YouTube video.
+ * Requires the video to be already uploaded.
+ * Note: channel must be verified to use custom thumbnails.
+ */
+export async function setVideoThumbnail(
+  oauth2Client: OAuth2Client,
+  videoId: string,
+  thumbnailPath: string
+): Promise<boolean> {
+  const fs = require("fs");
+
+  try {
+    console.log(`🖼️ Setting thumbnail for video ${videoId}...`);
+
+    await youtube.thumbnails.set({
+      auth: oauth2Client,
+      videoId,
+      media: {
+        mimeType: "image/jpeg",
+        body: fs.createReadStream(thumbnailPath),
+      },
+    });
+
+    console.log(`✅ Thumbnail set for video ${videoId}`);
+    return true;
+  } catch (error) {
+    console.error("Failed to set thumbnail:", (error as Error).message);
+    // Don't throw — thumbnail is optional, video is already uploaded
+    return false;
+  }
+}
+
+/**
  * Проверяет валидность токенов
  */
 export async function validateTokens(oauth2Client: OAuth2Client): Promise<boolean> {

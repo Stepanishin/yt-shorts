@@ -34,6 +34,7 @@ export interface ScheduledVideo {
   memeId?: string; // ID мема, если видео создано из Reddit мема
   language?: "es" | "de" | "pt" | "fr";
   youtubeChannelId?: string; // Optional: specific YouTube channel ID (if user has multiple channels)
+  thumbnailUrl?: string; // Optional: custom thumbnail URL/path for longform videos
 }
 
 export interface User {

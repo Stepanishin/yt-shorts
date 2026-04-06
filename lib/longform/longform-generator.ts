@@ -222,6 +222,7 @@ export async function generateLongformVideo(
       privacyStatus: youtubePrivacyStatus,
       scheduledAt,
       youtubeChannelId,
+      thumbnailUrl: thumbnail.thumbnailUrl,
       language: "es",
     });
 

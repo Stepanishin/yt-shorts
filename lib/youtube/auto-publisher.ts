@@ -1,6 +1,6 @@
 import { getScheduledVideosForPublishing, updateScheduledVideoStatus } from "@/lib/db/users";
 import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
-import { uploadVideoToYouTube, createOAuth2Client, setEncryptedCredentials, refreshAccessToken } from "@/lib/youtube/youtube-client";
+import { uploadVideoToYouTube, createOAuth2Client, setEncryptedCredentials, refreshAccessToken, setVideoThumbnail } from "@/lib/youtube/youtube-client";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 import { markJokeCandidateAsPublishedDE } from "@/lib/ingest-de/storage";
 import { markJokeCandidateAsPublishedPT } from "@/lib/ingest-pt/storage";
@@ -160,6 +160,31 @@ export async function autoPublishScheduledVideos() {
         });
 
         console.log(`✅ Video uploaded: ${result.videoUrl}`);
+
+        // Set custom thumbnail if available (longform videos)
+        if (video.thumbnailUrl && result.videoId) {
+          try {
+            let thumbPath: string;
+            if (video.thumbnailUrl.startsWith("http")) {
+              // Download thumbnail from Spaces
+              const thumbResponse = await fetch(video.thumbnailUrl);
+              if (thumbResponse.ok) {
+                const tempDir = process.env.NODE_ENV === "production" ? "/tmp/videos" : path.join(process.cwd(), "public", "videos");
+                thumbPath = path.join(tempDir, `thumb_${video.id}.jpg`);
+                const thumbBuffer = await thumbResponse.arrayBuffer();
+                await fs.writeFile(thumbPath, Buffer.from(thumbBuffer));
+                await setVideoThumbnail(oauth2Client, result.videoId, thumbPath);
+                try { await fs.unlink(thumbPath); } catch {}
+              }
+            } else if (video.thumbnailUrl.startsWith("/")) {
+              // Local path
+              thumbPath = video.thumbnailUrl;
+              await setVideoThumbnail(oauth2Client, result.videoId, thumbPath);
+            }
+          } catch (thumbError) {
+            console.warn("Failed to set thumbnail:", (thumbError as Error).message);
+          }
+        }
 
         await updateScheduledVideoStatus(userId, video.id, "published", {
           publishedAt: new Date(),
