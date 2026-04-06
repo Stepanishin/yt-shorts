@@ -153,7 +153,8 @@ async function renderSceneClip(
   }
 
   // Scale up, crop from TOP (y=0) to keep faces, then apply Ken Burns
-  const cmd = `ffmpeg -y -loop 1 -i "${imagePath}" -vf "scale=${WIDTH * 2}:${HEIGHT * 2}:force_original_aspect_ratio=increase,crop=${WIDTH * 2}:${HEIGHT * 2}:0:0,${zoompanFilter}" -t ${duration} -c:v libx264 -preset fast -pix_fmt yuv420p -an "${outputPath}"`;
+  // Use ultrafast preset and lower intermediate resolution to save memory on server
+  const cmd = `ffmpeg -y -loop 1 -i "${imagePath}" -vf "scale=${WIDTH * 2}:${HEIGHT * 2}:force_original_aspect_ratio=increase,crop=${WIDTH * 2}:${HEIGHT * 2}:0:0,${zoompanFilter}" -t ${duration} -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -an "${outputPath}"`;
 
   await execWithFFmpegEnv(cmd);
 }
@@ -170,7 +171,7 @@ async function concatenateSceneClips(
   fs.writeFileSync(listPath, listContent);
 
   await execWithFFmpegEnv(
-    `ffmpeg -y -f concat -safe 0 -i "${listPath}" -c:v libx264 -preset fast -pix_fmt yuv420p "${outputPath}"`
+    `ffmpeg -y -f concat -safe 0 -i "${listPath}" -c copy "${outputPath}"`
   );
 
   try { fs.unlinkSync(listPath); } catch {}
@@ -218,9 +219,9 @@ async function addSubtitlesAndAudio(options: {
 
   if (backgroundMusicPath && fs.existsSync(backgroundMusicPath)) {
     const musicVolume = backgroundMusicVolume.toFixed(2);
-    cmd = `ffmpeg -y -i "${videoPath}" -i "${ttsAudioPath}" -i "${backgroundMusicPath}" -filter_complex "[1:a]volume=1.0[tts];[2:a]volume=${musicVolume},aloop=loop=-1:size=2e+09[music];[tts][music]amix=inputs=2:duration=shortest[aout];[0:v]${subtitleFilter}[vout]" -map "[vout]" -map "[aout]" -c:v libx264 -preset fast -c:a aac -b:a 192k -shortest "${outputPath}"`;
+    cmd = `ffmpeg -y -i "${videoPath}" -i "${ttsAudioPath}" -i "${backgroundMusicPath}" -filter_complex "[1:a]volume=1.0[tts];[2:a]volume=${musicVolume},aloop=loop=-1:size=2e+09[music];[tts][music]amix=inputs=2:duration=shortest[aout];[0:v]${subtitleFilter}[vout]" -map "[vout]" -map "[aout]" -c:v libx264 -preset ultrafast -c:a aac -b:a 192k -shortest "${outputPath}"`;
   } else {
-    cmd = `ffmpeg -y -i "${videoPath}" -i "${ttsAudioPath}" -filter_complex "[0:v]${subtitleFilter}[vout]" -map "[vout]" -map 1:a -c:v libx264 -preset fast -c:a aac -b:a 192k -shortest "${outputPath}"`;
+    cmd = `ffmpeg -y -i "${videoPath}" -i "${ttsAudioPath}" -filter_complex "[0:v]${subtitleFilter}[vout]" -map "[vout]" -map 1:a -c:v libx264 -preset ultrafast -c:a aac -b:a 192k -shortest "${outputPath}"`;
   }
 
   await execWithFFmpegEnv(cmd);

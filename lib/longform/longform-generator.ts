@@ -101,14 +101,11 @@ export async function generateLongformVideo(
     console.log(`Subtitles: ${subtitles.length} segments\n`);
 
     // ==================== STEP 4: Find Images ====================
-    // Request 2-3 images per scene for more frequent photo changes (~10-15s each)
-    console.log(`[${jobId}] Step 4/9: Finding images (2-3 per scene)...`);
-    const expandedScenes = script.scenes.flatMap((s, i) => [
+    // Request 2 images per scene for ~15s each photo
+    console.log(`[${jobId}] Step 4/9: Finding images (2 per scene)...`);
+    const expandedScenes = script.scenes.flatMap((s) => [
       { sceneNumber: s.sceneNumber * 10, imageSearchQuery: s.imageSearchQuery },
-      { sceneNumber: s.sceneNumber * 10 + 1, imageSearchQuery: `${celebrityName} ${s.mood} ${s.imageSearchQuery.split(" ").slice(-2).join(" ")}` },
-      ...(ttsResult.sceneDurations[i].duration > 30
-        ? [{ sceneNumber: s.sceneNumber * 10 + 2, imageSearchQuery: `${celebrityName} foto retrato` }]
-        : []),
+      { sceneNumber: s.sceneNumber * 10 + 1, imageSearchQuery: `${celebrityName} ${s.imageSearchQuery.split(" ").slice(-2).join(" ")}` },
     ]);
     const images = await findImagesForScenes(expandedScenes, celebrityName);
     console.log();
@@ -135,16 +132,15 @@ export async function generateLongformVideo(
     // ==================== STEP 6: Render Video ====================
     console.log(`[${jobId}] Step 6/9: Rendering video...`);
 
-    // Split each scene into 2-3 sub-clips with different images
+    // Split each scene into 2 sub-clips with different images (~15s each)
     const renderScenes: { imagePath: string; duration: number; sceneNumber: number; kenBurnsEffect: "zoom-in" | "zoom-out" | "pan-left" | "pan-right" }[] = [];
     let imgIdx = 0;
 
     for (let i = 0; i < script.scenes.length; i++) {
       const sceneDuration = ttsResult.sceneDurations[i].duration;
-      const imagesForScene = ttsResult.sceneDurations[i].duration > 30 ? 3 : 2;
-      const subDuration = sceneDuration / imagesForScene;
+      const subDuration = sceneDuration / 2;
 
-      for (let j = 0; j < imagesForScene; j++) {
+      for (let j = 0; j < 2; j++) {
         const img = imagePaths[imgIdx] || imagePaths[Math.max(0, imgIdx - 1)] || imagePaths[0];
         renderScenes.push({
           imagePath: img,
