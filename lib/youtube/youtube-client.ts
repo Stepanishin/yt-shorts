@@ -100,7 +100,7 @@ export async function uploadVideoToYouTube(options: UploadVideoOptions) {
     title,
     description,
     tags = [],
-    categoryId = "24", // 24 = Entertainment
+    categoryId = "23", // 23 = Comedy
     privacyStatus = "public",
     channelId,
     language = "es", // Default to Spanish for backward compatibility
