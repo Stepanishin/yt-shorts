@@ -1,12 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { exec } from "child_process";
-import { promisify } from "util";
 import { uploadVideoToSpaces, isSpacesConfigured } from "@/lib/storage/spaces-client";
+import { execWithFFmpegEnv } from "@/lib/video/renderer-new";
 import { Subtitle } from "./subtitle-generator";
-
-const execAsync = promisify(exec);
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
@@ -99,7 +96,7 @@ export async function renderLongformVideo(
   });
 
   // Get final duration
-  const { stdout } = await execAsync(
+  const { stdout } = await execWithFFmpegEnv(
     `ffprobe -i "${finalPath}" -show_entries format=duration -v quiet -of csv="p=0"`
   );
   const duration = parseFloat(stdout.trim()) || 0;
@@ -158,7 +155,7 @@ async function renderSceneClip(
   // Scale up, crop from TOP (y=0) to keep faces, then apply Ken Burns
   const cmd = `ffmpeg -y -loop 1 -i "${imagePath}" -vf "scale=${WIDTH * 2}:${HEIGHT * 2}:force_original_aspect_ratio=increase,crop=${WIDTH * 2}:${HEIGHT * 2}:0:0,${zoompanFilter}" -t ${duration} -c:v libx264 -preset fast -pix_fmt yuv420p -an "${outputPath}"`;
 
-  await execAsync(cmd, { maxBuffer: 50 * 1024 * 1024 });
+  await execWithFFmpegEnv(cmd);
 }
 
 /**
@@ -172,9 +169,8 @@ async function concatenateSceneClips(
   const listContent = clipPaths.map((p) => `file '${p}'`).join("\n");
   fs.writeFileSync(listPath, listContent);
 
-  await execAsync(
-    `ffmpeg -y -f concat -safe 0 -i "${listPath}" -c:v libx264 -preset fast -pix_fmt yuv420p "${outputPath}"`,
-    { maxBuffer: 50 * 1024 * 1024 }
+  await execWithFFmpegEnv(
+    `ffmpeg -y -f concat -safe 0 -i "${listPath}" -c:v libx264 -preset fast -pix_fmt yuv420p "${outputPath}"`
   );
 
   try { fs.unlinkSync(listPath); } catch {}
@@ -227,7 +223,7 @@ async function addSubtitlesAndAudio(options: {
     cmd = `ffmpeg -y -i "${videoPath}" -i "${ttsAudioPath}" -filter_complex "[0:v]${subtitleFilter}[vout]" -map "[vout]" -map 1:a -c:v libx264 -preset fast -c:a aac -b:a 192k -shortest "${outputPath}"`;
   }
 
-  await execAsync(cmd, { maxBuffer: 100 * 1024 * 1024, timeout: 600000 });
+  await execWithFFmpegEnv(cmd);
 
   // Cleanup SRT
   try { fs.unlinkSync(srtPath); } catch {}

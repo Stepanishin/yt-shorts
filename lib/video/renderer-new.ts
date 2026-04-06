@@ -74,7 +74,7 @@ function escapeFilterPath(value: string): string {
  * Выполняет команду с правильными переменными окружения для FFmpeg
  * Устанавливает LD_LIBRARY_PATH для загрузки библиотек FFmpeg
  */
-async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; stderr: string }> {
+export async function execWithFFmpegEnv(command: string): Promise<{ stdout: string; stderr: string }> {
   // Пути к библиотекам FFmpeg в DigitalOcean APT buildpack
   // Добавляем все возможные пути, где могут быть библиотеки
   const basePaths = [

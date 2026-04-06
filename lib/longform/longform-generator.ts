@@ -264,9 +264,7 @@ async function downloadAndConcatMusic(
 ): Promise<string> {
   const pathMod = await import("path");
   const osMod = await import("os");
-  const { exec } = await import("child_process");
-  const { promisify } = await import("util");
-  const execAsync = promisify(exec);
+  const { execWithFFmpegEnv } = await import("@/lib/video/renderer-new");
 
   // Pick 2-3 random tracks
   const shuffled = [...urls].sort(() => Math.random() - 0.5);
@@ -303,7 +301,7 @@ async function downloadAndConcatMusic(
     const listContent = trackPaths.map((p) => `file '${p}'`).join("\n");
     fs.writeFileSync(listPath, listContent);
 
-    await execAsync(
+    await execWithFFmpegEnv(
       `ffmpeg -y -f concat -safe 0 -i "${listPath}" -c copy "${concatPath}"`
     );
 

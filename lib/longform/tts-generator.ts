@@ -143,27 +143,22 @@ export async function generateSceneTTS(
 }
 
 async function getAudioDuration(filePath: string): Promise<number> {
-  const { exec } = await import("child_process");
-  const { promisify } = await import("util");
-  const execAsync = promisify(exec);
+  const { execWithFFmpegEnv } = await import("@/lib/video/renderer-new");
 
-  const { stdout } = await execAsync(
+  const { stdout } = await execWithFFmpegEnv(
     `ffprobe -i "${filePath}" -show_entries format=duration -v quiet -of csv="p=0"`
   );
   return parseFloat(stdout.trim()) || 0;
 }
 
 async function concatenateAudioFiles(inputPaths: string[], outputPath: string): Promise<void> {
-  const { exec } = await import("child_process");
-  const { promisify } = await import("util");
-  const execAsync = promisify(exec);
+  const { execWithFFmpegEnv } = await import("@/lib/video/renderer-new");
 
-  // Create concat list file
   const listPath = outputPath + ".list.txt";
   const listContent = inputPaths.map((p) => `file '${p}'`).join("\n");
   fs.writeFileSync(listPath, listContent);
 
-  await execAsync(
+  await execWithFFmpegEnv(
     `ffmpeg -y -f concat -safe 0 -i "${listPath}" -c copy "${outputPath}"`
   );
 
