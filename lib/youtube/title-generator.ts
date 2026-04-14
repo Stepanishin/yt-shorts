@@ -281,6 +281,163 @@ ${newsSummary}
 }
 
 // ============================================
+// ENGLISH NEWS-SPECIFIC TITLE AND DESCRIPTION GENERATORS
+// ============================================
+
+/**
+ * Generate catchy YouTube Shorts title for English celebrity news
+ * Format: [emoji][Celebrity Name] (age) EVENT IN CAPS (year) #BreakingNews #Celebrity
+ */
+export async function generateNewsShortsTitle_EN(newsTitle: string, newsSummary: string): Promise<string> {
+  const currentYear = new Date().getFullYear();
+
+  try {
+    const prompt = `Create a title for a YouTube Shorts video about this English celebrity news story.
+
+Original title: ${newsTitle}
+Summary: ${newsSummary}
+
+REQUIRED FORMAT:
+[emoji][Celebrity Name] ([age]) [EVENT IN CAPS] (${currentYear}) #BreakingNews #Celebrity
+
+REQUIREMENTS:
+- Start with a dramatic emoji: 😱💔🔥😢⚠️❌💥
+- Full name of the celebrity
+- Age in parentheses if known or reasonably deducible
+- Main event in CAPS (max 5-6 words): choose the MOST shocking and concrete fact
+- Current year (${currentYear})
+- End with #BreakingNews #Celebrity
+- Max 100 characters total
+
+EXACT FORMAT EXAMPLES:
+- 😱Kim Kardashian (45) SHOCKING DIVORCE BOMBSHELL REVEALED (${currentYear}) #BreakingNews #Celebrity
+- 💔Taylor Swift (36) HEARTBREAKING SPLIT CONFIRMED (${currentYear}) #BreakingNews #Celebrity
+- 🔥Prince Harry (41) WALKS OUT OF ROYAL EVENT (${currentYear}) #BreakingNews #Celebrity
+- 😢Beyoncé (44) RUSHED TO HOSPITAL (${currentYear}) #BreakingNews #Celebrity
+
+If you don't know the exact age, use a reasonable approximate age for the celebrity.
+
+Return ONLY the title in the exact format, no explanations.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-5",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert at creating viral YouTube Shorts titles for English celebrity and tabloid news. You know the approximate ages of American and British celebrities. You follow the exact format requested.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    const title = response.choices[0]?.message?.content?.trim();
+
+    if (!title) {
+      throw new Error("No title generated");
+    }
+
+    return title;
+  } catch (error) {
+    console.error("Failed to generate EN news title:", error);
+    return `😱${newsTitle.substring(0, 50)} (${currentYear}) #BreakingNews #Celebrity`;
+  }
+}
+
+/**
+ * Generate optimized YouTube Shorts description for English celebrity news
+ * Style: very dramatic, detailed, sensationalist, with engagement hooks
+ */
+export async function generateNewsShortsDescription_EN(newsTitle: string, newsSummary: string): Promise<string> {
+  try {
+    const prompt = `Create a VERY DRAMATIC and DETAILED description for a YouTube Shorts video about this English celebrity news story.
+
+Title: ${newsTitle}
+Summary: ${newsSummary}
+
+STRICT REQUIREMENTS:
+- In English
+- Tabloid sensationalist style (TMZ, People, US Weekly, Daily Mail)
+- VERY dramatic, emotional, almost cinematic tone
+- MINIMUM 800 characters
+
+REQUIRED STRUCTURE:
+
+1. DRAMATIC HEADLINE IN CAPS (one or two lines):
+   [SENSATIONALIST HOOK based on the most shocking fact]!
+
+2. FIRST PARAGRAPH - Context with facts:
+   - Start with a concrete detail: date, place, or shocking fact
+   - SHORT sentences that hit hard. One idea per sentence.
+   - Specific details: full names, places, numbers, direct quotes
+   - 4-5 sentences minimum
+
+3. SECOND PARAGRAPH - Emotional depth:
+   - The irony of fate, the hidden tragedy, the weight of the story
+   - End with 1-2 rhetorical questions: "Do you think...?", "What would you do...?"
+   - 3-4 sentences minimum
+
+4. CALL TO ACTION:
+   Hit LIKE if [related action] and SUBSCRIBE for [related reason]!
+
+5. HASHTAGS (minimum 15):
+   - #FullName #LastNameOnly
+   - Hashtags for their profession/field (#Music, #Television, #Movies, etc.)
+   - #TopicOfTheNews (#Tragedy, #Health, #Breakup, #Scandal, etc.)
+   - #Celebrity #Entertainment #Viral #BreakingNews #Hollywood
+
+FULL EXAMPLE:
+TRAGEDY THAT SHOOK HOLLYWOOD TO ITS CORE!
+MOTHER AND SON GONE WITHIN 15 DAYS
+
+Hollywood froze when "The Queen of Pop" passed away. She seemed invincible. But nobody imagined the real tragedy had just begun. Her son was devastated. "She's waiting for me," he repeated with a vacant stare. He locked himself in the family home, consumed by unbearable grief.
+
+Only 14 days passed. They found him lifeless in the same house where his mother had just departed. Doctors said it was an accident, but Hollywood knows the truth: he died of a broken heart. Do you believe a mother's love is the strongest bond in the world?
+
+Hit LIKE if this story moved you and SUBSCRIBE so we never forget the legends!
+
+#Celebrity #Hollywood #Tragedy #Family #Love #Entertainment #BreakingNews #Viral #Emotional #Legacy #Memory #RIP #Drama #Heartbreaking #Legend
+
+Return ONLY the complete description following EXACTLY this format, no additional explanations.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-5",
+      messages: [
+        {
+          role: "system",
+          content: "You are the best entertainment journalist in Hollywood. Your style combines the sensationalist hook of TMZ with the cinematic narrative of a documentary: you start with impact, then unfold the story with concrete facts. You know all American and British celebrities.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    const description = response.choices[0]?.message?.content?.trim();
+
+    if (!description) {
+      throw new Error("No description generated");
+    }
+
+    return description;
+  } catch (error) {
+    console.error("Failed to generate EN news description:", error);
+    return `BREAKING NEWS: ${newsTitle}
+
+${newsSummary}
+
+What happens next? All eyes on this developing story.
+
+👇 SUPPORT: Drop a "❤️" to show your support.
+
+#Celebrity #Entertainment #BreakingNews #Hollywood #Viral #Exclusive #Drama #Emotional`;
+  }
+}
+
+// ============================================
 // PORTUGUESE NEWS-SPECIFIC TITLE AND DESCRIPTION GENERATORS
 // ============================================
 

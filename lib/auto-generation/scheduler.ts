@@ -4,6 +4,7 @@ import { getActiveAutoGenerationConfigsPT } from "@/lib/db/auto-generation-pt";
 import { getActiveAutoGenerationConfigsFR } from "@/lib/db/auto-generation-fr";
 import { getActiveNewsAutoGenerationConfigs } from "@/lib/db/auto-generation-news";
 import { getActiveNewsAutoGenerationConfigs as getActiveNewsAutoGenerationConfigsPT } from "@/lib/db/auto-generation-news-pt";
+import { getActiveNewsAutoGenerationConfigs as getActiveNewsAutoGenerationConfigsEN } from "@/lib/db/auto-generation-news-en";
 import { getActiveMemeAutoGenerationConfigs } from "@/lib/db/auto-generation-meme";
 import { getActiveCelebrityFactsAutoGenerationConfigs } from "@/lib/db/auto-generation-celebrity-facts";
 import { getScheduledVideos } from "@/lib/db/users";
@@ -14,10 +15,12 @@ import {
 import { generateAutoVideo, generateAutoVideoDE, generateAutoVideoPT, generateAutoVideoFR } from "./generator";
 import { generateNewsVideo } from "./news-generator";
 import { generateNewsVideo as generateNewsVideoPT } from "./news-generator-pt";
+import { generateNewsVideo as generateNewsVideoEN } from "./news-generator-en";
 import { generateAutoVideoMeme } from "./generator-meme";
 import { generateCelebrityFactsVideo } from "./celebrity-facts-generator";
 import { runNewsIngest } from "@/lib/ingest-news/run";
 import { runNewsIngestPT } from "@/lib/ingest-news/run-pt";
+import { runNewsIngestEN } from "@/lib/ingest-news/run-en";
 
 export interface AutoGenerationResult {
   generated: number;
@@ -50,12 +53,14 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
     const activeConfigsFR = await getActiveAutoGenerationConfigsFR();
     const activeNewsConfigs = await getActiveNewsAutoGenerationConfigs();
     const activeNewsConfigsPT = await getActiveNewsAutoGenerationConfigsPT();
+    const activeNewsConfigsEN = await getActiveNewsAutoGenerationConfigsEN();
     const activeMemeConfigs = await getActiveMemeAutoGenerationConfigs();
     const activeCelebrityFactsConfigs = await getActiveCelebrityFactsAutoGenerationConfigs();
 
     // Check if we should run news ingest (once per day at configured time)
     await checkAndRunNewsIngest(activeNewsConfigs);
     await checkAndRunNewsIngestPT(activeNewsConfigsPT);
+    await checkAndRunNewsIngestEN(activeNewsConfigsEN);
 
     // Combine configs with language and type marker
     const allConfigs = [
@@ -65,11 +70,12 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
       ...activeConfigsFR.map(config => ({ config, language: 'fr' as const, type: 'joke' as const })),
       ...activeNewsConfigs.map(config => ({ config, language: 'es' as const, type: 'news' as const })),
       ...activeNewsConfigsPT.map(config => ({ config, language: 'pt' as const, type: 'news' as const })),
+      ...activeNewsConfigsEN.map(config => ({ config, language: 'en' as const, type: 'news' as const })),
       ...activeMemeConfigs.map(config => ({ config, language: 'es' as const, type: 'meme' as const })),
       ...activeCelebrityFactsConfigs.map(config => ({ config, language: 'es' as const, type: 'celebrity-facts' as const })),
     ];
 
-    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES jokes, ${activeConfigsDE.length} DE jokes, ${activeConfigsPT.length} PT jokes, ${activeConfigsFR.length} FR jokes, ${activeNewsConfigs.length} ES news, ${activeNewsConfigsPT.length} PT news, ${activeMemeConfigs.length} memes, ${activeCelebrityFactsConfigs.length} celebrity facts)`);
+    console.log(`Found ${allConfigs.length} active configuration(s) (${activeConfigsES.length} ES jokes, ${activeConfigsDE.length} DE jokes, ${activeConfigsPT.length} PT jokes, ${activeConfigsFR.length} FR jokes, ${activeNewsConfigs.length} ES news, ${activeNewsConfigsPT.length} PT news, ${activeNewsConfigsEN.length} EN news, ${activeMemeConfigs.length} memes, ${activeCelebrityFactsConfigs.length} celebrity facts)`);
 
     if (allConfigs.length === 0) {
       console.log("No active configurations found");
@@ -160,6 +166,12 @@ export async function runAutoGeneration(): Promise<AutoGenerationResult> {
               );
             } else if (type === 'meme') {
               await generateAutoVideoMeme(
+                config.userId,
+                config._id!.toString(),
+                scheduledTime
+              );
+            } else if (type === 'news' && language === 'en') {
+              await generateNewsVideoEN(
                 config.userId,
                 config._id!.toString(),
                 scheduledTime
@@ -352,6 +364,56 @@ async function checkAndRunNewsIngestPT(newsConfigs: any[]): Promise<void> {
       console.log(`⏭️  PT Scheduled time is in the future (${Math.abs(timeDiffHours).toFixed(1)}h from now)`);
     } else {
       console.log(`⏭️  PT Scheduled time was ${timeDiffHours.toFixed(1)}h ago (outside 3h window)`);
+    }
+  }
+}
+
+/**
+ * Check if we should run English news ingest based on configured schedule
+ */
+async function checkAndRunNewsIngestEN(newsConfigs: any[]): Promise<void> {
+  if (newsConfigs.length === 0) {
+    return;
+  }
+
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+
+  console.log(`\n📰 Checking EN news ingest schedule (current time: ${currentHour}:${currentMinute.toString().padStart(2, '0')})`);
+
+  for (const config of newsConfigs) {
+    const schedule = config.newsIngestSchedule;
+
+    if (!schedule || !schedule.isEnabled) {
+      continue;
+    }
+
+    const scheduledHour = schedule.hour;
+    const scheduledMinute = schedule.minute;
+
+    console.log(`EN Config for user ${config.userId}: scheduled at ${scheduledHour}:${scheduledMinute.toString().padStart(2, '0')}`);
+
+    const scheduledTime = new Date(now);
+    scheduledTime.setHours(scheduledHour, scheduledMinute, 0, 0);
+
+    const timeDiffHours = (now.getTime() - scheduledTime.getTime()) / (1000 * 60 * 60);
+
+    if (timeDiffHours >= 0 && timeDiffHours < 3) {
+      console.log(`✅ Time to run EN news ingest! (scheduled ${scheduledHour}:${scheduledMinute.toString().padStart(2, '0')}, current ${currentHour}:${currentMinute.toString().padStart(2, '0')})`);
+
+      try {
+        const result = await runNewsIngestEN();
+        console.log(`📰 EN News ingest completed: ${result.totalInserted} new items inserted`);
+
+        return;
+      } catch (error) {
+        console.error("❌ EN News ingest failed:", error);
+      }
+    } else if (timeDiffHours < 0) {
+      console.log(`⏭️  EN Scheduled time is in the future (${Math.abs(timeDiffHours).toFixed(1)}h from now)`);
+    } else {
+      console.log(`⏭️  EN Scheduled time was ${timeDiffHours.toFixed(1)}h ago (outside 3h window)`);
     }
   }
 }

@@ -134,9 +134,38 @@ export interface NewsIngestConfigPT {
   googlenews: GoogleNewsPTIngestConfig;
 }
 
+export interface PageSixIngestConfig {
+  source: "pagesix";
+  enabled: boolean;
+  feedUrls: string[];
+  timeoutMs: number;
+  maxAgeDays: number;
+}
+
+export const DEFAULT_PAGESIX_CONFIG: PageSixIngestConfig = {
+  source: "pagesix",
+  enabled: true,
+  feedUrls: [
+    "https://pagesix.com/celebrity-news/feed/",
+    "https://pagesix.com/entertainment/feed/",
+    "https://pagesix.com/tv/feed/",
+    "https://pagesix.com/style/feed/",
+  ],
+  timeoutMs: 15000,
+  maxAgeDays: 3,
+};
+
+export interface NewsIngestConfigEN {
+  pagesix: PageSixIngestConfig;
+}
+
 export const DEFAULT_NEWS_INGEST_CONFIG: NewsIngestConfig = {
   diezminutos: DEFAULT_DIEZMINUTOS_CONFIG,
   hola: DEFAULT_HOLA_CONFIG,
+};
+
+export const DEFAULT_NEWS_INGEST_CONFIG_EN: NewsIngestConfigEN = {
+  pagesix: DEFAULT_PAGESIX_CONFIG,
 };
 
 export const DEFAULT_NEWS_INGEST_CONFIG_PT: NewsIngestConfigPT = {

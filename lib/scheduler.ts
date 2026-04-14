@@ -2,12 +2,14 @@ import { autoPublishScheduledVideos } from "./youtube/auto-publisher";
 import { runAutoGeneration } from "./auto-generation/scheduler";
 import { runNewsIngest } from "./ingest-news/run";
 import { runNewsIngestPT } from "./ingest-news/run-pt";
+import { runNewsIngestEN } from "./ingest-news/run-en";
 import { runRedditIngest } from "./ingest-reddit/run";
 
 const CHECK_INTERVAL = 10 * 60 * 1000; // 10 минут в миллисекундах
 const AUTO_GEN_CHECK_INTERVAL = 1 * 60 * 60 * 1000; // 1 часа в миллисекундах
 const NEWS_INGEST_INTERVAL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах (Spanish)
 const NEWS_INGEST_INTERVAL_PT = 2 * 60 * 60 * 1000; // 2 часа в миллисекундах (Portuguese)
+const NEWS_INGEST_INTERVAL_EN = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах (English)
 const REDDIT_INGEST_INTERVAL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах (Reddit Memes)
 let schedulerRunning = false;
 
@@ -132,6 +134,30 @@ export function startScheduler() {
       console.error("❌ Error in Portuguese news ingest:", error);
     }
   }, NEWS_INGEST_INTERVAL_PT);
+
+  // === English News Ingest Scheduler (каждые 3 часа) ===
+  console.log("📰 Starting News Ingest scheduler (English)...");
+  console.log(`   Will scrape English news every ${NEWS_INGEST_INTERVAL_EN / 1000 / 60 / 60} hours`);
+
+  // Первый запуск через 3 минуты после старта
+  setTimeout(() => {
+    console.log("📰 Running initial English news ingest...");
+    runNewsIngestEN().catch(error => {
+      console.error("Error in initial English news ingest:", error);
+    });
+  }, 3 * 60 * 1000);
+
+  // Затем каждые 3 часа
+  setInterval(async () => {
+    console.log(`\n📰 [${new Date().toISOString()}] Running English news ingest...`);
+
+    try {
+      const result = await runNewsIngestEN();
+      console.log(`✅ English news ingest completed: ${result.totalInserted} inserted, ${result.totalDeleted} deleted`);
+    } catch (error) {
+      console.error("❌ Error in English news ingest:", error);
+    }
+  }, NEWS_INGEST_INTERVAL_EN);
 
   // === Reddit Memes Ingest Scheduler (каждые 3 часа) ===
   console.log("🎭 Starting Reddit Memes Ingest scheduler...");

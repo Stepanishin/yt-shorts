@@ -72,6 +72,10 @@ export default function NewsCard({ news, basePath = "/dashboard/news" }: NewsCar
                     ? "Notícias ao Minuto"
                     : news.source === "googlenews"
                     ? "Google News PT"
+                    : news.source === "googlenews-en"
+                    ? "Google News EN"
+                    : news.source === "pagesix"
+                    ? "Page Six"
                     : news.source === "hola"
                     ? "Hola"
                     : "DiezMinutos"}
