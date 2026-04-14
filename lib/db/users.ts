@@ -32,7 +32,7 @@ export interface ScheduledVideo {
   jokeId?: string; // ID анекдота, если видео создано из анекдота
   newsId?: string; // ID новости, если видео создано из новости
   memeId?: string; // ID мема, если видео создано из Reddit мема
-  language?: "es" | "de" | "pt" | "fr";
+  language?: "es" | "de" | "pt" | "fr" | "en";
   youtubeChannelId?: string; // Optional: specific YouTube channel ID (if user has multiple channels)
   thumbnailUrl?: string; // Optional: custom thumbnail URL/path for longform videos
 }
