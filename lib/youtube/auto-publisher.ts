@@ -141,6 +141,9 @@ export async function autoPublishScheduledVideos() {
 
           const buffer = await response.arrayBuffer();
           await fs.writeFile(videoPath, Buffer.from(buffer));
+        } else if (video.videoUrl.startsWith("/var/") || video.videoUrl.startsWith("/tmp/") || path.isAbsolute(video.videoUrl)) {
+          // Absolute path (e.g. longform videos saved to /tmp/ or /var/folders/)
+          videoPath = video.videoUrl;
         } else {
           videoPath = path.join(process.cwd(), "public", video.videoUrl);
         }

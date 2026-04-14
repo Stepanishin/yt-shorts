@@ -75,8 +75,9 @@ export async function POST(request: NextRequest) {
       await fs.writeFile(videoPath, Buffer.from(buffer));
       
       console.log(`Video downloaded to: ${videoPath}`);
+    } else if (videoUrl.startsWith("/var/") || videoUrl.startsWith("/tmp/") || path.isAbsolute(videoUrl)) {
+      videoPath = videoUrl;
     } else {
-      // Это относительный путь - используем как есть
       videoPath = path.join(process.cwd(), "public", videoUrl);
     }
 

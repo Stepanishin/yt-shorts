@@ -152,6 +152,8 @@ export async function POST(
 
       const buffer = await response.arrayBuffer();
       await fs.writeFile(videoPath, Buffer.from(buffer));
+    } else if (video.videoUrl.startsWith("/var/") || video.videoUrl.startsWith("/tmp/") || path.isAbsolute(video.videoUrl)) {
+      videoPath = video.videoUrl;
     } else {
       videoPath = path.join(process.cwd(), "public", video.videoUrl);
     }
