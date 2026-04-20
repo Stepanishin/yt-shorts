@@ -3,14 +3,14 @@ import { NewsCandidate } from "../types";
 const DEFAULT_TIMEOUT_MS = 15000;
 const MAX_AGE_DAYS = 3;
 
-export interface Fetch24urOptions {
+export interface FetchGovoriseOptions {
   feedUrl?: string;
   feedUrls?: string[];
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
 }
 
-export interface Fetch24urSuccess {
+export interface FetchGovoriseSuccess {
   ok: true;
   news: NewsCandidate[];
   meta: {
@@ -21,7 +21,7 @@ export interface Fetch24urSuccess {
   };
 }
 
-export interface Fetch24urError {
+export interface FetchGovoriseError {
   ok: false;
   error: {
     message: string;
@@ -31,7 +31,7 @@ export interface Fetch24urError {
   };
 }
 
-export type Fetch24urResult = Fetch24urSuccess | Fetch24urError;
+export type FetchGovoriseResult = FetchGovoriseSuccess | FetchGovoriseError;
 
 async function fetchSingleFeed(
   feedUrl: string,
@@ -50,33 +50,36 @@ async function fetchSingleFeed(
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
       },
       signal: controller.signal,
-      cache: "no-store",
     });
 
+    clearTimeout(timeout);
+
     if (!response.ok) {
-      return { error: `RSS feed responded with status ${response.status}` };
+      return {
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      };
     }
 
     const xml = await response.text();
-    console.log(`24ur feed: XML length ${xml.length}`);
+    const news = parseRSSFeed(xml);
 
-    const allNews = parseRSSFeed(xml);
-    return { news: allNews, totalFound: allNews.length };
+    return { news, totalFound: news.length };
   } catch (error) {
-    const isAbort = error instanceof Error && error.name === "AbortError";
-    return {
-      error: isAbort
-        ? `Request timed out after ${timeoutMs}ms`
-        : "Failed to fetch feed",
-    };
-  } finally {
     clearTimeout(timeout);
+
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return { error: `Timeout after ${timeoutMs}ms` };
+    }
+
+    return {
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
-export async function fetch24urNews(
-  options: Fetch24urOptions = {}
-): Promise<Fetch24urResult> {
+export async function fetchGovoriseNews(
+  options: FetchGovoriseOptions = {}
+): Promise<FetchGovoriseResult> {
   const {
     feedUrl,
     feedUrls,
@@ -99,7 +102,7 @@ export async function fetch24urNews(
   const startedAt =
     typeof performance !== "undefined" ? performance.now() : Date.now();
 
-  console.log(`Fetching ${urls.length} 24ur RSS feeds...`);
+  console.log(`Fetching ${urls.length} Govori.se RSS feeds...`);
 
   const results = await Promise.all(
     urls.map((url) => fetchSingleFeed(url, timeoutMs, fetchImpl))
@@ -171,11 +174,11 @@ function parseRSSFeed(xml: string): NewsCandidate[] {
     const items = xml.match(itemRegex);
 
     if (!items) {
-      console.log("No items found in 24ur RSS feed");
+      console.log("No items found in Govori.se RSS feed");
       return [];
     }
 
-    console.log(`Found ${items.length} items in 24ur RSS feed`);
+    console.log(`Found ${items.length} items in Govori.se RSS feed`);
 
     for (const itemXml of items) {
       try {
@@ -184,46 +187,21 @@ function parseRSSFeed(xml: string): NewsCandidate[] {
           news.push(candidate);
         }
       } catch (error) {
-        console.error("Failed to parse 24ur RSS item:", error);
+        console.error("Failed to parse Govori.se RSS item:", error);
       }
     }
 
     console.log(`Parsed ${news.length} news items from ${items.length} RSS items`);
   } catch (error) {
-    console.error("Failed to parse 24ur RSS feed:", error);
+    console.error("Failed to parse Govori.se RSS feed:", error);
   }
 
   return news;
 }
 
-// Only keep articles about celebrities, entertainment, politics, and sports stars
-const RELEVANT_URL_PATTERNS = [
-  "/popin/",           // POP IN — all celebrity/entertainment content (domaca-scena, tuja-scena, film_tv, glasba)
-  "/tv-oddaje/",       // TV shows with Slovenian celebrities
-];
-
-const RELEVANT_CATEGORIES = [
-  "domača scena",
-  "tuja scena",
-  "film/tv",
-  "glasba",
-  "tv oddaje",
-];
-
-function isRelevantArticle(link: string, category: string): boolean {
-  const lowerLink = link.toLowerCase();
-  const lowerCategory = category.toLowerCase();
-
-  if (RELEVANT_URL_PATTERNS.some(pattern => lowerLink.includes(pattern))) {
-    return true;
-  }
-
-  if (RELEVANT_CATEGORIES.some(cat => lowerCategory.includes(cat))) {
-    return true;
-  }
-
-  return false;
-}
+// Govori.se is entirely celebrity/gossip content — no URL filtering needed.
+// Only skip "zanimivosti" (random trivia) and "novice" (general news) categories.
+const SKIP_CATEGORIES = ["zanimivosti", "novice"];
 
 function parseRSSItem(itemXml: string): NewsCandidate | null {
   try {
@@ -238,16 +216,21 @@ function parseRSSItem(itemXml: string): NewsCandidate | null {
       return null;
     }
 
-    const category = extractTag(itemXml, "category") || "Novice";
+    const categories = extractAllCategories(itemXml);
+    const primaryCategory = categories[0] || "Trači";
 
-    if (!isRelevantArticle(link, category)) {
+    const hasOnlySkipCategories = categories.length > 0 &&
+      categories.every(cat => SKIP_CATEGORIES.includes(cat.toLowerCase()));
+
+    if (hasOnlySkipCategories) {
       return null;
     }
 
-    let imageUrl = extractMediaImage(itemXml);
+    // Govori.se uses <enclosure> for images
+    let imageUrl = extractEnclosureImage(itemXml);
 
     if (!imageUrl || imageUrl.includes(".mp4") || imageUrl.includes(".webm")) {
-      imageUrl = extractEnclosureImage(itemXml) || imageUrl;
+      imageUrl = extractMediaImage(itemXml) || imageUrl;
     }
 
     if (!imageUrl || imageUrl.includes(".mp4") || imageUrl.includes(".webm")) {
@@ -276,24 +259,25 @@ function parseRSSItem(itemXml: string): NewsCandidate | null {
     const slug = link.split("/").filter(Boolean).pop() || "";
 
     const candidate: NewsCandidate = {
-      source: "24ur",
+      source: "govorise",
       title: cleanText(title),
       summary: cleanText(description) || cleanText(title),
       imageUrl,
       url: link,
       externalId: guid || link,
       slug,
-      category,
+      category: primaryCategory,
       publishedDate,
       language: "sl",
       meta: {
-        rawCategory: category,
+        rawCategory: primaryCategory,
+        allCategories: categories,
       },
     };
 
     return candidate;
   } catch (error) {
-    console.error("Failed to parse 24ur RSS item:", error);
+    console.error("Failed to parse Govori.se RSS item:", error);
     return null;
   }
 }
@@ -321,6 +305,16 @@ function extractTag(xml: string, tagName: string): string {
   const regex = new RegExp(`<${tagName}[^>]*>([^<]*)<\\/${tagName}>`, "i");
   const match = xml.match(regex);
   return match ? match[1].trim() : "";
+}
+
+function extractAllCategories(xml: string): string[] {
+  const regex = /<category[^>]*>([^<]*)<\/category>/gi;
+  const categories: string[] = [];
+  let match;
+  while ((match = regex.exec(xml)) !== null) {
+    categories.push(match[1].trim());
+  }
+  return categories;
 }
 
 function extractMediaImage(xml: string): string | null {

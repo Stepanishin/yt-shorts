@@ -1,5 +1,6 @@
 import { fetch24urNews } from "./scrapers/24ur";
 import { fetchRtvsloNews } from "./scrapers/rtvslo";
+import { fetchGovoriseNews } from "./scrapers/govorise";
 import {
   insertNewsCandidatesSL,
   deleteOldPendingNewsSL,
@@ -11,6 +12,7 @@ export interface RunNewsIngestOptionsSL {
   sources?: {
     "24ur"?: boolean;
     rtvslo?: boolean;
+    govorise?: boolean;
   };
 }
 
@@ -153,6 +155,62 @@ export async function runNewsIngestSL(
     } catch (error) {
       console.error("RTVSLO ingest failed:", error);
       result.sources.rtvslo = {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+      result.success = false;
+    }
+  }
+
+  // Fetch from Govori.se (celebrity gossip)
+  if (options.sources?.govorise !== false && DEFAULT_NEWS_INGEST_CONFIG_SL.govorise.enabled) {
+    try {
+      const config = DEFAULT_NEWS_INGEST_CONFIG_SL.govorise;
+
+      console.log("Fetching news from Govori.se...");
+
+      const fetchResult = await fetchGovoriseNews({
+        feedUrls: config.feedUrls,
+        timeoutMs: config.timeoutMs,
+      });
+
+      if (fetchResult.ok) {
+        const news = fetchResult.news;
+        console.log(
+          `Fetched ${news.length} news items from Govori.se (${fetchResult.meta.totalFound} total)`
+        );
+
+        const insertResult = await insertNewsCandidatesSL(news);
+
+        await updateSourceStateSL(
+          "govorise",
+          "general",
+          1,
+          insertResult.inserted
+        );
+
+        result.totalFetched += news.length;
+        result.totalInserted += insertResult.inserted;
+        result.sources.govorise = {
+          success: true,
+          fetched: news.length,
+          inserted: insertResult.inserted,
+        };
+
+        console.log(
+          `Inserted ${insertResult.inserted} new news items from Govori.se`
+        );
+      } else {
+        console.error("Govori.se fetch failed:", fetchResult.error);
+        result.sources.govorise = {
+          success: false,
+          error: fetchResult.error.message,
+        };
+        result.success = false;
+      }
+    } catch (error) {
+      console.error("Govori.se ingest failed:", error);
+      result.sources.govorise = {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
       };

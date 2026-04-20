@@ -203,7 +203,7 @@ export interface RtvsloIngestConfig {
 
 export const DEFAULT_RTVSLO_CONFIG: RtvsloIngestConfig = {
   source: "rtvslo",
-  enabled: true,
+  enabled: false, // Disabled — RSS feeds return 500 errors
   feedUrls: [
     "https://www.rtvslo.si/feeds/00.xml",
     "https://www.rtvslo.si/feeds/02.xml",
@@ -212,12 +212,32 @@ export const DEFAULT_RTVSLO_CONFIG: RtvsloIngestConfig = {
   maxAgeDays: 3,
 };
 
+export interface GovoriSeIngestConfig {
+  source: "govorise";
+  enabled: boolean;
+  feedUrls: string[];
+  timeoutMs: number;
+  maxAgeDays: number;
+}
+
+export const DEFAULT_GOVORISE_CONFIG: GovoriSeIngestConfig = {
+  source: "govorise",
+  enabled: true,
+  feedUrls: [
+    "https://www.govori.se/rss",
+  ],
+  timeoutMs: 15000,
+  maxAgeDays: 3,
+};
+
 export interface NewsIngestConfigSL {
   "24ur": TwentyFourUrIngestConfig;
   rtvslo: RtvsloIngestConfig;
+  govorise: GovoriSeIngestConfig;
 }
 
 export const DEFAULT_NEWS_INGEST_CONFIG_SL: NewsIngestConfigSL = {
   "24ur": DEFAULT_24UR_CONFIG,
   rtvslo: DEFAULT_RTVSLO_CONFIG,
+  govorise: DEFAULT_GOVORISE_CONFIG,
 };
