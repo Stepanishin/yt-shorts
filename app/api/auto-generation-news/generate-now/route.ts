@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getUserByGoogleId } from "@/lib/db/users";
 import { generateNewsVideo } from "@/lib/auto-generation/news-generator";
-import { getNewsAutoGenerationConfig } from "@/lib/db/auto-generation-news";
+import { getNewsAutoGenerationConfig, getNewsAutoGenerationConfigById } from "@/lib/db/auto-generation-news";
 
 /**
  * POST /api/auto-generation-news/generate-now
  * Manually trigger news video generation for testing
+ * Accepts optional configId in body for multi-channel support
  */
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +25,15 @@ export async function POST(request: NextRequest) {
 
     const userId = user._id!.toString();
 
-    // Get config
-    const config = await getNewsAutoGenerationConfig(userId);
+    // Support configId in body for multi-channel
+    let body: any = {};
+    try { body = await request.json(); } catch {}
+    const requestedConfigId = body.configId;
+
+    // Get config (by configId if provided, otherwise first for user)
+    const config = requestedConfigId
+      ? await getNewsAutoGenerationConfigById(requestedConfigId)
+      : await getNewsAutoGenerationConfig(userId);
 
     if (!config) {
       return NextResponse.json(
@@ -44,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Schedule for immediate publication (1 minute from now)
     const scheduledAt = new Date(Date.now() + 60 * 1000);
 
-    console.log(`Manually triggering news video generation for user ${userId}`);
+    console.log(`Manually triggering news video generation for user ${userId}, config ${config._id}`);
 
     // Generate video
     const job = await generateNewsVideo(

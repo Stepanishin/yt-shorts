@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import {
   getNewsAutoGenerationConfig,
+  getNewsAutoGenerationConfigsByUser,
+  getNewsAutoGenerationConfigById,
   saveNewsAutoGenerationConfig,
   deleteNewsAutoGenerationConfig,
+  deleteNewsAutoGenerationConfigById,
   NewsAutoGenerationConfig,
 } from "@/lib/db/auto-generation-news";
 import { getUserByGoogleId } from "@/lib/db/users";
 
 /**
  * GET /api/auto-generation-news/config
- * Get current news auto-generation configuration for the user
+ * Get all news auto-generation configurations for the user
  */
 export async function GET(request: NextRequest) {
   try {
@@ -26,11 +29,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const config = await getNewsAutoGenerationConfig(user._id!.toString());
+    const configs = await getNewsAutoGenerationConfigsByUser(user._id!.toString());
 
     return NextResponse.json({
       success: true,
-      config,
+      config: configs[0] || null,
+      configs,
     });
   } catch (error) {
     console.error("Error fetching news auto-generation config:", error);
@@ -69,8 +73,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get existing config to preserve stats and _id
-    const existingConfig = await getNewsAutoGenerationConfig(user._id!.toString());
+    // Support multi-config: if body._id is provided, update that specific config
+    // If not, check if this is a new config (body.isNew) or legacy single-config upsert
+    let existingConfig: NewsAutoGenerationConfig | null = null;
+
+    if (body._id) {
+      existingConfig = await getNewsAutoGenerationConfigById(body._id);
+    } else if (!body.isNew) {
+      existingConfig = await getNewsAutoGenerationConfig(user._id!.toString());
+    }
 
     const configToSave: Omit<NewsAutoGenerationConfig, "createdAt" | "updatedAt"> = {
       _id: existingConfig?._id,
@@ -121,7 +132,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const deleted = await deleteNewsAutoGenerationConfig(user._id!.toString());
+    const url = new URL(request.url);
+    const configId = url.searchParams.get("configId");
+
+    let deleted: boolean;
+    if (configId) {
+      deleted = await deleteNewsAutoGenerationConfigById(configId);
+    } else {
+      deleted = await deleteNewsAutoGenerationConfig(user._id!.toString());
+    }
 
     if (!deleted) {
       return NextResponse.json(

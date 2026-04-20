@@ -80,6 +80,60 @@ interface NewsAutoGenConfig {
   };
 }
 
+const DEFAULT_CONFIG: NewsAutoGenConfig = {
+  isEnabled: false,
+  videosPerDay: 6,
+  publishTimes: [
+    { id: "1", hour: 9, minute: 0, isEnabled: true },
+    { id: "2", hour: 12, minute: 0, isEnabled: true },
+    { id: "3", hour: 15, minute: 0, isEnabled: true },
+    { id: "4", hour: 18, minute: 0, isEnabled: true },
+    { id: "5", hour: 21, minute: 0, isEnabled: true },
+    { id: "6", hour: 0, minute: 0, isEnabled: true },
+  ],
+  newsIngestSchedule: {
+    hour: 6,
+    minute: 0,
+    isEnabled: true,
+  },
+  template: {
+    celebrityImage: {
+      height: 427,
+      objectFit: "cover",
+      position: "top",
+    },
+    newsText: {
+      title: {
+        fontSize: 52,
+        color: "black@1",
+        fontWeight: "bold",
+        y: 470,
+        lineSpacing: 18,
+      },
+      summary: {
+        fontSize: 36,
+        color: "black@1",
+        fontWeight: "normal",
+        y: 620,
+        lineSpacing: 15,
+      },
+      backgroundColor: "white@1",
+      width: 680,
+      padding: 20,
+    },
+    audio: {
+      urls: [],
+      randomTrim: true,
+      duration: 8,
+    },
+  },
+  youtube: {
+    privacyStatus: "public",
+    tags: ["noticias", "famosos", "españa", "celebrities", "shorts"],
+    useAI: true,
+  },
+};
+
 export default function AutoGenerationNewsPage() {
   const { status } = useSession();
   const router = useRouter();
@@ -87,7 +141,8 @@ export default function AutoGenerationNewsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [config, setConfig] = useState<NewsAutoGenConfig | null>(null);
+  const [configs, setConfigs] = useState<NewsAutoGenConfig[]>([]);
+  const [activeConfigIndex, setActiveConfigIndex] = useState(0);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [channels, setChannels] = useState<YouTubeChannel[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(false);
@@ -96,6 +151,15 @@ export default function AutoGenerationNewsPage() {
     channelTitle: string;
     isDefault: boolean;
   }>>([]);
+
+  const config = configs[activeConfigIndex] || null;
+  const setConfig = (newConfig: NewsAutoGenConfig) => {
+    setConfigs(prev => {
+      const updated = [...prev];
+      updated[activeConfigIndex] = newConfig;
+      return updated;
+    });
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -113,63 +177,12 @@ export default function AutoGenerationNewsPage() {
       const response = await fetch("/api/auto-generation-news/config");
       const data = await response.json();
 
-      if (data.success && data.config) {
-        setConfig(data.config);
+      if (data.success && data.configs && data.configs.length > 0) {
+        setConfigs(data.configs);
+      } else if (data.success && data.config) {
+        setConfigs([data.config]);
       } else {
-        // Initialize with default config
-        setConfig({
-          isEnabled: false,
-          videosPerDay: 6,
-          publishTimes: [
-            { id: "1", hour: 9, minute: 0, isEnabled: true },
-            { id: "2", hour: 12, minute: 0, isEnabled: true },
-            { id: "3", hour: 15, minute: 0, isEnabled: true },
-            { id: "4", hour: 18, minute: 0, isEnabled: true },
-            { id: "5", hour: 21, minute: 0, isEnabled: true },
-            { id: "6", hour: 0, minute: 0, isEnabled: true },
-          ],
-          newsIngestSchedule: {
-            hour: 6,
-            minute: 0,
-            isEnabled: true,
-          },
-          template: {
-            celebrityImage: {
-              height: 427,
-              objectFit: "cover",
-              position: "top",
-            },
-            newsText: {
-              title: {
-                fontSize: 52,
-                color: "black@1",
-                fontWeight: "bold",
-                y: 470,
-                lineSpacing: 18,
-              },
-              summary: {
-                fontSize: 36,
-                color: "black@1",
-                fontWeight: "normal",
-                y: 620,
-                lineSpacing: 15,
-              },
-              backgroundColor: "white@1",
-              width: 680,
-              padding: 20,
-            },
-            audio: {
-              urls: [],
-              randomTrim: true,
-              duration: 8,
-            },
-          },
-          youtube: {
-            privacyStatus: "public",
-            tags: ["noticias", "famosos", "españa", "celebrities", "shorts"],
-            useAI: true,
-          },
-        });
+        setConfigs([{ ...DEFAULT_CONFIG }]);
       }
     } catch (error) {
       console.error("Failed to load config:", error);
@@ -217,12 +230,13 @@ export default function AutoGenerationNewsPage() {
     setMessage(null);
 
     try {
+      const isNew = !config._id;
       const response = await fetch("/api/auto-generation-news/config", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(config),
+        body: JSON.stringify({ ...config, isNew }),
       });
 
       const data = await response.json();
@@ -247,6 +261,57 @@ export default function AutoGenerationNewsPage() {
     }
   };
 
+  const handleAddConfig = () => {
+    setConfigs(prev => [...prev, { ...DEFAULT_CONFIG }]);
+    setActiveConfigIndex(configs.length);
+    setMessage({ type: "success", text: "New configuration added. Configure and save it." });
+  };
+
+  const handleDeleteConfig = async () => {
+    if (!config?._id) {
+      if (configs.length > 1) {
+        setConfigs(prev => prev.filter((_, i) => i !== activeConfigIndex));
+        setActiveConfigIndex(0);
+      }
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this configuration?")) return;
+
+    try {
+      const response = await fetch(
+        `/api/auto-generation-news/config?configId=${config._id}`,
+        { method: "DELETE" }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setConfigs(prev => prev.filter((_, i) => i !== activeConfigIndex));
+        setActiveConfigIndex(0);
+        setMessage({ type: "success", text: "Configuration deleted." });
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "Failed to delete configuration",
+      });
+    }
+  };
+
+  const getConfigLabel = (c: NewsAutoGenConfig, idx: number): string => {
+    const channelId = c.youtube.savedChannelId || c.youtube.manualChannelId || c.youtube.channelId;
+    if (channelId) {
+      const saved = savedChannels.find(sc => sc.channelId === channelId);
+      if (saved) return saved.channelTitle;
+      const ch = channels.find(ch => ch.id === channelId);
+      if (ch) return ch.title;
+      return `Channel ${channelId.substring(0, 8)}...`;
+    }
+    return `Config ${idx + 1}`;
+  };
+
   const handleTestGeneration = async () => {
     setTesting(true);
     setMessage(null);
@@ -254,6 +319,8 @@ export default function AutoGenerationNewsPage() {
     try {
       const response = await fetch("/api/auto-generation-news/generate-now", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ configId: config?._id }),
       });
 
       const data = await response.json();
@@ -334,6 +401,52 @@ export default function AutoGenerationNewsPage() {
         <p className="text-gray-600 mb-8">
           Configure automatic video generation from celebrity news (DiezMinutos.es)
         </p>
+
+        {/* Multi-Config Tabs */}
+        {configs.length > 0 && (
+          <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Configurations</h2>
+              <button
+                onClick={handleAddConfig}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"
+              >
+                + Add Channel Config
+              </button>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {configs.map((c, idx) => (
+                <button
+                  key={c._id || `new-${idx}`}
+                  onClick={() => setActiveConfigIndex(idx)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    idx === activeConfigIndex
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {getConfigLabel(c, idx)}
+                  {c.isEnabled && (
+                    <span className="ml-1.5 inline-block w-2 h-2 bg-green-400 rounded-full" />
+                  )}
+                  {!c._id && (
+                    <span className="ml-1.5 text-xs opacity-75">(new)</span>
+                  )}
+                </button>
+              ))}
+            </div>
+            {configs.length > 1 && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={handleDeleteConfig}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm"
+                >
+                  Delete Current Config
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Message */}
         {message && (

@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import {
   getNewsAutoGenerationConfig,
+  getNewsAutoGenerationConfigById,
   createNewsAutoGenerationJob,
   updateNewsJobStatus,
   incrementNewsGeneratedCount,
@@ -196,9 +197,10 @@ export async function generateNewsVideo(
   let news: Awaited<ReturnType<typeof selectNextNews>> | Awaited<ReturnType<typeof findNewsCandidateById>>;
 
   try {
-    // 1. Get configuration
+    // 1. Get configuration (prefer configId for multi-channel support)
     console.log(`[${jobId}] Step 1: Fetching news auto-generation configuration...`);
-    const config = await getNewsAutoGenerationConfig(userId);
+    const config = await getNewsAutoGenerationConfigById(configId)
+      ?? await getNewsAutoGenerationConfig(userId);
 
     if (!config) {
       throw new Error("News auto-generation config not found");

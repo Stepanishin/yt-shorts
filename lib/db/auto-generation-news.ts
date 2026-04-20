@@ -184,7 +184,7 @@ export async function saveNewsAutoGenerationConfig(
 }
 
 /**
- * Get news auto-generation config by user ID
+ * Get news auto-generation config by user ID (returns first config for backward compat)
  */
 export async function getNewsAutoGenerationConfig(
   userId: string
@@ -194,6 +194,28 @@ export async function getNewsAutoGenerationConfig(
   const config = await collection.findOne({ userId });
 
   return config;
+}
+
+/**
+ * Get ALL news auto-generation configs for a user (multi-channel support)
+ */
+export async function getNewsAutoGenerationConfigsByUser(
+  userId: string
+): Promise<NewsAutoGenerationConfig[]> {
+  const collection = await getConfigCollection();
+
+  return collection.find({ userId }).toArray();
+}
+
+/**
+ * Get a specific news auto-generation config by its ID
+ */
+export async function getNewsAutoGenerationConfigById(
+  configId: string
+): Promise<NewsAutoGenerationConfig | null> {
+  const collection = await getConfigCollection();
+
+  return collection.findOne({ _id: new ObjectId(configId) });
 }
 
 /**
@@ -208,12 +230,23 @@ export async function getActiveNewsAutoGenerationConfigs(): Promise<NewsAutoGene
 }
 
 /**
- * Delete news auto-generation config
+ * Delete news auto-generation config by userId (deletes first/only config)
  */
 export async function deleteNewsAutoGenerationConfig(userId: string): Promise<boolean> {
   const collection = await getConfigCollection();
 
   const result = await collection.deleteOne({ userId });
+
+  return result.deletedCount > 0;
+}
+
+/**
+ * Delete a specific news auto-generation config by its ID
+ */
+export async function deleteNewsAutoGenerationConfigById(configId: string): Promise<boolean> {
+  const collection = await getConfigCollection();
+
+  const result = await collection.deleteOne({ _id: new ObjectId(configId) });
 
   return result.deletedCount > 0;
 }
