@@ -11,7 +11,7 @@ export async function selectNextNewsSL(): Promise<StoredNewsCandidateSL | undefi
   for (let attempt = 1; attempt <= MAX_SCORING_ATTEMPTS; attempt++) {
     const news = await reserveNextNewsCandidateSL({
       language: "sl",
-      sources: ["24ur", "rtvslo"],
+      sources: ["24ur", "rtvslo", "govorise"],
     });
 
     if (!news) {
@@ -43,7 +43,7 @@ export async function selectNextNewsSL(): Promise<StoredNewsCandidateSL | undefi
   console.warn(`No suitable Slovenian news found after ${MAX_SCORING_ATTEMPTS} attempts, using last available`);
   const fallback = await reserveNextNewsCandidateSL({
     language: "sl",
-    sources: ["24ur", "rtvslo"],
+    sources: ["24ur", "rtvslo", "govorise"],
   });
 
   return fallback || undefined;
