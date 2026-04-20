@@ -102,7 +102,7 @@ export default function NewsListSL() {
           disabled={collecting}
           className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
         >
-          {collecting ? "Collecting Slovenian news from 24ur & RTVSLO..." : "📰 Collect Slovenian News"}
+          {collecting ? "Collecting Slovenian news from 24ur & Govori.se..." : "📰 Collect Slovenian News"}
         </button>
       </div>
 
@@ -125,7 +125,7 @@ export default function NewsListSL() {
 
       {news.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
-          No Slovenian news found. Click &quot;Collect Slovenian News&quot; to fetch from 24ur.com and rtvslo.si
+          No Slovenian news found. Click &quot;Collect Slovenian News&quot; to fetch from 24ur.com and Govori.se
         </div>
       ) : (
         <div className="grid gap-4">

@@ -78,6 +78,12 @@ export default function NewsCard({ news, basePath = "/dashboard/news" }: NewsCar
                     ? "Page Six"
                     : news.source === "hola"
                     ? "Hola"
+                    : news.source === "24ur"
+                    ? "24ur.com"
+                    : news.source === "rtvslo"
+                    ? "RTV Slovenija"
+                    : news.source === "govorise"
+                    ? "Govori.se"
                     : "DiezMinutos"}
                 </span>
                 {news.category && (
