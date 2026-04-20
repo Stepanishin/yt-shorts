@@ -174,3 +174,50 @@ export const DEFAULT_NEWS_INGEST_CONFIG_PT: NewsIngestConfigPT = {
   noticiasaominuto: DEFAULT_NOTICIAS_AO_MINUTO_CONFIG,
   googlenews: DEFAULT_GOOGLE_NEWS_PT_CONFIG,
 };
+
+export interface TwentyFourUrIngestConfig {
+  source: "24ur";
+  enabled: boolean;
+  feedUrls: string[];
+  timeoutMs: number;
+  maxAgeDays: number;
+}
+
+export const DEFAULT_24UR_CONFIG: TwentyFourUrIngestConfig = {
+  source: "24ur",
+  enabled: true,
+  feedUrls: [
+    "https://www.24ur.com/rss",
+  ],
+  timeoutMs: 15000,
+  maxAgeDays: 3,
+};
+
+export interface RtvsloIngestConfig {
+  source: "rtvslo";
+  enabled: boolean;
+  feedUrls: string[];
+  timeoutMs: number;
+  maxAgeDays: number;
+}
+
+export const DEFAULT_RTVSLO_CONFIG: RtvsloIngestConfig = {
+  source: "rtvslo",
+  enabled: true,
+  feedUrls: [
+    "https://www.rtvslo.si/feeds/00.xml",
+    "https://www.rtvslo.si/feeds/02.xml",
+  ],
+  timeoutMs: 15000,
+  maxAgeDays: 3,
+};
+
+export interface NewsIngestConfigSL {
+  "24ur": TwentyFourUrIngestConfig;
+  rtvslo: RtvsloIngestConfig;
+}
+
+export const DEFAULT_NEWS_INGEST_CONFIG_SL: NewsIngestConfigSL = {
+  "24ur": DEFAULT_24UR_CONFIG,
+  rtvslo: DEFAULT_RTVSLO_CONFIG,
+};

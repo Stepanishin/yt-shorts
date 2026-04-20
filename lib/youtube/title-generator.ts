@@ -608,3 +608,135 @@ O que acontecerá agora? Todo o Portugal atento a esta notícia.
 #Famosos #Noticias #Portugal #UltimaHora #Viral #Exclusivo #Drama #Emotivo`;
   }
 }
+
+/**
+ * Generate catchy YouTube Shorts title for Slovenian news
+ */
+export async function generateNewsShortsTitle_SL(newsTitle: string, newsSummary: string): Promise<string> {
+  const currentYear = new Date().getFullYear();
+
+  try {
+    const prompt = `Create a title for a YouTube Shorts video about this Slovenian news story.
+
+Original title: ${newsTitle}
+Summary: ${newsSummary}
+
+REQUIRED FORMAT:
+[emoji][Person Name] [EVENT IN CAPS] (${currentYear}) #Slovenija #Novice
+
+REQUIREMENTS:
+- Start with a dramatic emoji: 😱💔🔥😢⚠️❌💥
+- Full name of the person
+- Main event in CAPS (max 5-6 words) in SLOVENIAN
+- Current year (${currentYear})
+- End with #Slovenija #Novice
+- Max 100 characters total
+- In SLOVENIAN language
+
+EXACT FORMAT EXAMPLES:
+- 😱Luka Dončić ŠOKANTNA NOVICA IZ NBA (${currentYear}) #Slovenija #Novice
+- 💔Tadej Pogačar PRETRESLJIV RAZPLET NA TOURU (${currentYear}) #Slovenija #Novice
+- 🔥Tina Maze NEPRIČAKOVANA VRNITEV (${currentYear}) #Slovenija #Novice
+
+Return ONLY the title in the exact format, no explanations.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-5",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert at creating viral YouTube Shorts titles for Slovenian news about famous people. You write in Slovenian. You follow the exact format requested.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    const title = response.choices[0]?.message?.content?.trim();
+
+    if (!title) {
+      throw new Error("No title generated");
+    }
+
+    return title;
+  } catch (error) {
+    console.error("Failed to generate SL news title:", error);
+    return `😱${newsTitle.substring(0, 50)} (${currentYear}) #Slovenija #Novice`;
+  }
+}
+
+/**
+ * Generate optimized YouTube Shorts description for Slovenian news
+ */
+export async function generateNewsShortsDescription_SL(newsTitle: string, newsSummary: string): Promise<string> {
+  try {
+    const prompt = `Create a DRAMATIC and DETAILED description for a YouTube Shorts video about this Slovenian news story.
+
+Title: ${newsTitle}
+Summary: ${newsSummary}
+
+STRICT REQUIREMENTS:
+- In SLOVENIAN language
+- Dramatic, emotional, engaging tone
+- MINIMUM 600 characters
+
+REQUIRED STRUCTURE:
+
+1. DRAMATIC HEADLINE IN CAPS (one or two lines):
+   [SENSATIONALIST HOOK based on the most shocking fact]!
+
+2. FIRST PARAGRAPH - Context with facts:
+   - Start with a concrete detail: date, place, or shocking fact
+   - SHORT sentences. One idea per sentence.
+   - Specific details: full names, places, numbers
+   - 4-5 sentences minimum
+
+3. SECOND PARAGRAPH - Emotional depth:
+   - End with 1-2 rhetorical questions
+   - 3-4 sentences minimum
+
+4. CALL TO ACTION:
+   Pritisnite VŠEČEK in se NAROČITE za več novic!
+
+5. HASHTAGS (minimum 10):
+   - #ImePriimek
+   - #Slovenija #Novice #Viral #Shorts #ZnaniSlovenci
+
+Return ONLY the complete description, no additional explanations.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-5",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert at creating engaging YouTube Shorts descriptions for Slovenian news about famous people. You write in fluent Slovenian.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    const description = response.choices[0]?.message?.content?.trim();
+
+    if (!description) {
+      throw new Error("No description generated");
+    }
+
+    return description;
+  } catch (error) {
+    console.error("Failed to generate SL news description:", error);
+    return `ZADNJE NOVICE: ${newsTitle}
+
+${newsSummary}
+
+Kaj bo sledilo? Vsa Slovenija spremlja to novico.
+
+Pritisnite VŠEČEK in se NAROČITE za več novic!
+
+#Slovenija #Novice #ZnaniSlovenci #Viral #Shorts`;
+  }
+}

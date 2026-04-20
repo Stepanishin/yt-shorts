@@ -157,6 +157,7 @@ export async function autoPublishScheduledVideos() {
           title: video.title,
           description: video.description || `${video.title}\n\nGenerated with AI`,
           tags: finalTags,
+          categoryId: video.categoryId,
           privacyStatus: finalPrivacyStatus,
           channelId: video.youtubeChannelId, // Optional: use specific channel if specified
           language: video.language || "es", // Use video language or default to Spanish

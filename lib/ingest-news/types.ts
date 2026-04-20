@@ -1,4 +1,4 @@
-export type NewsSource = "diezminutos" | "hola" | "caras" | "flash" | "noticiasaominuto" | "googlenews" | "googlenews-en" | "pagesix";
+export type NewsSource = "diezminutos" | "hola" | "caras" | "flash" | "noticiasaominuto" | "googlenews" | "googlenews-en" | "pagesix" | "24ur" | "rtvslo";
 
 export interface NewsCandidate {
   source: NewsSource;

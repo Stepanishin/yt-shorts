@@ -1,23 +1,19 @@
 import { ObjectId } from "mongodb";
 import {
-  getNewsAutoGenerationConfig,
-  createNewsAutoGenerationJob,
-  updateNewsJobStatus,
-  incrementNewsGeneratedCount,
-  NewsAutoGenerationJob,
-} from "@/lib/db/auto-generation-news";
+  getNewsAutoGenerationConfigSL,
+  createNewsAutoGenerationJobSL,
+  updateNewsJobStatusSL,
+  incrementNewsGeneratedCountSL,
+  NewsAutoGenerationJobSL,
+} from "@/lib/db/auto-generation-news-sl";
 import { addScheduledVideo } from "@/lib/db/users";
-import { markNewsCandidateStatus, findNewsCandidateById } from "@/lib/ingest-news/storage";
-import { selectNextNews, getAvailableNewsCount } from "./news-selector";
+import { markNewsCandidateStatusSL, findNewsCandidateByIdSL } from "@/lib/ingest-news/storage-sl";
+import { selectNextNewsSL as selectNextNews, getAvailableNewsCountSL as getAvailableNewsCount } from "./news-selector-sl";
 import { prepareAudioCut, selectRandomFromArray } from "./audio-processor";
 import { renderNewsVideo } from "@/lib/video/renderer-new";
-import { generateNewsShortsTitle, generateNewsShortsDescription } from "@/lib/youtube/title-generator";
-import { generateNewsTags } from "./news-tags";
+import { generateNewsShortsTitle_SL, generateNewsShortsDescription_SL } from "@/lib/youtube/title-generator";
+import { generateNewsTagsSL } from "./news-tags-sl";
 
-/**
- * Generate short catchy headline for video (max 2 lines)
- * Takes original title and summary, returns short Spanish headline
- */
 async function generateShortHeadline(
   title: string,
   summary: string
@@ -28,72 +24,61 @@ async function generateShortHeadline(
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const prompt = `Eres un experto en crear titulares impactantes para prensa del corazón española.
+    const prompt = `You are an expert at creating impactful headlines for Slovenian news.
 
-Título original: ${title}
-Resumen: ${summary}
+Original title: ${title}
+Summary: ${summary}
 
-TAREA:
-Crea un titular CORTO y LLAMATIVO en UNA SOLA LÍNEA.
+TASK:
+Create a SHORT and CATCHY headline in ONE LINE.
 
-REQUISITOS ESTRICTOS:
-- UNA SOLA LÍNEA, sin saltos de línea
-- Longitud MÁXIMA: 80 caracteres (cuenta los espacios)
-- Estilo sensacionalista de prensa del corazón
-- En MAYÚSCULAS las palabras clave
-- En ESPAÑOL
+STRICT REQUIREMENTS:
+- ONE LINE only, no line breaks
+- MAX 80 characters (including spaces)
+- Dramatic, attention-grabbing style
+- KEY WORDS in CAPS
+- In SLOVENIAN language
 
-EJEMPLOS del estilo deseado:
-- "¡BOMBAZO en la Casa Real! Romance secreto confirmado"
-- "¡ESCÁNDALO! La presentadora abandona el programa en directo"
-- "¡REVELACIÓN! El secreto que destruyó la familia real"
+EXAMPLES of the desired style:
+- "ŠOKANTNO odkritje v Ljubljani! Zvezdnik razkril resnico"
+- "SKANDAL! Znani Slovenec zapustil državo"
+- "RAZKRITO! Skrivnost, ki pretresa Slovenijo"
 
-Devuelve SOLO el titular en una línea, sin comillas ni explicaciones.`;
+Return ONLY the headline in one line, no quotes or explanations.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-5",
       messages: [
         {
           role: "system",
-          content: "Eres un redactor experto de prensa del corazón española, especializado en titulares cortos y llamativos.",
+          content: "You are an expert editor for Slovenian news, specialized in short and catchy headlines. You write in fluent Slovenian.",
         },
         {
           role: "user",
           content: prompt,
         },
       ],
-
     });
 
-    // Log raw response for debugging GPT-5 format
-    console.log(`🔍 Raw headline response:`, JSON.stringify(response.choices[0]?.message));
-
-    // Strip newlines just in case GPT ignores the one-line instruction
     const generatedHeadline = response.choices[0]?.message?.content
       ?.replace(/[\r\n]+/g, ' ')
       .replace(/\s{2,}/g, ' ')
       .trim();
 
     if (generatedHeadline && generatedHeadline.length >= 20 && generatedHeadline.length <= 80) {
-      console.log(`✨ Generated short headline (${generatedHeadline.length} chars): ${generatedHeadline}`);
+      console.log(`Generated short headline (${generatedHeadline.length} chars): ${generatedHeadline}`);
       return generatedHeadline;
     } else {
       console.warn(`Generated headline out of range (${generatedHeadline?.length} chars), using fallback`);
-      // Fallback: use first 80 chars of title
       return title.length > 80 ? title.substring(0, 77) + "..." : title;
     }
   } catch (error) {
     console.error("Failed to generate short headline:", error);
-    // Fallback: use first 80 chars of title
     return title.length > 80 ? title.substring(0, 77) + "..." : title;
   }
 }
 
-/**
- * Generate sensationalized "yellow press" style news text for video overlay
- * Takes original title and summary, returns catchy Spanish text optimized for shorts
- */
-async function generateYellowPressText(
+async function generateVideoOverlayText(
   title: string,
   summary: string
 ): Promise<string> {
@@ -103,88 +88,69 @@ async function generateYellowPressText(
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const prompt = `Eres un experto en crear textos para prensa del corazón española. Tu estilo mezcla el gancho sensacionalista con la profundidad cinematográfica.
+    const prompt = `You are an expert at creating engaging news texts in Slovenian.
 
-Título original: ${title}
-Resumen: ${summary}
+Original title: ${title}
+Summary: ${summary}
 
-TAREA:
-Crea un texto que se superpondrá sobre una foto en un video corto. Empieza con un GANCHO impactante y luego despliega la historia con hechos concretos.
+TASK:
+Create a DRAMATIC and DETAILED text in Slovenian that will be overlaid on a photo in a short video. Start with a HOOK and then unfold the story with concrete facts.
 
-ESTRUCTURA:
-1. PRIMERA FRASE: gancho sensacionalista corto (puede usar ¡BOMBAZO!, ¡ESCÁNDALO!, etc. si el hecho lo justifica)
-2. DESARROLLO: frases cortas con hechos reales — fechas, lugares, nombres, citas si las hay
-3. CIERRE: pregunta retórica que invite a reflexionar
+STRUCTURE:
+1) FIRST SENTENCE: dramatic hook
+2) DEVELOPMENT: short sentences with real facts — dates, places, names, quotes if available
+3) CLOSING: rhetorical question that invites reflection
 
-REQUISITOS ESTRICTOS:
-- Longitud MÍNIMA OBLIGATORIA: 540 caracteres (incluyendo espacios). NUNCA menos de 540.
-- Longitud MÁXIMA: 660 caracteres (incluyendo espacios)
-- Si tu texto tiene menos de 540 caracteres, AÑADE más detalles, hechos, contexto o citas hasta alcanzar el mínimo
-- Las palabras impactantes deben estar respaldadas por hechos, no usadas en el vacío
-- Frases CORTAS. Una idea por frase.
-- Terminar con una pregunta retórica
-- En ESPAÑOL
+STRICT REQUIREMENTS:
+- MANDATORY MINIMUM length: 540 characters (including spaces). NEVER less than 540.
+- MAXIMUM length: 660 characters (including spaces)
+- If your text has fewer than 540 characters, ADD more details, facts, context or quotes until reaching the minimum
+- SHORT sentences. One idea per sentence.
+- End with a rhetorical question
+- In SLOVENIAN language
 
-EJEMPLOS del estilo deseado:
-- "¡ESCÁNDALO familiar que España no esperaba! Madrid, 2007. Emma Penella se apagaba para siempre. Pero detrás de su sonrisa ácida, cargaba una cruz insoportable. Su padre fue el hombre que entregó a García Lorca para ser fusilado. Emma vivió huyendo de esa sombra. Se cambió el nombre. Ocultó su origen. Murió con miedo a ser juzgada por un crimen que no cometió. ¿Creen que los hijos deben pagar por los pecados de sus padres?"
-- "¡TRAGEDIA que partió a España en dos! Solo pasaron 14 días. Lola Flores murió y su hijo Antonio quedó devastado. 'Ella me espera', repetía con la mirada perdida. Se encerró en la cabaña familiar. Lo encontraron sin vida en la misma casa donde su madre partió. Los médicos dijeron que fue un accidente. España sabe la verdad."
-
-Devuelve SOLO el texto, sin comillas ni explicaciones.`;
+Return ONLY the text, no quotes or explanations.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-5",
       messages: [
         {
           role: "system",
-          content: "Eres un redactor experto de prensa del corazón española, especializado en textos sensacionalistas y dramáticos que enganchan al lector.",
+          content: "You are an expert editor for Slovenian news, specialized in dramatic and engaging texts. You write in fluent Slovenian.",
         },
         {
           role: "user",
           content: prompt,
         },
       ],
-
     });
-
-    // Log raw response for debugging GPT-5 format
-    console.log(`🔍 Raw yellow press response:`, JSON.stringify(response.choices[0]?.message));
 
     const generatedText = response.choices[0]?.message?.content?.trim();
 
     if (generatedText && generatedText.length >= 400 && generatedText.length <= 750) {
-      console.log(`✨ Generated yellow press text (${generatedText.length} chars): ${generatedText}`);
+      console.log(`Generated overlay text (${generatedText.length} chars): ${generatedText}`);
       return generatedText;
     } else {
       console.warn(`Generated text length out of range (${generatedText?.length} chars), using fallback`);
-      // Fallback: use title + summary if generation fails
       const fallbackText = `${title} ${summary}`;
       return fallbackText.length > 660 ? fallbackText.substring(0, 657) + "..." : fallbackText;
     }
   } catch (error) {
-    console.error("Failed to generate yellow press text:", error);
-    // Fallback: use title + summary
+    console.error("Failed to generate overlay text:", error);
     const fallbackText = `${title} ${summary}`;
     return fallbackText.length > 660 ? fallbackText.substring(0, 657) + "..." : fallbackText;
   }
 }
 
-/**
- * Main function to generate news video
- * @param userId - User ID
- * @param configId - News auto-generation config ID
- * @param scheduledAt - Scheduled publish time
- * @param specificNewsId - Optional specific news ID to generate video for (bypasses auto-selection)
- * @returns Created job
- */
-export async function generateNewsVideo(
+export async function generateNewsVideoSL(
   userId: string,
   configId: string,
   scheduledAt: Date,
   specificNewsId?: string
-): Promise<NewsAutoGenerationJob> {
+): Promise<NewsAutoGenerationJobSL> {
   const jobId = new ObjectId().toString();
 
-  console.log(`\n=== Starting News Video Generation ===`);
+  console.log(`\n=== Starting Slovenian News Video Generation ===`);
   console.log(`Job ID: ${jobId}`);
   console.log(`User ID: ${userId}`);
   console.log(`Config ID: ${configId}`);
@@ -193,68 +159,62 @@ export async function generateNewsVideo(
     console.log(`Specific News ID: ${specificNewsId}`);
   }
 
-  let news: Awaited<ReturnType<typeof selectNextNews>> | Awaited<ReturnType<typeof findNewsCandidateById>>;
+  let news: Awaited<ReturnType<typeof selectNextNews>> | Awaited<ReturnType<typeof findNewsCandidateByIdSL>>;
 
   try {
-    // 1. Get configuration
-    console.log(`[${jobId}] Step 1: Fetching news auto-generation configuration...`);
-    const config = await getNewsAutoGenerationConfig(userId);
+    console.log(`[${jobId}] Step 1: Fetching Slovenian news auto-generation configuration...`);
+    const config = await getNewsAutoGenerationConfigSL(userId);
 
     if (!config) {
-      throw new Error("News auto-generation config not found");
+      throw new Error("Slovenian news auto-generation config not found");
     }
 
     if (!specificNewsId && !config.isEnabled) {
-      throw new Error("News auto-generation is disabled");
+      throw new Error("Slovenian news auto-generation is disabled");
     }
 
-    // 2. Check available news (skip when using specific news ID)
     if (!specificNewsId) {
-      console.log(`[${jobId}] Step 2: Checking available news...`);
+      console.log(`[${jobId}] Step 2: Checking available Slovenian news...`);
       const availableNews = await getAvailableNewsCount();
-      console.log(`Available news items: ${availableNews}`);
+      console.log(`Available Slovenian news items: ${availableNews}`);
 
       if (availableNews === 0) {
-        throw new Error("No news available for generation");
+        throw new Error("No Slovenian news available for generation");
       }
     }
 
-    // 3. Reserve news item
-    console.log(`[${jobId}] Step 3: Reserving news item...`);
+    console.log(`[${jobId}] Step 3: Reserving Slovenian news item...`);
     if (specificNewsId) {
-      news = await findNewsCandidateById(specificNewsId);
+      news = await findNewsCandidateByIdSL(specificNewsId);
       if (!news) {
-        throw new Error(`News item ${specificNewsId} not found`);
+        throw new Error(`Slovenian news item ${specificNewsId} not found`);
       }
-      // Reserve it manually
-      await markNewsCandidateStatus({ id: specificNewsId, status: "reserved" });
+      await markNewsCandidateStatusSL({ id: specificNewsId, status: "reserved" });
     } else {
       news = await selectNextNews();
     }
 
     if (!news) {
-      throw new Error("Failed to reserve news item");
+      throw new Error("Failed to reserve Slovenian news item");
     }
 
     const newsTitle = news.editedTitle || news.title;
     const newsSummary = news.editedSummary || news.summary;
     const newsImageUrl = news.editedImageUrl || news.imageUrl;
 
-    console.log(`Selected news ID: ${news._id}`);
+    console.log(`Selected Slovenian news ID: ${news._id}`);
     console.log(`Title: ${newsTitle}`);
     console.log(`Summary (${newsSummary.length} chars): ${newsSummary.substring(0, 100)}...`);
     console.log(`Image URL: ${newsImageUrl}`);
 
-    // 4. Generate short headline and sensationalized text for video overlay
-    console.log(`[${jobId}] Step 4: Generating short headline and sensationalized text...`);
+    console.log(`[${jobId}] Step 4: Generating short headline and overlay text...`);
     const [shortHeadline, videoOverlayText] = await Promise.all([
       generateShortHeadline(newsTitle, newsSummary),
-      generateYellowPressText(newsTitle, newsSummary),
+      generateVideoOverlayText(newsTitle, newsSummary),
     ]);
     console.log(`Short headline: ${shortHeadline}`);
     console.log(`Video overlay text: ${videoOverlayText}`);
 
-    // 5. Prepare audio (if configured)
     console.log(`[${jobId}] Step 5: Preparing audio...`);
     let audioUrl: string | undefined;
     let audioTrimStart: number | undefined;
@@ -285,9 +245,8 @@ export async function generateNewsVideo(
       console.log("No audio configured, generating video without audio");
     }
 
-    // 6. Create job record
     console.log(`[${jobId}] Step 6: Creating job record...`);
-    const job = await createNewsAutoGenerationJob({
+    const job = await createNewsAutoGenerationJobSL({
       userId,
       configId: String(config._id),
       status: "processing",
@@ -305,13 +264,12 @@ export async function generateNewsVideo(
 
     console.log(`Job created with ID: ${job._id}`);
 
-    // 7. Render video
-    console.log(`[${jobId}] Step 7: Rendering news video...`);
+    console.log(`[${jobId}] Step 7: Rendering Slovenian news video...`);
     const renderResult = await renderNewsVideo({
       celebrityImageUrl: newsImageUrl,
-      shortHeadline, // Short headline in rounded rectangle
-      newsTitle: videoOverlayText, // Use generated sensationalized text instead of original title
-      newsSummary, // Keep original summary for metadata
+      shortHeadline,
+      newsTitle: videoOverlayText,
+      newsSummary,
       audioUrl,
       audioTrimStart,
       audioTrimEnd,
@@ -323,31 +281,27 @@ export async function generateNewsVideo(
     console.log(`Video rendered successfully: ${renderResult.videoUrl}`);
     console.log(`Video duration: ${renderResult.duration}s`);
 
-    // 8. Generate YouTube metadata using AI (if enabled)
     console.log(`[${jobId}] Step 8: Generating YouTube metadata...`);
     let youtubeTitle = newsTitle;
     let youtubeDescription = newsSummary;
 
     if (config.youtube.useAI) {
       try {
-        // Use news-specific OpenAI-based title/description generators
         const [generatedTitle, generatedDescription] = await Promise.all([
-          generateNewsShortsTitle(newsTitle, newsSummary),
-          generateNewsShortsDescription(newsTitle, newsSummary),
+          generateNewsShortsTitle_SL(newsTitle, newsSummary),
+          generateNewsShortsDescription_SL(newsTitle, newsSummary),
         ]);
 
         youtubeTitle = generatedTitle;
         youtubeDescription = generatedDescription;
 
-        console.log(`AI-generated news title: ${youtubeTitle}`);
-        console.log(`AI-generated news description: ${youtubeDescription.substring(0, 100)}...`);
+        console.log(`AI-generated Slovenian news title: ${youtubeTitle}`);
+        console.log(`AI-generated Slovenian news description: ${youtubeDescription.substring(0, 100)}...`);
       } catch (aiError) {
         console.error("Failed to generate AI metadata, using original:", aiError);
-        // Continue with original title and description
       }
     }
 
-    // Add music attribution if audio is used
     if (audioUrl) {
       let trackName = "Track";
       try {
@@ -359,10 +313,8 @@ export async function generateNewsVideo(
       youtubeDescription += `\n\nMusic: "${trackName}" by Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/`;
     }
 
-    // 9. Add to scheduled videos
     console.log(`[${jobId}] Step 9: Adding to scheduled videos...`);
 
-    // Determine which channel ID to use (priority: savedChannelId > manualChannelId > channelId)
     const channelIdToUse =
       config.youtube.savedChannelId ||
       config.youtube.manualChannelId ||
@@ -372,20 +324,18 @@ export async function generateNewsVideo(
       videoUrl: renderResult.videoUrl,
       title: youtubeTitle,
       description: youtubeDescription,
-      tags: await generateNewsTags(newsTitle, newsSummary, config.youtube.tags),
+      tags: await generateNewsTagsSL(newsTitle, newsSummary, config.youtube.tags),
       privacyStatus: config.youtube.privacyStatus || "public",
       scheduledAt,
       youtubeChannelId: channelIdToUse,
-      newsId: String(news._id), // Link to news source
-      language: "es", // Mark as Spanish news video
-      categoryId: "24", // 24 = Entertainment
+      newsId: String(news._id),
+      language: "sl",
     });
 
     console.log(`Video scheduled for: ${scheduledAt.toISOString()}`);
 
-    // 10. Update job status
     console.log(`[${jobId}] Step 10: Updating job status...`);
-    await updateNewsJobStatus(job._id!, "completed", {
+    await updateNewsJobStatusSL(job._id!, "completed", {
       results: {
         renderedVideoUrl: renderResult.videoUrl,
         scheduledVideoId: scheduledVideo.id,
@@ -393,46 +343,42 @@ export async function generateNewsVideo(
       },
     });
 
-    // 11. Mark news as used
-    console.log(`[${jobId}] Step 11: Marking news as used...`);
-    await markNewsCandidateStatus({
+    console.log(`[${jobId}] Step 11: Marking Slovenian news as used...`);
+    await markNewsCandidateStatusSL({
       id: news._id,
       status: "used",
     });
 
-    // 12. Increment generated count
-    await incrementNewsGeneratedCount(config._id!);
+    await incrementNewsGeneratedCountSL(config._id!);
 
-    console.log(`\n=== News Video Generation Completed Successfully ===`);
+    console.log(`\n=== Slovenian News Video Generation Completed Successfully ===`);
     console.log(`Job ID: ${jobId}`);
     console.log(`Video URL: ${renderResult.videoUrl}`);
     console.log(`Scheduled At: ${scheduledAt.toISOString()}\n`);
 
     return job;
   } catch (error) {
-    console.error(`\n=== News Video Generation Failed ===`);
+    console.error(`\n=== Slovenian News Video Generation Failed ===`);
     console.error(`Job ID: ${jobId}`);
     console.error(`Error:`, error);
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    // Reset reserved news back to pending so it can be retried
     if (news && news._id) {
       try {
-        await markNewsCandidateStatus({
+        await markNewsCandidateStatusSL({
           id: news._id,
           status: "pending",
           notes: `[${new Date().toISOString()}] Generation failed (job ${jobId}): ${errorMessage}`,
         });
-        console.log(`Reset news ${news._id} back to pending with error note`);
+        console.log(`Reset Slovenian news ${news._id} back to pending with error note`);
       } catch (resetError) {
-        console.error(`Failed to reset news ${news._id} status:`, resetError);
+        console.error(`Failed to reset Slovenian news ${news._id} status:`, resetError);
       }
     }
 
-    // Try to create or update job with error status
     try {
-      const existingJob = await createNewsAutoGenerationJob({
+      const existingJob = await createNewsAutoGenerationJobSL({
         userId,
         configId,
         status: "failed",
