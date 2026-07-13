@@ -134,6 +134,22 @@ export const findRecentNewsCandidates = async ({
 };
 
 /**
+ * Titles of news used for videos in the last N days.
+ * Passed to the AI scorer to penalize repeated persons/topics.
+ */
+export const findRecentlyUsedNewsTitles = async (days = 7): Promise<string[]> => {
+  const collection = await getNewsCandidateCollection();
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const docs = await collection
+    .find(
+      { status: "used", usedAt: { $gte: since } },
+      { projection: { title: 1, editedTitle: 1 }, sort: { usedAt: -1 }, limit: 60 }
+    )
+    .toArray();
+  return docs.map((d) => d.editedTitle || d.title).filter(Boolean);
+};
+
+/**
  * Find news candidate by ID
  */
 export const findNewsCandidateById = async (id: unknown) => {

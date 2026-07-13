@@ -1,6 +1,6 @@
 import { getScheduledVideosForPublishing, updateScheduledVideoStatus } from "@/lib/db/users";
 import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
-import { uploadVideoToYouTube, createOAuth2Client, setEncryptedCredentials, refreshAccessToken, setVideoThumbnail } from "@/lib/youtube/youtube-client";
+import { uploadVideoToYouTube, createOAuth2Client, setEncryptedCredentials, refreshAccessToken, setVideoThumbnail, postVideoComment } from "@/lib/youtube/youtube-client";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 import { markJokeCandidateAsPublishedDE } from "@/lib/ingest-de/storage";
 import { markJokeCandidateAsPublishedPT } from "@/lib/ingest-pt/storage";
@@ -195,6 +195,11 @@ export async function autoPublishScheduledVideos() {
           youtubeVideoId: result.videoId,
           youtubeVideoUrl: result.videoUrl,
         });
+
+        // Post engagement comment from the channel (best-effort, never fails the publish)
+        if (video.commentText && result.videoId) {
+          await postVideoComment(oauth2Client, result.videoId, video.commentText);
+        }
 
         // Удаляем временный файл
         if (video.videoUrl.startsWith("http://") || video.videoUrl.startsWith("https://")) {

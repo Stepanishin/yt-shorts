@@ -1,9 +1,9 @@
-import { reserveNextNewsCandidate, markNewsCandidateStatus } from "@/lib/ingest-news/storage";
+import { reserveNextNewsCandidate, markNewsCandidateStatus, findRecentlyUsedNewsTitles } from "@/lib/ingest-news/storage";
 import { StoredNewsCandidate } from "@/lib/ingest-news/storage";
-import { scoreNewsCandidate } from "./news-scorer";
+import { scoreNewsCandidate, MIN_SCORE_THRESHOLD } from "./news-scorer";
 
 const MAX_SCORING_ATTEMPTS = 5; // Max news items to evaluate before giving up
-const MIN_SCORE_THRESHOLD = 5; // Minimum score to publish (1-10)
+const RECENT_TITLES_DAYS = 7; // Look-back window for the anti-repeat rule
 
 /**
  * Select next news item for generation
@@ -12,6 +12,15 @@ const MIN_SCORE_THRESHOLD = 5; // Minimum score to publish (1-10)
  */
 export async function selectNextNews(): Promise<StoredNewsCandidate | undefined> {
   console.log("Selecting next news candidate (with AI scoring)...");
+
+  // Recently used titles for the anti-repeat rule (best-effort)
+  let recentTitles: string[] = [];
+  try {
+    recentTitles = await findRecentlyUsedNewsTitles(RECENT_TITLES_DAYS);
+    console.log(`Anti-repeat context: ${recentTitles.length} titles from last ${RECENT_TITLES_DAYS} days`);
+  } catch (error) {
+    console.warn("Failed to load recent titles for anti-repeat, scoring without them:", error);
+  }
 
   for (let attempt = 1; attempt <= MAX_SCORING_ATTEMPTS; attempt++) {
     const news = await reserveNextNewsCandidate({
@@ -30,7 +39,7 @@ export async function selectNextNews(): Promise<StoredNewsCandidate | undefined>
     console.log(`Title: ${news.title}`);
 
     // Score the news item
-    const score = await scoreNewsCandidate(news.title, news.summary);
+    const score = await scoreNewsCandidate(news.title, news.summary, recentTitles);
     console.log(`🎯 Score: ${score.score}/10 — ${score.reason}`);
 
     if (score.shouldPublish) {

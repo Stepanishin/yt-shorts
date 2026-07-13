@@ -170,6 +170,15 @@ Devuelve SOLO el texto, sin comillas ni explicaciones.`;
 }
 
 /**
+ * Extract the closing rhetorical question from the generated overlay text.
+ * Used as an auto-posted comment to drive engagement.
+ */
+function extractClosingQuestion(text: string): string | undefined {
+  const matches = text.match(/¿[^¿?]{10,200}\?/g);
+  return matches?.length ? matches[matches.length - 1].trim() : undefined;
+}
+
+/**
  * Main function to generate news video
  * @param userId - User ID
  * @param configId - News auto-generation config ID
@@ -370,6 +379,12 @@ export async function generateNewsVideo(
       config.youtube.manualChannelId ||
       config.youtube.channelId;
 
+    // Closing rhetorical question becomes a channel comment after publishing
+    const closingQuestion = extractClosingQuestion(videoOverlayText);
+    const commentText = closingQuestion
+      ? `${closingQuestion} 💬 Te leemos en los comentarios`
+      : undefined;
+
     const scheduledVideo = await addScheduledVideo(userId, {
       videoUrl: renderResult.videoUrl,
       title: youtubeTitle,
@@ -381,6 +396,7 @@ export async function generateNewsVideo(
       newsId: String(news._id), // Link to news source
       language: "es", // Mark as Spanish news video
       categoryId: "24", // 24 = Entertainment
+      commentText,
     });
 
     console.log(`Video scheduled for: ${scheduledAt.toISOString()}`);

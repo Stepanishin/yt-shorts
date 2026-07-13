@@ -58,6 +58,7 @@ export function getAuthUrl(oauth2Client: OAuth2Client, state?: string): string {
   const scopes = [
     "https://www.googleapis.com/auth/youtube.upload",
     "https://www.googleapis.com/auth/youtube",
+    "https://www.googleapis.com/auth/youtube.force-ssl", // required for posting comments
     "https://www.googleapis.com/auth/yt-analytics.readonly",
   ];
 
@@ -184,6 +185,44 @@ export async function setVideoThumbnail(
   } catch (error) {
     console.error("Failed to set thumbnail:", (error as Error).message);
     // Don't throw — thumbnail is optional, video is already uploaded
+    return false;
+  }
+}
+
+/**
+ * Публикует комментарий от имени канала под видео.
+ * Требует scope youtube.force-ssl (канал, авторизованный до добавления
+ * этого scope, нужно переподключить в настройках).
+ */
+export async function postVideoComment(
+  oauth2Client: OAuth2Client,
+  videoId: string,
+  text: string
+): Promise<boolean> {
+  try {
+    console.log(`💬 Posting comment on video ${videoId}...`);
+
+    await youtube.commentThreads.insert({
+      auth: oauth2Client,
+      part: ["snippet"],
+      requestBody: {
+        snippet: {
+          videoId,
+          topLevelComment: {
+            snippet: { textOriginal: text },
+          },
+        },
+      },
+    });
+
+    console.log(`✅ Comment posted on video ${videoId}`);
+    return true;
+  } catch (error) {
+    console.error(
+      `Failed to post comment (channel may need re-auth with youtube.force-ssl scope):`,
+      (error as Error).message
+    );
+    // Don't throw — comment is optional, video is already uploaded
     return false;
   }
 }

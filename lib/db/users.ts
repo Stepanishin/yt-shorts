@@ -36,6 +36,7 @@ export interface ScheduledVideo {
   youtubeChannelId?: string; // Optional: specific YouTube channel ID (if user has multiple channels)
   thumbnailUrl?: string; // Optional: custom thumbnail URL/path for longform videos
   categoryId?: string; // YouTube category ID (e.g. "24" = Entertainment, "25" = News & Politics)
+  commentText?: string; // Optional: comment to post from the channel right after publishing (engagement)
 }
 
 export interface User {
