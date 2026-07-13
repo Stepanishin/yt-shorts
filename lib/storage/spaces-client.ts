@@ -6,18 +6,28 @@ import * as fs from "fs";
  * Клиент для работы с DigitalOcean Spaces (S3-совместимое хранилище)
  */
 
-// Инициализация S3 клиента для DigitalOcean Spaces
-const spacesClient = process.env.SPACES_ENDPOINT
-  ? new S3Client({
-      endpoint: process.env.SPACES_ENDPOINT, // например: https://nyc3.digitaloceanspaces.com
-      region: process.env.SPACES_REGION || "us-east-1", // регион не важен для Spaces, но обязателен для SDK
-      credentials: {
-        accessKeyId: process.env.SPACES_ACCESS_KEY_ID || "",
-        secretAccessKey: process.env.SPACES_SECRET_ACCESS_KEY || "",
-      },
-      forcePathStyle: false, // DigitalOcean Spaces использует виртуальный хостинг
-    })
-  : null;
+// Ленивая инициализация S3 клиента для DigitalOcean Spaces.
+// Важно: клиент нельзя создавать в момент импорта модуля — в скриптах,
+// использующих dotenv, переменные окружения появляются позже импортов.
+let spacesClientInstance: S3Client | null | undefined;
+
+function getSpacesClient(): S3Client | null {
+  if (spacesClientInstance !== undefined) {
+    return spacesClientInstance;
+  }
+  spacesClientInstance = process.env.SPACES_ENDPOINT
+    ? new S3Client({
+        endpoint: process.env.SPACES_ENDPOINT, // например: https://nyc3.digitaloceanspaces.com
+        region: process.env.SPACES_REGION || "us-east-1", // регион не важен для Spaces, но обязателен для SDK
+        credentials: {
+          accessKeyId: process.env.SPACES_ACCESS_KEY_ID || "",
+          secretAccessKey: process.env.SPACES_SECRET_ACCESS_KEY || "",
+        },
+        forcePathStyle: false, // DigitalOcean Spaces использует виртуальный хостинг
+      })
+    : null;
+  return spacesClientInstance;
+}
 
 export interface UploadVideoOptions {
   filePath: string; // Путь к локальному файлу
@@ -39,6 +49,8 @@ export async function uploadVideoToSpaces(
     contentType = "video/mp4",
     publicRead = true,
   } = options;
+
+  const spacesClient = getSpacesClient();
 
   // Если Spaces не настроен, возвращаем локальный путь (для development)
   if (!spacesClient || !process.env.SPACES_BUCKET) {
@@ -98,6 +110,8 @@ export async function uploadBufferToSpaces(
   fileName: string,
   contentType: string = "application/octet-stream"
 ): Promise<string> {
+  const spacesClient = getSpacesClient();
+
   if (!spacesClient || !process.env.SPACES_BUCKET) {
     throw new Error("DigitalOcean Spaces not configured");
   }

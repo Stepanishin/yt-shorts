@@ -5,25 +5,26 @@ import { getMongoDatabase } from "@/lib/db/mongodb";
 
 export interface SourcedImage {
   url: string;
-  source: "google" | "hola" | "wikimedia";
+  source: "google" | "hola" | "wikimedia" | "news-db";
   query: string;
 }
 
 /**
- * Find images for each scene. Uses free sources only:
- * 1. Google Images scraping (free)
- * 2. Hola.com article scraping (free, already have scraper)
- * 3. Wikimedia Commons API (free)
- *
- * Results are cached in MongoDB to avoid re-scraping.
+ * Find images for each scene, best sources first:
+ * 1. Real photos of this exact celebrity from our own ingested news (most relevant, correct person)
+ * 2. MongoDB cache of earlier lookups
+ * 3. Wikimedia Commons API (free, legal)
+ * 4. Google Images scraping (last resort — fragile and can return the wrong person)
  */
 export async function findImagesForScenes(
   scenes: { sceneNumber: number; imageSearchQuery: string }[],
-  celebrityName: string
+  celebrityName: string,
+  newsImageUrls: string[] = []
 ): Promise<SourcedImage[]> {
   console.log(`🖼️ Finding images for ${scenes.length} scenes (${celebrityName})...`);
+  console.log(`  Own news DB photos available: ${newsImageUrls.length}`);
 
-  // First, batch-fetch Wikimedia images for the celebrity (one request, many results)
+  // Batch-fetch Wikimedia images for the celebrity (one request, many results)
   const wikimediaImages = await searchWikimediaBatch(celebrityName, scenes.length + 5);
   console.log(`  Wikimedia batch: found ${wikimediaImages.length} images`);
 
@@ -34,9 +35,18 @@ export async function findImagesForScenes(
     const query = scene.imageSearchQuery;
     console.log(`  Scene ${scene.sceneNumber}: "${query}"`);
 
+    // Source 1: real photo of this celebrity from our own news DB
+    const newsImg = newsImageUrls.find((u) => !usedUrls.has(u));
+    if (newsImg) {
+      console.log(`  ✅ Own news DB photo`);
+      usedUrls.add(newsImg);
+      images.push({ url: newsImg, source: "news-db", query });
+      continue;
+    }
+
     let imageUrl: string | null = null;
 
-    // Try cache first
+    // Source 2: cache of earlier lookups
     imageUrl = await getCachedImage(celebrityName, query);
     if (imageUrl && !usedUrls.has(imageUrl)) {
       console.log(`  ✅ Cache hit`);
@@ -45,17 +55,7 @@ export async function findImagesForScenes(
       continue;
     }
 
-    // Try Google Images scraping
-    imageUrl = await scrapeGoogleImage(query);
-    if (imageUrl && !usedUrls.has(imageUrl)) {
-      console.log(`  ✅ Google Images`);
-      usedUrls.add(imageUrl);
-      await cacheImage(celebrityName, query, imageUrl, "google");
-      images.push({ url: imageUrl, source: "google", query });
-      continue;
-    }
-
-    // Try Wikimedia from pre-fetched batch (pick next unused)
+    // Source 3: Wikimedia from pre-fetched batch (pick next unused)
     const wikiImg = wikimediaImages.find((u) => !usedUrls.has(u));
     if (wikiImg) {
       console.log(`  ✅ Wikimedia (batch)`);
@@ -65,10 +65,13 @@ export async function findImagesForScenes(
       continue;
     }
 
-    // Fallback: broader Google search with just the celebrity name
-    imageUrl = await scrapeGoogleImage(`${celebrityName} foto`);
+    // Source 4 (last resort): Google Images scraping
+    imageUrl = await scrapeGoogleImage(query);
+    if (!imageUrl || usedUrls.has(imageUrl)) {
+      imageUrl = await scrapeGoogleImage(`${celebrityName} foto`);
+    }
     if (imageUrl && !usedUrls.has(imageUrl)) {
-      console.log(`  ✅ Google (fallback)`);
+      console.log(`  ✅ Google Images (fallback)`);
       usedUrls.add(imageUrl);
       await cacheImage(celebrityName, query, imageUrl, "google");
       images.push({ url: imageUrl, source: "google", query });
@@ -265,7 +268,17 @@ export async function downloadImage(
         throw new Error(`HTTP ${response.status}`);
       }
 
+      // Validate: must be an actual image, not an HTML error page or a tiny icon
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType && !contentType.startsWith("image/")) {
+        throw new Error(`Not an image: content-type ${contentType}`);
+      }
+
       const buffer = Buffer.from(await response.arrayBuffer());
+      if (buffer.length < 15 * 1024) {
+        throw new Error(`Image too small (${buffer.length} bytes), likely an icon or placeholder`);
+      }
+
       fs.writeFileSync(localPath, buffer);
       return localPath;
     } catch (e) {

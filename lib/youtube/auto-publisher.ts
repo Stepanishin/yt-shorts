@@ -1,6 +1,6 @@
 import { getScheduledVideosForPublishing, updateScheduledVideoStatus } from "@/lib/db/users";
 import { getUserYouTubeClient } from "@/lib/youtube/user-youtube-client";
-import { uploadVideoToYouTube, createOAuth2Client, setEncryptedCredentials, refreshAccessToken, setVideoThumbnail, postVideoComment } from "@/lib/youtube/youtube-client";
+import { uploadVideoToYouTube, createOAuth2Client, setEncryptedCredentials, refreshAccessToken, setVideoThumbnail, postVideoComment, findRecentUploadByTitle } from "@/lib/youtube/youtube-client";
 import { markJokeCandidateAsPublished } from "@/lib/ingest/storage";
 import { markJokeCandidateAsPublishedDE } from "@/lib/ingest-de/storage";
 import { markJokeCandidateAsPublishedPT } from "@/lib/ingest-pt/storage";
@@ -12,6 +12,19 @@ import * as fs from "fs/promises";
 
 // Флаг для предотвращения одновременных запусков
 let isPublishing = false;
+
+/**
+ * Временные ошибки, при которых загрузку имеет смысл повторить:
+ * таймауты, обрывы сети, 408/429/5xx от Google.
+ */
+function isRetryableUploadError(error: any): boolean {
+  const status = error?.response?.status || error?.status || error?.code;
+  if ([408, 429, 500, 502, 503, 504].includes(Number(status))) {
+    return true;
+  }
+  const message = String(error?.message || "");
+  return /request timeout|error 408|timed?\s?out|ETIMEDOUT|ECONNRESET|EPIPE|socket hang up|EAI_AGAIN|network|backend error/i.test(message);
+}
 
 /**
  * Автоматически публикует запланированные видео
@@ -47,6 +60,10 @@ export async function autoPublishScheduledVideos() {
         if (!user || !user.youtubeSettings?.accessToken) {
           throw new Error("YouTube not authorized for this user");
         }
+
+        // Повторная попытка после ошибки или восстановление зависшей публикации:
+        // предыдущая загрузка могла реально дойти до YouTube
+        const isRetry = (video.retryCount || 0) > 0 || video.status === "publishing";
 
         // Обновляем статус на "publishing"
         await updateScheduledVideoStatus(userId, video.id, "publishing");
@@ -119,6 +136,22 @@ export async function autoPublishScheduledVideos() {
           // No specific channel requested, use user's default YouTube settings
           const result = await getUserYouTubeClient(user.googleId);
           oauth2Client = result.oauth2Client;
+        }
+
+        // Защита от дублей: если это ретрай, сначала проверяем, не долетело ли
+        // видео до YouTube в прошлой попытке (напр. 408 после фактической загрузки)
+        if (isRetry) {
+          const existing = await findRecentUploadByTitle(oauth2Client, video.title);
+          if (existing) {
+            console.log(`🔎 Video already on YouTube (${existing.videoId}), marking as published without re-upload`);
+            await updateScheduledVideoStatus(userId, video.id, "published", {
+              publishedAt: new Date(),
+              youtubeVideoId: existing.videoId,
+              youtubeVideoUrl: existing.videoUrl,
+            });
+            results.success++;
+            continue;
+          }
         }
 
         // Определяем путь к видео
@@ -252,14 +285,28 @@ export async function autoPublishScheduledVideos() {
       } catch (error: any) {
         console.error(`❌ Failed to publish video ${video.id}:`, error);
 
-        await updateScheduledVideoStatus(userId, video.id, "failed", {
-          errorMessage: error.message || "Unknown error",
-        });
+        const message = (error?.message || "Unknown error").substring(0, 500);
+        const attempts = video.retryCount || 0;
+
+        if (isRetryableUploadError(error) && attempts < 2) {
+          // Временная ошибка (таймаут, 5xx): возвращаем в planned на повтор через 10 минут
+          const nextAttemptAt = new Date(Date.now() + 10 * 60 * 1000);
+          console.log(`🔁 Retryable error, re-planning video ${video.id} (attempt ${attempts + 1}/2) for ${nextAttemptAt.toISOString()}`);
+          await updateScheduledVideoStatus(userId, video.id, "planned", {
+            errorMessage: `Retry ${attempts + 1}/2 after: ${message}`,
+            scheduledAt: nextAttemptAt,
+            retryCount: attempts + 1,
+          });
+        } else {
+          await updateScheduledVideoStatus(userId, video.id, "failed", {
+            errorMessage: message,
+          });
+        }
 
         results.failed++;
         results.errors.push({
           videoId: video.id,
-          error: error.message || "Unknown error",
+          error: message,
         });
       }
     }

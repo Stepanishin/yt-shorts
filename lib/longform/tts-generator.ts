@@ -4,6 +4,17 @@ import * as os from "os";
 import { uploadVideoToSpaces, isSpacesConfigured } from "@/lib/storage/spaces-client";
 
 /**
+ * Voice direction for the documentary narrator.
+ * gpt-4o-mini-tts follows these instructions instead of reading them aloud
+ * (the old approach prefixed the text itself, which tts-1 could narrate).
+ */
+const NARRATOR_INSTRUCTIONS =
+  "Habla en español de España con acento castellano. " +
+  "Eres el narrador de un documental dramático de televisión sobre secretos de famosos. " +
+  "Tono grave y envolvente, ritmo pausado con pequeñas pausas dramáticas antes de las revelaciones. " +
+  "Transmite suspense e intriga, como si contaras un secreto prohibido.";
+
+/**
  * Generate TTS audio from text using OpenAI TTS API.
  * Returns URL to the audio file (Spaces or local).
  */
@@ -11,11 +22,11 @@ export async function generateTTSAudio(
   text: string,
   options: {
     voice?: "onyx" | "nova" | "alloy" | "echo" | "fable" | "shimmer";
-    model?: "tts-1" | "tts-1-hd";
+    model?: "gpt-4o-mini-tts" | "tts-1" | "tts-1-hd";
     jobId: string;
   }
 ): Promise<{ audioUrl: string; localPath: string; durationSeconds: number }> {
-  const { voice = "onyx", model = "tts-1-hd", jobId } = options;
+  const { voice = "onyx", model = "gpt-4o-mini-tts", jobId } = options;
 
   console.log(`🎙️ Generating TTS audio (${model}, voice: ${voice}, ${text.length} chars)...`);
 
@@ -26,8 +37,8 @@ export async function generateTTSAudio(
     model,
     voice,
     input: text,
+    instructions: NARRATOR_INSTRUCTIONS,
     response_format: "mp3",
-    speed: 0.95, // Slightly slower for dramatic effect
   });
 
   // Save to temp file
@@ -62,7 +73,7 @@ export async function generateSceneTTS(
   scenes: { sceneNumber: number; narrationText: string }[],
   options: {
     voice?: "onyx" | "nova" | "alloy" | "echo" | "fable" | "shimmer";
-    model?: "tts-1" | "tts-1-hd";
+    model?: "gpt-4o-mini-tts" | "tts-1" | "tts-1-hd";
     jobId: string;
   }
 ): Promise<{
@@ -71,7 +82,7 @@ export async function generateSceneTTS(
   totalDuration: number;
   sceneDurations: { sceneNumber: number; startTime: number; endTime: number; duration: number }[];
 }> {
-  const { voice = "onyx", model = "tts-1-hd", jobId } = options;
+  const { voice = "onyx", model = "gpt-4o-mini-tts", jobId } = options;
   const tmpDir = os.tmpdir();
 
   console.log(`🎙️ Generating TTS for ${scenes.length} scenes...`);
@@ -86,16 +97,12 @@ export async function generateSceneTTS(
   for (const scene of scenes) {
     console.log(`  Scene ${scene.sceneNumber}: ${scene.narrationText.length} chars...`);
 
-    // Force Spanish pronunciation by wrapping text in Spanish context.
-    // This prevents the TTS from switching to English on foreign names.
-    const spanishInput = `[Habla en español de España, con acento castellano.] ${scene.narrationText}`;
-
     const response = await openai.audio.speech.create({
       model,
       voice,
-      input: spanishInput,
+      input: scene.narrationText,
+      instructions: NARRATOR_INSTRUCTIONS,
       response_format: "mp3",
-      speed: 0.95,
     });
 
     const scenePath = path.join(tmpDir, `longform_scene_${jobId}_${scene.sceneNumber}.mp3`);

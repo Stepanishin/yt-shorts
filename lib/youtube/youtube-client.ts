@@ -190,6 +190,42 @@ export async function setVideoThumbnail(
 }
 
 /**
+ * Ищет уже загруженное видео канала по точному названию (за последние 48 часов).
+ * Используется перед повторной попыткой загрузки, чтобы не создать дубликат,
+ * когда предыдущая загрузка формально упала (напр. 408), но YouTube файл принял.
+ */
+export async function findRecentUploadByTitle(
+  oauth2Client: OAuth2Client,
+  title: string
+): Promise<{ videoId: string; videoUrl: string } | null> {
+  try {
+    const res = await youtube.search.list({
+      auth: oauth2Client,
+      part: ["snippet"],
+      forMine: true,
+      type: ["video"],
+      q: title,
+      maxResults: 5,
+      publishedAfter: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+    });
+
+    const normalize = (s: string) =>
+      s.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").trim();
+
+    for (const item of res.data.items || []) {
+      const videoId = item.id?.videoId;
+      if (videoId && normalize(item.snippet?.title || "") === normalize(title)) {
+        return { videoId, videoUrl: `https://www.youtube.com/watch?v=${videoId}` };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.warn("Duplicate check failed (continuing with upload):", (error as Error).message);
+    return null;
+  }
+}
+
+/**
  * Публикует комментарий от имени канала под видео.
  * Требует scope youtube.force-ssl (канал, авторизованный до добавления
  * этого scope, нужно переподключить в настройках).

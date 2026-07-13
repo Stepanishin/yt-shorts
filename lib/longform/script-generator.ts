@@ -14,22 +14,43 @@ export interface LongformScript {
   estimatedDurationMinutes: number;
 }
 
+export interface RealFact {
+  title: string;
+  summary: string;
+  publishedDate?: string;
+}
+
 /**
  * Generate a full biographical script for a long-form video (5-8 minutes).
- * GPT-5 uses its own knowledge — no external research needed.
+ * Grounded on real ingested news when available; model knowledge fills the biography.
  */
 export async function generateScript(
   celebrityName: string,
-  context?: string // optional: what the viral Short was about
+  context?: string, // optional: what the viral Short was about
+  realFacts: RealFact[] = [] // real news items about this celebrity from our own DB
 ): Promise<LongformScript> {
-  console.log(`📜 Generating script for: ${celebrityName}...`);
+  console.log(`📜 Generating script for: ${celebrityName} (${realFacts.length} real facts)...`);
 
   const OpenAI = (await import("openai")).default;
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+  const factsBlock = realFacts.length
+    ? `
+HECHOS REALES VERIFICADOS (noticias reales de prensa sobre ${celebrityName}):
+${realFacts
+  .map((f, i) => `${i + 1}. [${f.publishedDate || "s.f."}] ${f.title} — ${f.summary.substring(0, 250)}`)
+  .join("\n")}
+
+USO OBLIGATORIO DE LOS HECHOS:
+- Estos hechos son tu material MÁS VALIOSO: son recientes y verificados. Integra los más dramáticos en las escenas centrales.
+- La actualidad del final del video debe basarse en los hechos más recientes de esta lista.
+- Puedes complementar con hechos biográficos ampliamente conocidos, pero NUNCA contradecir esta lista.
+`
+    : "";
+
   const prompt = `Genera un guión completo para un video biográfico de YouTube (5-8 minutos) sobre ${celebrityName}.
 ${context ? `\nContexto adicional (de un Short viral): ${context}` : ""}
-
+${factsBlock}
 OBJETIVO: Contar la historia de vida de ${celebrityName} como si fuera una INVESTIGACIÓN PERIODÍSTICA de prensa del corazón. Enfocarse en ESCÁNDALOS, SECRETOS, CONFLICTOS, TRAGEDIAS, TRAICIONES y DRAMAS FAMILIARES. El espectador debe quedarse enganchado porque quiere saber MÁS detalles oscuros y secretos ocultos. Estilo: mezcla de documental de crímenes + prensa amarilla española.
 
 ESTRUCTURA: Devuelve un JSON con exactamente este formato (sin markdown, sin backticks):
@@ -53,7 +74,10 @@ REQUISITOS DEL GUIÓN:
 - Duración total estimada: 5-8 minutos de narración hablada
 - MÍNIMO 1000 palabras de narración total. NUNCA menos de 1000 palabras.
 - Cada escena: 35-55 segundos de narración (80-120 palabras por escena)
-- SOLO hechos ampliamente conocidos y verificables — NO inventar fechas ni eventos
+- SOLO hechos ampliamente conocidos y verificables — NO inventar fechas, citas ni eventos. Si no estás seguro de un dato concreto, omítelo o usa formulaciones como "según la prensa" o "se rumoreó que". NUNCA presentar un rumor como hecho confirmado.
+- RETENCIÓN (crítico para YouTube): cada escena debe terminar con un MINI-CLIFFHANGER — una frase que abra una pregunta que solo se responde en la escena siguiente. Ejemplos: "Pero lo que pasó después nadie lo vio venir.", "Y entonces llegó la llamada que lo cambió todo.", "Lo que descubrió en ese camerino aún lo persigue."
+- BUCLE ABIERTO: en la escena 1 promete UN secreto concreto ("al final entenderás por qué...") y ciérralo SOLO en las 2 últimas escenas. El espectador debe quedarse hasta el final para obtener la respuesta.
+- Usa citas textuales reales entre comillas cuando existan (declaraciones a la prensa, frases célebres). Una cita real por 2-3 escenas hace la narración mucho más viva.
 - Narrativa cronológica: infancia → carrera → momentos clave → actualidad/legado
 - Tono: como un documental emotivo de televisión española
 - Frases CORTAS y CONTUNDENTES. Una idea por frase.

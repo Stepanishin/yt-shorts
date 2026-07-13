@@ -37,6 +37,8 @@ export interface ScheduledVideo {
   thumbnailUrl?: string; // Optional: custom thumbnail URL/path for longform videos
   categoryId?: string; // YouTube category ID (e.g. "24" = Entertainment, "25" = News & Politics)
   commentText?: string; // Optional: comment to post from the channel right after publishing (engagement)
+  publishingStartedAt?: Date; // When the status switched to "publishing" — used to recover stuck publishes
+  retryCount?: number; // Publish retry attempts (retryable errors re-plan the video up to a limit)
 }
 
 export interface User {
@@ -327,7 +329,7 @@ export async function updateScheduledVideoStatus(
   userId: string,
   videoId: string,
   status: ScheduledVideo["status"],
-  updates?: Partial<Pick<ScheduledVideo, "publishedAt" | "youtubeVideoId" | "youtubeVideoUrl" | "errorMessage" | "scheduledAt">>
+  updates?: Partial<Pick<ScheduledVideo, "publishedAt" | "youtubeVideoId" | "youtubeVideoUrl" | "errorMessage" | "scheduledAt" | "retryCount">>
 ): Promise<void> {
   const db = await getMongoDatabase();
 
@@ -336,12 +338,17 @@ export async function updateScheduledVideoStatus(
     updatedAt: new Date(),
   };
 
+  if (status === "publishing") {
+    updateFields["scheduledVideos.$.publishingStartedAt"] = new Date();
+  }
+
   if (updates) {
     if (updates.publishedAt) updateFields["scheduledVideos.$.publishedAt"] = updates.publishedAt;
     if (updates.youtubeVideoId) updateFields["scheduledVideos.$.youtubeVideoId"] = updates.youtubeVideoId;
     if (updates.youtubeVideoUrl) updateFields["scheduledVideos.$.youtubeVideoUrl"] = updates.youtubeVideoUrl;
     if (updates.errorMessage) updateFields["scheduledVideos.$.errorMessage"] = updates.errorMessage;
     if (updates.scheduledAt) updateFields["scheduledVideos.$.scheduledAt"] = updates.scheduledAt;
+    if (updates.retryCount !== undefined) updateFields["scheduledVideos.$.retryCount"] = updates.retryCount;
   }
 
   // Поддерживаем как ObjectId так и другие форматы userId
@@ -372,17 +379,26 @@ export async function deleteScheduledVideo(userId: string, videoId: string): Pro
   );
 }
 
+// A video stuck in "publishing" longer than this is considered crashed and gets retried
+const STUCK_PUBLISHING_MS = 30 * 60 * 1000;
+
 export async function getScheduledVideosForPublishing(): Promise<Array<{ userId: string; video: ScheduledVideo; user: User }>> {
   const db = await getMongoDatabase();
 
   const now = new Date();
+  const stuckBefore = new Date(now.getTime() - STUCK_PUBLISHING_MS);
 
-  // Находим всех пользователей, у которых есть запланированные видео, готовые к публикации
+  // Находим всех пользователей, у которых есть запланированные видео, готовые к публикации,
+  // либо зависшие в "publishing" (процесс умер во время загрузки)
   const users = await db.collection<User>(COLLECTION_NAME).find({
     scheduledVideos: {
       $elemMatch: {
-        status: "planned",
-        scheduledAt: { $lte: now }
+        $or: [
+          { status: "planned", scheduledAt: { $lte: now } },
+          { status: "publishing", publishingStartedAt: { $lte: stuckBefore } },
+          // Records stuck before publishingStartedAt existed
+          { status: "publishing", publishingStartedAt: { $exists: false } },
+        ],
       }
     }
   }).toArray();
@@ -392,7 +408,15 @@ export async function getScheduledVideosForPublishing(): Promise<Array<{ userId:
   for (const user of users) {
     if (user.scheduledVideos) {
       for (const video of user.scheduledVideos) {
-        if (video.status === "planned" && new Date(video.scheduledAt) <= now) {
+        const isDue = video.status === "planned" && new Date(video.scheduledAt) <= now;
+        const isStuck =
+          video.status === "publishing" &&
+          (!video.publishingStartedAt || new Date(video.publishingStartedAt) <= stuckBefore);
+
+        if (isDue || isStuck) {
+          if (isStuck) {
+            console.log(`⚠️ Recovering video ${video.id} stuck in "publishing" since ${video.publishingStartedAt ? new Date(video.publishingStartedAt).toISOString() : "unknown time"}`);
+          }
           result.push({
             userId: user._id!.toString(),
             video,

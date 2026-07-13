@@ -69,18 +69,27 @@ export async function renderLongformVideo(
 
   console.log(`🎬 Rendering long-form video (${scenes.length} scenes)...`);
 
-  // Step 1: Generate scene clips
+  // Step 1: Generate scene clips.
+  // Every clip except the last gets an extra CROSSFADE_DURATION tail: the
+  // crossfade consumes it, so the visible timeline stays equal to the sum of
+  // real durations and narration/subtitles remain in sync.
   const sceneClipPaths: string[] = [];
-  for (const scene of scenes) {
+  for (let i = 0; i < scenes.length; i++) {
+    const scene = scenes[i];
+    const isLast = i === scenes.length - 1;
     const clipPath = path.join(tmpDir, `longform_clip_${jobId}_${scene.sceneNumber}.mp4`);
-    await renderSceneClip(scene, clipPath);
+    await renderSceneClip(scene, clipPath, isLast ? 0 : CROSSFADE_DURATION);
     sceneClipPaths.push(clipPath);
   }
 
-  // Step 2: Concatenate scenes
-  console.log(`🔗 Concatenating ${sceneClipPaths.length} scene clips...`);
+  // Step 2: Concatenate scenes with crossfades
+  console.log(`🔗 Concatenating ${sceneClipPaths.length} scene clips with crossfades...`);
   const concatPath = path.join(tmpDir, `longform_concat_${jobId}.mp4`);
-  await concatenateSceneClips(sceneClipPaths, concatPath);
+  await concatenateWithCrossfades(
+    sceneClipPaths,
+    scenes.map((s) => s.duration),
+    concatPath
+  );
 
   // Step 3: Add subtitles + audio
   console.log(`📝 Adding subtitles and audio...`);
@@ -127,9 +136,11 @@ export async function renderLongformVideo(
  */
 async function renderSceneClip(
   scene: RenderSceneInput,
-  outputPath: string
+  outputPath: string,
+  extraTail = 0 // extra seconds consumed by the crossfade into the next scene
 ): Promise<void> {
-  const { imagePath, duration, sceneNumber, kenBurnsEffect } = scene;
+  const { imagePath, duration: realDuration, sceneNumber, kenBurnsEffect } = scene;
+  const duration = realDuration + extraTail;
   const totalFrames = Math.ceil(duration * FPS);
 
   // Y position biased toward upper part of image where faces typically are.
@@ -152,29 +163,49 @@ async function renderSceneClip(
       break;
   }
 
-  // Scale up, crop from TOP (y=0) to keep faces, then apply Ken Burns
-  // Use ultrafast preset and lower intermediate resolution to save memory on server
-  const cmd = `ffmpeg -y -loop 1 -i "${imagePath}" -vf "scale=${WIDTH * 2}:${HEIGHT * 2}:force_original_aspect_ratio=increase,crop=${WIDTH * 2}:${HEIGHT * 2}:0:0,${zoompanFilter}" -t ${duration} -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -an "${outputPath}"`;
+  // Scale up, crop from TOP (y=0) to keep faces, then apply Ken Burns.
+  // Intermediate clips use CRF 18: they get re-encoded once more in the final
+  // pass, so they need enough quality headroom to survive the second encode.
+  const cmd = `ffmpeg -y -loop 1 -i "${imagePath}" -vf "scale=${WIDTH * 2}:${HEIGHT * 2}:force_original_aspect_ratio=increase,crop=${WIDTH * 2}:${HEIGHT * 2}:0:0,${zoompanFilter}" -t ${duration} -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -an "${outputPath}"`;
 
   await execWithFFmpegEnv(cmd);
 }
 
 /**
- * Concatenate scene clips using FFmpeg concat demuxer
+ * Concatenate scene clips with crossfade transitions (xfade).
+ *
+ * Every clip except the last is rendered with an extra CROSSFADE_DURATION
+ * tail. The k-th crossfade starts at offset = sum of REAL durations of clips
+ * 1..k, so the output length equals the sum of real durations and stays in
+ * sync with the TTS narration.
  */
-async function concatenateSceneClips(
+async function concatenateWithCrossfades(
   clipPaths: string[],
+  realDurations: number[],
   outputPath: string
 ): Promise<void> {
-  const listPath = outputPath + ".list.txt";
-  const listContent = clipPaths.map((p) => `file '${p}'`).join("\n");
-  fs.writeFileSync(listPath, listContent);
+  if (clipPaths.length === 1) {
+    fs.copyFileSync(clipPaths[0], outputPath);
+    return;
+  }
 
-  await execWithFFmpegEnv(
-    `ffmpeg -y -f concat -safe 0 -i "${listPath}" -c copy "${outputPath}"`
-  );
+  const inputs = clipPaths.map((p) => `-i "${p}"`).join(" ");
 
-  try { fs.unlinkSync(listPath); } catch {}
+  const filters: string[] = [];
+  let prevLabel = "0:v";
+  let offset = 0;
+  for (let i = 1; i < clipPaths.length; i++) {
+    offset += realDurations[i - 1];
+    const outLabel = i === clipPaths.length - 1 ? "vout" : `v${i}`;
+    filters.push(
+      `[${prevLabel}][${i}:v]xfade=transition=fade:duration=${CROSSFADE_DURATION}:offset=${offset.toFixed(3)}[${outLabel}]`
+    );
+    prevLabel = outLabel;
+  }
+
+  const cmd = `ffmpeg -y ${inputs} -filter_complex "${filters.join(";")}" -map "[vout]" -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -an "${outputPath}"`;
+
+  await execWithFFmpegEnv(cmd);
 }
 
 /**
@@ -213,15 +244,26 @@ async function addSubtitlesAndAudio(options: {
   // Use ASS subtitles filter for better styling control
   // subtitles filter handles word wrap and positioning automatically
   const escapedSrtPath = srtPath.replace(/'/g, "'\\''").replace(/:/g, "\\:");
-  const subtitleFilter = `subtitles='${escapedSrtPath}':force_style='FontSize=22,FontName=Arial,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,Shadow=1,Alignment=2,MarginV=60'`;
+  const subtitleFilter = `subtitles='${escapedSrtPath}':force_style='FontSize=24,FontName=Arial,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,Shadow=1,Alignment=2,MarginV=60'`;
+
+  // Bitrate-controlled final encode: ~8 Mbps peak keeps a 7-minute 1080p video
+  // around 60-80 MB instead of 350+ MB (which made YouTube uploads time out)
+  const videoEncode = `-c:v libx264 -preset fast -crf 23 -maxrate 8M -bufsize 16M -pix_fmt yuv420p`;
 
   let cmd: string;
 
   if (backgroundMusicPath && fs.existsSync(backgroundMusicPath)) {
     const musicVolume = backgroundMusicVolume.toFixed(2);
-    cmd = `ffmpeg -y -i "${videoPath}" -i "${ttsAudioPath}" -i "${backgroundMusicPath}" -filter_complex "[1:a]volume=1.0[tts];[2:a]volume=${musicVolume},aloop=loop=-1:size=2e+09[music];[tts][music]amix=inputs=2:duration=shortest[aout];[0:v]${subtitleFilter}[vout]" -map "[vout]" -map "[aout]" -c:v libx264 -preset ultrafast -c:a aac -b:a 192k -shortest "${outputPath}"`;
+    // normalize=0: keep TTS at full volume (default amix halves each input).
+    // sidechaincompress: duck the music under the narrator's voice.
+    const audioFilter =
+      `[1:a]asplit=2[tts][ttsSC];` +
+      `[2:a]volume=${musicVolume},aloop=loop=-1:size=2e+09[music];` +
+      `[music][ttsSC]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=500[ducked];` +
+      `[tts][ducked]amix=inputs=2:duration=first:dropout_transition=3:normalize=0[aout]`;
+    cmd = `ffmpeg -y -i "${videoPath}" -i "${ttsAudioPath}" -i "${backgroundMusicPath}" -filter_complex "${audioFilter};[0:v]${subtitleFilter}[vout]" -map "[vout]" -map "[aout]" ${videoEncode} -c:a aac -b:a 160k -shortest "${outputPath}"`;
   } else {
-    cmd = `ffmpeg -y -i "${videoPath}" -i "${ttsAudioPath}" -filter_complex "[0:v]${subtitleFilter}[vout]" -map "[vout]" -map 1:a -c:v libx264 -preset ultrafast -c:a aac -b:a 192k -shortest "${outputPath}"`;
+    cmd = `ffmpeg -y -i "${videoPath}" -i "${ttsAudioPath}" -filter_complex "[0:v]${subtitleFilter}[vout]" -map "[vout]" -map 1:a ${videoEncode} -c:a aac -b:a 160k -shortest "${outputPath}"`;
   }
 
   await execWithFFmpegEnv(cmd);

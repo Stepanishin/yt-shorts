@@ -150,6 +150,25 @@ export const findRecentlyUsedNewsTitles = async (days = 7): Promise<string[]> =>
 };
 
 /**
+ * All ingested news mentioning a celebrity (any status), newest first.
+ * Used by the longform pipeline as a source of real facts and real photos.
+ */
+export const findNewsAboutCelebrity = async (
+  celebrityName: string,
+  limit = 12
+): Promise<StoredNewsCandidate[]> => {
+  const collection = await getNewsCandidateCollection();
+  const escaped = celebrityName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(escaped, "i");
+  return collection
+    .find(
+      { $or: [{ title: regex }, { summary: regex }] },
+      { sort: { publishedDate: -1 }, limit }
+    )
+    .toArray();
+};
+
+/**
  * Find news candidate by ID
  */
 export const findNewsCandidateById = async (id: unknown) => {

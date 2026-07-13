@@ -7,6 +7,7 @@ import { renderLongformVideo, assignKenBurnsEffects } from "./video-renderer";
 import { generateThumbnail } from "./thumbnail-generator";
 import { generateLongformMetadata } from "./metadata-generator";
 import { addScheduledVideo } from "@/lib/db/users";
+import { findNewsAboutCelebrity } from "@/lib/ingest-news/storage";
 import { selectRandomFromArray } from "@/lib/auto-generation/audio-processor";
 import * as fs from "fs";
 
@@ -20,6 +21,7 @@ export interface LongformGenerationOptions {
   scheduledAt: Date;
   youtubeChannelId?: string;
   youtubePrivacyStatus?: "public" | "private" | "unlisted";
+  onProgress?: (step: string) => void | Promise<void>; // background job progress reporting
 }
 
 export interface LongformGenerationResult {
@@ -59,7 +61,12 @@ export async function generateLongformVideo(
     scheduledAt,
     youtubeChannelId,
     youtubePrivacyStatus = "public",
+    onProgress,
   } = options;
+
+  const progress = async (step: string) => {
+    try { await onProgress?.(step); } catch { /* progress reporting must never break generation */ }
+  };
 
   console.log(`\n${"=".repeat(60)}`);
   console.log(`🎬 LONGFORM VIDEO GENERATION: ${celebrityName}`);
@@ -69,12 +76,34 @@ export async function generateLongformVideo(
   const tempFiles: string[] = []; // Track temp files for cleanup
 
   try {
+    // ==================== STEP 0: Real Facts from Own News DB ====================
+    await progress("0/9 Collecting real facts");
+    console.log(`[${jobId}] Step 0/9: Collecting real facts from ingested news...`);
+    let realNews: Awaited<ReturnType<typeof findNewsAboutCelebrity>> = [];
+    try {
+      realNews = await findNewsAboutCelebrity(celebrityName, 12);
+    } catch (e) {
+      console.warn("Failed to load news facts, script will use model knowledge only:", (e as Error).message);
+    }
+    const realFacts = realNews.map((n) => ({
+      title: n.editedTitle || n.title,
+      summary: n.editedSummary || n.summary,
+      publishedDate: n.publishedDate ? new Date(n.publishedDate).toISOString().slice(0, 10) : undefined,
+    }));
+    // Real photos of this exact celebrity from ingested articles — best image source
+    const newsImageUrls = [...new Set(
+      realNews.map((n) => n.editedImageUrl || n.imageUrl).filter(Boolean)
+    )] as string[];
+    console.log(`Facts: ${realFacts.length} news items, ${newsImageUrls.length} real photos\n`);
+
     // ==================== STEP 1: Generate Script ====================
+    await progress("1/9 Generating script");
     console.log(`[${jobId}] Step 1/9: Generating script...`);
-    const script = await generateScript(celebrityName, context);
+    const script = await generateScript(celebrityName, context, realFacts);
     console.log(`Script: ${script.scenes.length} scenes, ~${script.totalWordCount} words\n`);
 
     // ==================== STEP 2: Generate TTS ====================
+    await progress("2/9 Generating TTS audio");
     console.log(`[${jobId}] Step 2/9: Generating TTS audio...`);
     const ttsResult = await generateSceneTTS(script.scenes, {
       voice: ttsVoice,
@@ -84,6 +113,7 @@ export async function generateLongformVideo(
     console.log(`TTS: ${ttsResult.totalDuration.toFixed(1)}s total\n`);
 
     // ==================== STEP 3: Generate Subtitles ====================
+    await progress("3/9 Generating subtitles");
     console.log(`[${jobId}] Step 3/9: Generating subtitles...`);
     let subtitles;
     try {
@@ -102,6 +132,7 @@ export async function generateLongformVideo(
 
     // ==================== STEP 4: Find Images ====================
     // Request 2-3 images per scene for more frequent photo changes (~10-15s each)
+    await progress("4/9 Finding images");
     console.log(`[${jobId}] Step 4/9: Finding images (2-3 per scene)...`);
     const expandedScenes = script.scenes.flatMap((s, i) => [
       { sceneNumber: s.sceneNumber * 10, imageSearchQuery: s.imageSearchQuery },
@@ -110,10 +141,11 @@ export async function generateLongformVideo(
         ? [{ sceneNumber: s.sceneNumber * 10 + 2, imageSearchQuery: `${celebrityName} foto retrato` }]
         : []),
     ]);
-    const images = await findImagesForScenes(expandedScenes, celebrityName);
+    const images = await findImagesForScenes(expandedScenes, celebrityName, newsImageUrls);
     console.log();
 
     // ==================== STEP 5: Download Images ====================
+    await progress("5/9 Downloading images");
     console.log(`[${jobId}] Step 5/9: Downloading images...`);
     const imagePaths: string[] = [];
     for (let i = 0; i < images.length; i++) {
@@ -133,6 +165,7 @@ export async function generateLongformVideo(
     console.log(`Downloaded ${imagePaths.filter(Boolean).length} images\n`);
 
     // ==================== STEP 6: Render Video ====================
+    await progress("6/9 Rendering video");
     console.log(`[${jobId}] Step 6/9: Rendering video...`);
 
     // Split each scene into 2-3 sub-clips with different images
@@ -182,6 +215,7 @@ export async function generateLongformVideo(
     console.log(`Video: ${renderResult.duration.toFixed(1)}s\n`);
 
     // ==================== STEP 7: Generate Thumbnail ====================
+    await progress("7/9 Generating thumbnail");
     console.log(`[${jobId}] Step 7/9: Generating thumbnail...`);
     // Extract a short hook from the video title for thumbnail
     const hookText = script.videoTitle
@@ -200,6 +234,7 @@ export async function generateLongformVideo(
     console.log();
 
     // ==================== STEP 8: Generate Metadata ====================
+    await progress("8/9 Generating metadata");
     console.log(`[${jobId}] Step 8/9: Generating YouTube metadata...`);
     const scenesWithTimes = script.scenes.map((s, i) => ({
       ...s,
@@ -213,6 +248,7 @@ export async function generateLongformVideo(
     console.log();
 
     // ==================== STEP 9: Schedule Upload ====================
+    await progress("9/9 Scheduling upload");
     console.log(`[${jobId}] Step 9/9: Scheduling YouTube upload...`);
     await addScheduledVideo(userId, {
       videoUrl: renderResult.videoUrl,
