@@ -199,22 +199,30 @@ export async function findRecentUploadByTitle(
   title: string
 ): Promise<{ videoId: string; videoUrl: string } | null> {
   try {
+    // Note: publishedAfter is NOT allowed together with forMine (YouTube API
+    // rejects it with "invalid argument"), so recency is filtered client-side
     const res = await youtube.search.list({
       auth: oauth2Client,
       part: ["snippet"],
       forMine: true,
       type: ["video"],
       q: title,
-      maxResults: 5,
-      publishedAfter: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+      maxResults: 10,
     });
 
     const normalize = (s: string) =>
       s.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").trim();
 
+    const cutoff = Date.now() - 48 * 60 * 60 * 1000;
+
     for (const item of res.data.items || []) {
       const videoId = item.id?.videoId;
-      if (videoId && normalize(item.snippet?.title || "") === normalize(title)) {
+      const publishedAt = item.snippet?.publishedAt ? new Date(item.snippet.publishedAt).getTime() : 0;
+      if (
+        videoId &&
+        publishedAt >= cutoff &&
+        normalize(item.snippet?.title || "") === normalize(title)
+      ) {
         return { videoId, videoUrl: `https://www.youtube.com/watch?v=${videoId}` };
       }
     }
