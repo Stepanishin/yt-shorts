@@ -1,6 +1,6 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
-import { getUserByGoogleId, upsertUserByGoogleId } from "./db/users";
+import { getUserLeanByGoogleId, upsertUserByGoogleId } from "./db/users";
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -52,8 +52,9 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token.googleId as string;
 
         // Загружаем актуальные данные пользователя из базы
+        // (лёгкая проекция без scheduledVideos — сессия проверяется на каждый запрос)
         try {
-          const dbUser = await getUserByGoogleId(token.googleId as string);
+          const dbUser = await getUserLeanByGoogleId(token.googleId as string);
           if (dbUser) {
             session.user.email = dbUser.email;
             session.user.name = dbUser.name;

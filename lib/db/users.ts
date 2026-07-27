@@ -63,6 +63,20 @@ export async function getUserByGoogleId(googleId: string): Promise<User | null> 
   return user;
 }
 
+/**
+ * Пользователь БЕЗ массива scheduledVideos (он может весить мегабайты).
+ * Для проверки сессии и любых мест, где нужны только профиль и кредиты:
+ * полный документ на каждый запрос сессии съедал лимит трафика Atlas M0.
+ */
+export async function getUserLeanByGoogleId(
+  googleId: string
+): Promise<Omit<User, "scheduledVideos"> | null> {
+  const db = await getMongoDatabase();
+  return db
+    .collection<User>(COLLECTION_NAME)
+    .findOne({ googleId }, { projection: { scheduledVideos: 0 } });
+}
+
 export async function getUserByEmail(email: string): Promise<User | null> {
   const db = await getMongoDatabase();
   const user = await db.collection<User>(COLLECTION_NAME).findOne({ email });
@@ -115,8 +129,10 @@ export async function upsertUserByGoogleId(
 ): Promise<User> {
   const db = await getMongoDatabase();
 
-  // Проверяем, существует ли пользователь
-  const existingUser = await getUserByGoogleId(googleId);
+  // Проверяем, существует ли пользователь (только _id, без тяжёлого документа)
+  const existingUser = await db
+    .collection<User>(COLLECTION_NAME)
+    .findOne({ googleId }, { projection: { _id: 1 } });
   const isNewUser = !existingUser;
 
   const result = await db.collection<User>(COLLECTION_NAME).findOneAndUpdate(
@@ -135,6 +151,8 @@ export async function upsertUserByGoogleId(
     {
       upsert: true,
       returnDocument: "after",
+      // Не гоняем массив scheduledVideos по сети при каждом логине
+      projection: { scheduledVideos: 0 },
     }
   );
 
@@ -388,20 +406,61 @@ export async function getScheduledVideosForPublishing(): Promise<Array<{ userId:
   const now = new Date();
   const stuckBefore = new Date(now.getTime() - STUCK_PUBLISHING_MS);
 
-  // Находим всех пользователей, у которых есть запланированные видео, готовые к публикации,
-  // либо зависшие в "publishing" (процесс умер во время загрузки)
-  const users = await db.collection<User>(COLLECTION_NAME).find({
-    scheduledVideos: {
-      $elemMatch: {
-        $or: [
-          { status: "planned", scheduledAt: { $lte: now } },
-          { status: "publishing", publishingStartedAt: { $lte: stuckBefore } },
-          // Records stuck before publishingStartedAt existed
-          { status: "publishing", publishingStartedAt: { $exists: false } },
+  // Находим пользователей с видео, готовыми к публикации, либо зависшими в
+  // "publishing". Важно: через агрегацию с $filter, чтобы по сети приходили
+  // только сами видео к публикации, а не документы пользователей целиком
+  // (массив scheduledVideos весит мегабайты и выедал лимит трафика Atlas)
+  const dueVideoCond = {
+    $or: [
+      {
+        $and: [
+          { $eq: ["$$v.status", "planned"] },
+          { $lte: ["$$v.scheduledAt", now] },
         ],
-      }
-    }
-  }).toArray();
+      },
+      {
+        $and: [
+          { $eq: ["$$v.status", "publishing"] },
+          {
+            $or: [
+              { $lte: ["$$v.publishingStartedAt", stuckBefore] },
+              // Records stuck before publishingStartedAt existed
+              { $eq: [{ $type: "$$v.publishingStartedAt" }, "missing"] },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const users = (await db.collection<User>(COLLECTION_NAME).aggregate([
+    {
+      $match: {
+        scheduledVideos: {
+          $elemMatch: {
+            $or: [
+              { status: "planned", scheduledAt: { $lte: now } },
+              { status: "publishing", publishingStartedAt: { $lte: stuckBefore } },
+              { status: "publishing", publishingStartedAt: { $exists: false } },
+            ],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        googleId: 1,
+        email: 1,
+        name: 1,
+        credits: 1,
+        isAdmin: 1,
+        youtubeSettings: 1,
+        scheduledVideos: {
+          $filter: { input: "$scheduledVideos", as: "v", cond: dueVideoCond },
+        },
+      },
+    },
+  ]).toArray()) as unknown as User[];
 
   const result: Array<{ userId: string; video: ScheduledVideo; user: User }> = [];
 
