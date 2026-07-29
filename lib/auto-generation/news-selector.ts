@@ -4,11 +4,18 @@ import { scoreNewsCandidate, MIN_SCORE_THRESHOLD } from "./news-scorer";
 
 const MAX_SCORING_ATTEMPTS = 5; // Max news items to evaluate before giving up
 const RECENT_TITLES_DAYS = 7; // Look-back window for the anti-repeat rule
+// Second tier: when nothing reaches MIN_SCORE_THRESHOLD, publish the best
+// candidate of this round with at least this score instead of leaving the
+// slot empty. Real junk (<= 4) is still never published via scoring.
+const SALVAGE_SCORE_THRESHOLD = 5;
 
 /**
- * Select next news item for generation
- * Uses AI scoring to filter out low-viral-potential news
- * Reserves the news item in the database
+ * Select next news item for generation.
+ * Two-tier selection:
+ *  1. Preferred: first candidate with score >= MIN_SCORE_THRESHOLD.
+ *  2. Salvage: best candidate of the evaluated batch with score >= SALVAGE_SCORE_THRESHOLD.
+ *  3. Last resort: next unscored candidate (only reached when scoring produced nothing).
+ * Reserves the returned news item in the database.
  */
 export async function selectNextNews(): Promise<StoredNewsCandidate | undefined> {
   console.log("Selecting next news candidate (with AI scoring)...");
@@ -22,6 +29,8 @@ export async function selectNextNews(): Promise<StoredNewsCandidate | undefined>
     console.warn("Failed to load recent titles for anti-repeat, scoring without them:", error);
   }
 
+  const evaluated: { news: StoredNewsCandidate; score: number }[] = [];
+
   for (let attempt = 1; attempt <= MAX_SCORING_ATTEMPTS; attempt++) {
     const news = await reserveNextNewsCandidate({
       language: "es",
@@ -29,8 +38,8 @@ export async function selectNextNews(): Promise<StoredNewsCandidate | undefined>
     });
 
     if (!news) {
-      console.warn("No news candidates available");
-      return undefined;
+      console.warn("No more news candidates available, moving to salvage tier");
+      break;
     }
 
     console.log(`\n📰 Attempt ${attempt}/${MAX_SCORING_ATTEMPTS}`);
@@ -47,13 +56,31 @@ export async function selectNextNews(): Promise<StoredNewsCandidate | undefined>
       return news;
     }
 
-    // Reject low-scoring news — mark as rejected so it's not picked again
-    console.log(`❌ News rejected (score ${score.score} < ${MIN_SCORE_THRESHOLD}), trying next...`);
+    evaluated.push({ news, score: score.score });
+
+    // Reject low-scoring news — may be salvaged below if nothing better shows up
+    console.log(`❌ News below threshold (score ${score.score} < ${MIN_SCORE_THRESHOLD}), trying next...`);
     await markNewsCandidateStatus({
       id: news._id,
       status: "rejected",
       notes: `Auto-rejected: score ${score.score}/10 — ${score.reason}`,
     });
+  }
+
+  // Salvage tier: fixed publish slots are worth more than a perfect score.
+  // Take the best of what we just evaluated, if it's at least mediocre.
+  const salvage = evaluated
+    .filter((e) => e.score >= SALVAGE_SCORE_THRESHOLD)
+    .sort((a, b) => b.score - a.score)[0];
+
+  if (salvage) {
+    console.log(`🩹 Salvage: publishing best of batch (score ${salvage.score}/10): ${salvage.news.title}`);
+    await markNewsCandidateStatus({
+      id: salvage.news._id,
+      status: "reserved",
+      notes: `Salvaged: score ${salvage.score}/10 — best available, nothing scored >= ${MIN_SCORE_THRESHOLD}`,
+    });
+    return salvage.news;
   }
 
   console.warn(`⚠️ No suitable news found after ${MAX_SCORING_ATTEMPTS} attempts, using last available`);
