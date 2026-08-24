@@ -8,7 +8,7 @@ import { runRedditIngest } from "./ingest-reddit/run";
 
 const CHECK_INTERVAL = 10 * 60 * 1000; // 10 минут в миллисекундах
 const AUTO_GEN_CHECK_INTERVAL = 1 * 60 * 60 * 1000; // 1 часа в миллисекундах
-const NEWS_INGEST_INTERVAL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах (Spanish)
+const NEWS_INGEST_INTERVAL = 1.5 * 60 * 60 * 1000; // 1.5 часа (Spanish) — свежесть критична для #UltimaHora
 const NEWS_INGEST_INTERVAL_PT = 2 * 60 * 60 * 1000; // 2 часа в миллисекундах (Portuguese)
 const NEWS_INGEST_INTERVAL_EN = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах (English)
 const NEWS_INGEST_INTERVAL_SL = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах (Slovenian)

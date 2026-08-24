@@ -382,7 +382,7 @@ export async function generateNewsVideo(
     // Closing rhetorical question becomes a channel comment after publishing
     const closingQuestion = extractClosingQuestion(videoOverlayText);
     const commentText = closingQuestion
-      ? `${closingQuestion} 💬 Te leemos en los comentarios`
+      ? `${closingQuestion} 💬 Te leemos en los comentarios 👍 Dale like si te ha sorprendido`
       : undefined;
 
     const scheduledVideo = await addScheduledVideo(userId, {

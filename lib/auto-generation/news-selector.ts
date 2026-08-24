@@ -47,8 +47,11 @@ export async function selectNextNews(): Promise<StoredNewsCandidate | undefined>
     console.log(`Source: ${news.source}`);
     console.log(`Title: ${news.title}`);
 
-    // Score the news item
-    const score = await scoreNewsCandidate(news.title, news.summary, recentTitles);
+    // Score the news item (with freshness context)
+    const ageHours = news.publishedDate
+      ? (Date.now() - new Date(news.publishedDate).getTime()) / 3600000
+      : undefined;
+    const score = await scoreNewsCandidate(news.title, news.summary, recentTitles, ageHours);
     console.log(`🎯 Score: ${score.score}/10 — ${score.reason}`);
 
     if (score.shouldPublish) {
@@ -79,6 +82,7 @@ export async function selectNextNews(): Promise<StoredNewsCandidate | undefined>
       id: salvage.news._id,
       status: "reserved",
       notes: `Salvaged: score ${salvage.score}/10 — best available, nothing scored >= ${MIN_SCORE_THRESHOLD}`,
+      salvageScore: salvage.score,
     });
     return salvage.news;
   }

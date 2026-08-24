@@ -256,17 +256,28 @@ export const markNewsCandidateStatus = async ({
   id,
   status,
   notes,
+  salvageScore,
 }: {
   id: unknown;
   status: "used" | "rejected" | "pending" | "reserved" | "deleted";
   notes?: string;
+  salvageScore?: number; // set when item was published via salvage tier — survives status changes
 }) => {
   const collection = await getNewsCandidateCollection();
 
   const update: Record<string, unknown> = {
     status,
-    notes,
   };
+
+  // Only touch notes when explicitly provided — a status change without notes
+  // must not wipe existing ones (e.g. the "Salvaged" marker)
+  if (notes !== undefined) {
+    update.notes = notes;
+  }
+
+  if (salvageScore !== undefined) {
+    update.salvageScore = salvageScore;
+  }
 
   if (status === "used") {
     update.usedAt = new Date();
