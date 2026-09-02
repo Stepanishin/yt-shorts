@@ -45,7 +45,8 @@ ${recentTitles.slice(0, 40).map((t) => `- ${t}`).join("\n")}
 
 REGLAS ANTI-REPETICIÓN (estrictas):
 - Si la persona protagonista ya aparece 1 vez en la lista: RESTA 3 puntos, salvo giro nuevo realmente importante (muerte, ruptura confirmada, escándalo nuevo).
-- Si la persona protagonista ya aparece 2 O MÁS veces en la lista: score MÁXIMO 4, sin excepciones. Los datos del canal muestran que saturar con una persona diluye las views (Paula Echevarría: 12 videos en un mes).
+- Si la persona protagonista ya aparece 2 O MÁS veces en la lista: score MÁXIMO 4. Los datos del canal muestran que saturar con una persona diluye las views (Paula Echevarría: 12 videos en un mes).
+- EXCEPCIÓN MEGAEVENTO: si se trata de un megaevento en desarrollo (muerte de un monarca, sucesión al trono, funeral de Estado, boda real), los seguimientos con información NUEVA están permitidos durante los primeros 2-3 días sin penalización. La muerte del rey Harald de Noruega generó 5 videos seguidos de 100-310K views cada uno. Pasados 3 días del evento, aplica el anti-repetición normal.
 `
       : "";
 
@@ -78,13 +79,13 @@ Personas FLOP (a pesar de ser famosísimas):
 - Sara Carbonero — 14K
 
 REGLAS DE SCORING:
-- 9-10: Rostro clásico español (TV, cine, música, copla, flamenco, toreo) + drama personal fuerte y NUEVO (confesión amorosa, enfermedad, muerte, ruptura, escándalo, hijos)
-- 7-8: Famoso español conocido + tema emocional, O realeza española/británica con secreto o conflicto, O boda/embarazo/muerte de famoso español
+- 9-10: Rostro clásico español (TV, cine, música, copla, flamenco, toreo) + drama personal fuerte y NUEVO (confesión amorosa, enfermedad, muerte, ruptura, escándalo, hijos), O MEGAEVENTO de realeza EUROPEA aunque sea extranjera: muerte de un monarca, sucesión al trono, abdicación, boda real, funeral de Estado (datos reales: muerte del rey Harald de Noruega — 286K, la reina Sonia viuda — 310K, el nuevo rey Haakon — 286K)
+- 7-8: Famoso español conocido + tema emocional, O realeza española/europea con secreto, conflicto o drama familiar, O boda/embarazo/muerte de famoso español
 - 5-6: Famoso español medio con historia publicable pero sin gancho fuerte
-- 3-4: Estrella LATAM o internacional (aunque sea enorme: Messi, Shakira), O influencer/reality joven, O evento RUTINARIO/PROMOCIONAL de un nombre grande (estreno, documental, reaparición, cumpleaños)
-- 1-2: Persona desconocida, O extranjero sin conexión con España, O tema institucional/aburrido
+- 3-4: Estrella LATAM o internacional NO real (aunque sea enorme: Messi, Shakira), O influencer/reality joven, O evento RUTINARIO de realeza extranjera (agenda oficial, actos protocolarios, salud sin gravedad), O evento RUTINARIO/PROMOCIONAL de un nombre grande (estreno, documental, reaparición, cumpleaños)
+- 1-2: Persona desconocida, O extranjero sin conexión con España ni corona europea, O tema institucional/aburrido
 
-IMPORTANTE: el tamaño del nombre NO basta. Messi tiene 500M seguidores y hace 6K views en este canal. Lo que dispara views es: rostro conocido POR LA AUDIENCIA ESPAÑOLA MAYOR + EMOCIÓN PERSONAL (amor, enfermedad, muerte, ruptura, secreto, familia).
+IMPORTANTE: el tamaño del nombre NO basta. Messi tiene 500M seguidores y hace 6K views en este canal. Lo que dispara views es: rostro conocido POR LA AUDIENCIA ESPAÑOLA MAYOR + EMOCIÓN PERSONAL (amor, enfermedad, muerte, ruptura, secreto, familia). La única excepción son los MEGAEVENTOS de coronas europeas: muerte, sucesión, boda real — eso lo ve toda la audiencia aunque el monarca sea extranjero. Ojo: la agenda rutinaria de esas mismas coronas extranjeras sigue siendo 3-4.
 ${recentBlock}${ageBlock}
 Noticia a evaluar:
 Título: ${title}
