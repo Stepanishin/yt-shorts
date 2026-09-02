@@ -30,13 +30,23 @@ export async function scoreNewsCandidate(
   title: string,
   summary: string,
   recentTitles: string[] = [],
-  newsAgeHours?: number
+  newsAgeHours?: number,
+  trendingPersons: string[] = []
 ): Promise<NewsScore> {
   try {
     const OpenAI = (await import("openai")).default;
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+
+    const trendingBlock = trendingPersons.length
+      ? `
+PERSONAS EN TENDENCIA (tienen un video VIRAL en el canal en las últimas 48 horas):
+${trendingPersons.map((p) => `- ${p}`).join("\n")}
+
+REGLA DE SEGUIMIENTO DE ÉXITOS: si la noticia aporta información NUEVA sobre una de estas personas, SÚMALE 2 puntos y NO apliques las reglas anti-repetición (el algoritmo ya encontró audiencia para esa persona: la serie sobre el rey Harald hizo 5 videos seguidos de 286-310K). Límite: si esa persona ya aparece 3 o más veces en la lista de publicadas, vuelve a las reglas normales. Una noticia SIN información nueva (refrito de lo mismo) no recibe el bono.
+`
+      : "";
 
     const recentBlock = recentTitles.length
       ? `
@@ -80,13 +90,17 @@ Personas FLOP (a pesar de ser famosísimas):
 
 REGLAS DE SCORING:
 - 9-10: Rostro clásico español (TV, cine, música, copla, flamenco, toreo) + drama personal fuerte y NUEVO (confesión amorosa, enfermedad, muerte, ruptura, escándalo, hijos), O MEGAEVENTO de realeza EUROPEA aunque sea extranjera: muerte de un monarca, sucesión al trono, abdicación, boda real, funeral de Estado (datos reales: muerte del rey Harald de Noruega — 286K, la reina Sonia viuda — 310K, el nuevo rey Haakon — 286K)
-- 7-8: Famoso español conocido + tema emocional, O realeza española/europea con secreto, conflicto o drama familiar, O boda/embarazo/muerte de famoso español
+- 7-8: Famoso español conocido + tema emocional, O realeza española/europea con ESCÁNDALO, salud grave, ruptura o conflicto familiar REAL (dato: Juan Carlos reencuentro polémico en Marivent — 200K), O boda/embarazo/muerte de famoso español
 - 5-6: Famoso español medio con historia publicable pero sin gancho fuerte
-- 3-4: Estrella LATAM o internacional NO real (aunque sea enorme: Messi, Shakira), O influencer/reality joven, O evento RUTINARIO de realeza extranjera (agenda oficial, actos protocolarios, salud sin gravedad), O evento RUTINARIO/PROMOCIONAL de un nombre grande (estreno, documental, reaparición, cumpleaños)
+- 3-4: RUTINA de la realeza ESPAÑOLA (agenda oficial, looks y vestidos, actos protocolarios, viajes, vacaciones, entregas de premios — dato real: la rutina de Letizia hace 9K de mediana en 10 videos y Leonor 6K en 9, la mitad de la media del canal), O estrella LATAM o internacional NO real (aunque sea enorme: Messi, Shakira), O influencer/reality joven, O evento RUTINARIO de realeza extranjera, O evento RUTINARIO/PROMOCIONAL de un nombre grande (estreno, documental, reaparición, cumpleaños)
 - 1-2: Persona desconocida, O extranjero sin conexión con España ni corona europea, O tema institucional/aburrido
 
+TIPO DE HECHO (aplícalo a cualquier tema):
+- El núcleo de la noticia es un HECHO DURO — anuncia algo, hospitalización, muerte, ruptura, demanda, confesión: súmale 1 punto (datos: ANUNCIA 29K, HOSPITAL 25K, MUERTE 26K de mediana).
+- El núcleo es BLANDO — confirma rumores, asiste, reaparece, posa, luce un look: réstale 1 punto (dato: CONFIRMA 12K de mediana).
+
 IMPORTANTE: el tamaño del nombre NO basta. Messi tiene 500M seguidores y hace 6K views en este canal. Lo que dispara views es: rostro conocido POR LA AUDIENCIA ESPAÑOLA MAYOR + EMOCIÓN PERSONAL (amor, enfermedad, muerte, ruptura, secreto, familia). La única excepción son los MEGAEVENTOS de coronas europeas: muerte, sucesión, boda real — eso lo ve toda la audiencia aunque el monarca sea extranjero. Ojo: la agenda rutinaria de esas mismas coronas extranjeras sigue siendo 3-4.
-${recentBlock}${ageBlock}
+${recentBlock}${trendingBlock}${ageBlock}
 Noticia a evaluar:
 Título: ${title}
 Resumen: ${summary}

@@ -138,22 +138,22 @@ Título original: ${newsTitle}
 Resumen: ${newsSummary}
 
 FORMATO OBLIGATORIO:
-[emoji][Nombre Apellido] ([edad]) [EVENTO EN MAYÚSCULAS] (${currentYear}) #UltimaHora #España
+[emoji][Nombre Apellido] ([edad]) [EVENTO EN MAYÚSCULAS]
 
 REQUISITOS:
-- Empezar con emoji dramático: 😱💔🔥😢⚠️❌💥
+- Empezar con emoji dramático: 😱💔🔥😢⚠️❌
 - Nombre completo del famoso/a
 - Edad entre paréntesis si se conoce o se puede deducir razonablemente
 - Evento principal en MAYÚSCULAS (máximo 5-6 palabras): elegir el hecho MÁS impactante y concreto
-- Año actual (${currentYear})
-- Terminar con #UltimaHora #España
-- Máximo 100 caracteres en total
+- Verbos que funcionan: ANUNCIA, HOSPITALIZADA, MUERE, REVELA, ROMPE. Evita CONFIRMA.
+- SIN hashtags, SIN año. Solo emoji + nombre + edad + evento.
+- MÁXIMO 72 caracteres en total (el feed de Shorts corta ahí). Si te pasas, acorta el evento, no el nombre.
 
 EJEMPLOS EXACTOS del formato:
-- 😱Carmen Lomana (77) ICTUS GRAVE EN SU MANSIÓN (${currentYear}) #UltimaHora #España
-- 💔Ana Obregón (69) RUPTURA TOTAL CON SU FAMILIA (${currentYear}) #UltimaHora #España
-- 🔥Tamara Falcó (42) ABANDONA EL PROGRAMA EN DIRECTO (${currentYear}) #UltimaHora #España
-- 😢Isabel Pantoja (68) INGRESADA DE URGENCIA (${currentYear}) #UltimaHora #España
+- 😱Carmen Lomana (77) ICTUS GRAVE EN SU MANSIÓN
+- 💔Ana Obregón (69) RUPTURA TOTAL CON SU FAMILIA
+- 🔥Tamara Falcó (42) ABANDONA EL PROGRAMA EN DIRECTO
+- 😢Isabel Pantoja (68) INGRESADA DE URGENCIA
 
 Si no conoces la edad exacta, usa una edad aproximada razonable para el famoso.
 
@@ -174,17 +174,29 @@ Devuelve SOLO el título en el formato exacto, sin explicaciones.`;
 
     });
 
-    const title = response.choices[0]?.message?.content?.trim();
+    let title = response.choices[0]?.message?.content?.trim();
 
     if (!title) {
       throw new Error("No title generated");
+    }
+
+    // Enforce packaging rules even if the model ignores them:
+    // no hashtags, no year, hard 72-char cap (Shorts feed truncates there)
+    title = title
+      .replace(/#[\wÀ-ÿ]+/g, "")
+      .replace(/\s*\(20\d{2}\)/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+
+    if (title.length > 72) {
+      title = title.substring(0, 72).replace(/\s+\S*$/, "").trim();
     }
 
     return title;
   } catch (error) {
     console.error("Failed to generate news title:", error);
     // Fallback с formato básico
-    return `😱${newsTitle.substring(0, 50)} (${currentYear}) #UltimaHora #España`;
+    return `😱${newsTitle.substring(0, 70)}`;
   }
 }
 

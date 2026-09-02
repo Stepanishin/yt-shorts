@@ -240,7 +240,7 @@ export async function generateNewsVideo(
       // Reserve it manually
       await markNewsCandidateStatus({ id: specificNewsId, status: "reserved" });
     } else {
-      news = await selectNextNews();
+      news = await selectNextNews(userId);
     }
 
     if (!news) {
@@ -379,10 +379,17 @@ export async function generateNewsVideo(
       config.youtube.manualChannelId ||
       config.youtube.channelId;
 
-    // Closing rhetorical question becomes a channel comment after publishing
+    // Closing rhetorical question + share CTA become a channel comment after
+    // publishing. Share CTA over like CTA: shares = free WhatsApp distribution
+    // for the 65+ audience, like CTA showed no effect (2.0 -> 2.2/1000).
     const closingQuestion = extractClosingQuestion(videoOverlayText);
+    // Celebrity name from the generated title "😱Nombre Apellido (58) EVENTO..."
+    const personMatch = youtubeTitle.match(/^[^A-Za-zÀ-ÿ]*(.+?)\s*\(\d+\)/);
+    const shareCta = personMatch
+      ? `💬 Envíaselo a quien recuerde a ${personMatch[1].trim()}`
+      : `💬 Envíaselo a quien le encanten estas historias`;
     const commentText = closingQuestion
-      ? `${closingQuestion} 💬 Te leemos en los comentarios 👍 Dale like si te ha sorprendido`
+      ? `${closingQuestion} ${shareCta}`
       : undefined;
 
     const scheduledVideo = await addScheduledVideo(userId, {
