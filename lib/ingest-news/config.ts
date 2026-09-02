@@ -11,7 +11,7 @@ export interface DiezMinutosIngestConfig {
 
 export const DEFAULT_DIEZMINUTOS_CONFIG: DiezMinutosIngestConfig = {
   source: "diezminutos",
-  enabled: false, // Disabled - replaced by Hola.com
+  enabled: true, // Re-enabled 2026-09 via RSS scraper (second source, pool was starving on Hola alone)
   baseUrl: "https://www.diezminutos.es",
   category: "famosos",
   timeoutMs: 15000,

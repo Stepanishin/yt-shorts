@@ -1,4 +1,4 @@
-import { fetchDiezMinutosNews } from "./scrapers/diezminutos";
+import { fetchDiezMinutosRSS } from "./scrapers/diezminutos-rss";
 import { fetchHolaNews } from "./scrapers/hola";
 import {
   insertNewsCandidates,
@@ -54,17 +54,16 @@ export async function runNewsIngest(
     console.error("Failed to delete old pending news:", error);
   }
 
-  // Fetch from DiezMinutos (disabled by default, replaced by Hola.com)
+  // Fetch from DiezMinutos (RSS feed, re-enabled 2026-09 as second source)
   if (options.sources?.diezminutos !== false && DEFAULT_NEWS_INGEST_CONFIG.diezminutos.enabled) {
     try {
       const config = DEFAULT_NEWS_INGEST_CONFIG.diezminutos;
 
-      console.log(`Fetching news from DiezMinutos (${config.baseUrl})...`);
+      console.log(`Fetching news from DiezMinutos RSS...`);
 
-      const fetchResult = await fetchDiezMinutosNews({
-        baseUrl: config.baseUrl,
-        category: config.category,
+      const fetchResult = await fetchDiezMinutosRSS({
         timeoutMs: config.timeoutMs,
+        maxAgeDays: config.maxAgeDays,
       });
 
       if (fetchResult.ok) {

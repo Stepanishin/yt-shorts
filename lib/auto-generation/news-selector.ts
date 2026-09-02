@@ -4,6 +4,23 @@ import { scoreNewsCandidate, MIN_SCORE_THRESHOLD } from "./news-scorer";
 
 const MAX_SCORING_ATTEMPTS = 5; // Max news items to evaluate before giving up
 const RECENT_TITLES_DAYS = 7; // Look-back window for the anti-repeat rule
+
+/**
+ * Source priority: Hola first (primary source), Diez Minutos only when
+ * Hola has no pending candidates left.
+ */
+async function reserveNextWithSourcePriority() {
+  const fromHola = await reserveNextNewsCandidate({
+    language: "es",
+    sources: ["hola"],
+  });
+  if (fromHola) return fromHola;
+
+  return reserveNextNewsCandidate({
+    language: "es",
+    sources: ["diezminutos"],
+  });
+}
 // Second tier: when nothing reaches MIN_SCORE_THRESHOLD, publish the best
 // candidate of this round with at least this score instead of leaving the
 // slot empty. Real junk (<= 4) is still never published via scoring.
@@ -32,10 +49,7 @@ export async function selectNextNews(): Promise<StoredNewsCandidate | undefined>
   const evaluated: { news: StoredNewsCandidate; score: number }[] = [];
 
   for (let attempt = 1; attempt <= MAX_SCORING_ATTEMPTS; attempt++) {
-    const news = await reserveNextNewsCandidate({
-      language: "es",
-      sources: ["hola", "diezminutos"],
-    });
+    const news = await reserveNextWithSourcePriority();
 
     if (!news) {
       console.warn("No more news candidates available, moving to salvage tier");
@@ -88,11 +102,8 @@ export async function selectNextNews(): Promise<StoredNewsCandidate | undefined>
   }
 
   console.warn(`⚠️ No suitable news found after ${MAX_SCORING_ATTEMPTS} attempts, using last available`);
-  // Fallback: just take the next one without scoring
-  const fallback = await reserveNextNewsCandidate({
-    language: "es",
-    sources: ["hola", "diezminutos"],
-  });
+  // Fallback: just take the next one without scoring (Hola first here too)
+  const fallback = await reserveNextWithSourcePriority();
 
   return fallback || undefined;
 }
