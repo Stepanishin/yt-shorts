@@ -78,6 +78,8 @@ export interface NewsAutoGenerationConfig {
   selectedTemplate?: "template1" | "template2"; // Template 1 = gradient (default), Template 2 = red/yellow
   template: NewsGenerationTemplate;
   youtube: YouTubeNewsSettings;
+  // Also render a variant without the YouTube "SUBSCRIBE" sticker for manual Instagram/TikTok posting
+  instagram?: { renderVariant: boolean };
   stats: NewsAutoGenerationStats;
   createdAt: Date;
   updatedAt: Date;
@@ -105,6 +107,7 @@ export interface NewsAutoGenerationJob {
   // Results
   results?: {
     renderedVideoUrl?: string;
+    instagramVideoUrl?: string; // Variant without SUBSCRIBE sticker (config.instagram.renderVariant)
     scheduledVideoId?: string; // ID in ScheduledVideo array
     scheduledAt?: Date;
   };

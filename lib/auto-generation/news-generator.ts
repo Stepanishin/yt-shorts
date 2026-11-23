@@ -334,6 +334,30 @@ export async function generateNewsVideo(
     console.log(`Video rendered successfully: ${renderResult.videoUrl}`);
     console.log(`Video duration: ${renderResult.duration}s`);
 
+    // 7b. Instagram/TikTok variant without the SUBSCRIBE sticker (non-fatal)
+    let instagramVideoUrl: string | undefined;
+    if (config.instagram?.renderVariant) {
+      try {
+        const igResult = await renderNewsVideo({
+          celebrityImageUrl: newsImageUrl,
+          shortHeadline,
+          newsTitle: videoOverlayText,
+          newsSummary,
+          audioUrl,
+          audioTrimStart,
+          audioTrimEnd,
+          duration: config.template.audio?.duration || 8,
+          templateId: config.selectedTemplate || "template1",
+          hideSubscribeSticker: true,
+          jobId: `${jobId}_ig`,
+        });
+        instagramVideoUrl = igResult.videoUrl;
+        console.log(`Instagram variant rendered: ${instagramVideoUrl}`);
+      } catch (igError) {
+        console.error("Failed to render Instagram variant, continuing:", igError);
+      }
+    }
+
     // 8. Generate YouTube metadata using AI (if enabled)
     console.log(`[${jobId}] Step 8: Generating YouTube metadata...`);
     let youtubeTitle = newsTitle;
@@ -413,6 +437,7 @@ export async function generateNewsVideo(
     await updateNewsJobStatus(job._id!, "completed", {
       results: {
         renderedVideoUrl: renderResult.videoUrl,
+        instagramVideoUrl,
         scheduledVideoId: scheduledVideo.id,
         scheduledAt,
       },

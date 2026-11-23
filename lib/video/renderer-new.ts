@@ -1316,6 +1316,7 @@ export interface RenderNewsVideoOptions {
   imageYOffset?: number; // Y offset for image centering (negative = show more top, e.g. -100 for portraits)
   templateId?: "template1" | "template2"; // Template 1 = gradient bg (default), Template 2 = red headline + yellow text box
   blackAndWhite?: boolean;
+  hideSubscribeSticker?: boolean; // Omit YouTube-style "SUBSCRIBE" GIF (Instagram/TikTok variant)
   jobId: string;
 }
 
@@ -1514,6 +1515,7 @@ export async function renderNewsVideo(
     imageYOffset = 0,
     templateId = "template1",
     blackAndWhite = false,
+    hideSubscribeSticker = false,
     jobId
   } = options;
 
@@ -1706,13 +1708,17 @@ export async function renderNewsVideo(
           height: 140,
         },
         // Animated subscribe sticker with transparent background (GIPHY)
-        {
-          url: "https://media4.giphy.com/media/Ve5hR4qmFYrAKWQbj6/giphy.gif",
-          x: 110, // Centered horizontally: (720 - 500) / 2 = 110
-          y: 980, // Near bottom
-          width: 500,
-          height: 250,
-        },
+        ...(hideSubscribeSticker
+          ? []
+          : [
+              {
+                url: "https://media4.giphy.com/media/Ve5hR4qmFYrAKWQbj6/giphy.gif",
+                x: 110, // Centered horizontally: (720 - 500) / 2 = 110
+                y: 980, // Near bottom
+                width: 500,
+                height: 250,
+              },
+            ]),
       ],
 
       // No emoji elements - using GIF animations instead
