@@ -14,7 +14,7 @@ import {
   SHORTS_CHANNELS,
   listChannelShorts,
   downloadShort,
-  fetchShortMeta,
+  fetchShortDuration,
   filterUnused,
   markUsed,
   type ShortCandidate,
@@ -32,14 +32,12 @@ const ENCODE = [
 
 export const COMPILATION_SETTINGS = {
   items: 5,
-  /** Сколько последних шортсов канала смотреть. */
-  recentPerChannel: 30,
   /** Не больше N кусков с одного канала в подборке. */
   maxPerChannel: 2,
   /** Минимум просмотров у шортса. */
   minViews: 5000,
-  /** Не старше N дней: во вкладке /shorts у неактивных каналов лежат ролики 2022 года. */
-  maxAgeDays: 45,
+  /** Не старше N дней (дата из RSS канала). */
+  maxAgeDays: 10,
   /** Кусок длиннее этого пропускаем: подборка должна быть динамичной. */
   maxItemSec: 35,
   minItemSec: 4,
@@ -68,23 +66,38 @@ export interface CompilationResult {
 
 // ---------- отбор ----------
 
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
 async function collectCandidates(channelFilter?: string): Promise<ShortCandidate[]> {
   const channels = SHORTS_CHANNELS.filter(
     (c) => c.enabled && (!channelFilter || c.id === channelFilter || c.name.toLowerCase().includes(channelFilter.toLowerCase()))
   );
   if (channels.length === 0) throw new Error(`No channels match "${channelFilter}". See SHORTS_CHANNELS in lib/clips/shorts-source.ts`);
 
-  const all: ShortCandidate[] = [];
-  for (const channel of channels) {
+  const since = Date.now() - COMPILATION_SETTINGS.maxAgeDays * 86400000;
+  const perChannel = await mapLimit(channels, 12, async (channel) => {
     try {
-      const shorts = await listChannelShorts(channel, COMPILATION_SETTINGS.recentPerChannel);
-      console.log(`  📺 ${channel.name}: ${shorts.length} shorts`);
-      all.push(...shorts);
+      const shorts = (await listChannelShorts(channel)).filter((s) => s.uploadDate.getTime() >= since);
+      console.log(`  📺 ${channel.name}: ${shorts.length} fresh shorts`);
+      return shorts;
     } catch (error) {
       console.log(`  ⚠️ ${channel.name}: ${(error as Error).message.slice(0, 200)}`);
+      return [];
     }
-  }
-  return all
+  });
+  return perChannel
+    .flat()
     .filter((c) => c.views >= COMPILATION_SETTINGS.minViews)
     .sort((a, b) => b.score - a.score);
 }
@@ -255,18 +268,6 @@ async function concatItems(parts: string[], output: string, workDir: string) {
 
 // ---------- пайплайн ----------
 
-async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let next = 0;
-  const worker = async () => {
-    while (next < items.length) {
-      const i = next++;
-      results[i] = await fn(items[i]);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return results;
-}
 
 export interface CompilationOptions {
   items?: number;
@@ -288,11 +289,14 @@ export async function buildCompilation(options: CompilationOptions = {}): Promis
   const workDir = path.join(outDir, `.work-${stamp}`);
   fs.mkdirSync(workDir, { recursive: true });
 
-  // Метаданные (дата, длительность) тянем параллельно: по одному запросу на шортс, последовательно это минуты.
-  console.log(`  fetching dates and durations`);
-  const metas = await mapLimit(candidates, 8, (c) =>
-    fetchShortMeta(c).catch(() => ({ uploadDate: null, duration: 0 }))
-  );
+  // Длительность есть только в метаданных видео (~5-30 сек на запрос): тянем пачками по 8 по мере надобности.
+  const durations = new Map<number, Promise<number>>();
+  const durationAt = (i: number) => {
+    for (let j = i; j < Math.min(i + 8, candidates.length); j++) {
+      if (!durations.has(j)) durations.set(j, fetchShortDuration(candidates[j]).catch(() => 0));
+    }
+    return durations.get(i)!;
+  };
 
   const picked: CompilationItem[] = [];
   const perChannel = new Map<string, number>();
@@ -304,12 +308,8 @@ export async function buildCompilation(options: CompilationOptions = {}): Promis
 
     try {
       const label = `${candidate.url} (${candidate.views} views, x${candidate.score.toFixed(1)}) [${candidate.channel.name}]`;
-      const meta = metas[index];
-      const ageDays = meta.uploadDate ? (Date.now() - meta.uploadDate.getTime()) / 86400000 : Infinity;
-      if (ageDays > COMPILATION_SETTINGS.maxAgeDays) {
-        console.log(`  ⏭️  too old (${meta.uploadDate?.toISOString().slice(0, 10) ?? "unknown date"}): ${label}`);
-        continue;
-      }
+      const meta = { duration: await durationAt(index) };
+      const ageDays = (Date.now() - candidate.uploadDate.getTime()) / 86400000;
       if (meta.duration < COMPILATION_SETTINGS.minItemSec || meta.duration > COMPILATION_SETTINGS.maxItemSec) {
         console.log(`  ⏭️  ${meta.duration}s, out of ${COMPILATION_SETTINGS.minItemSec}-${COMPILATION_SETTINGS.maxItemSec}s: ${label}`);
         continue;
