@@ -1,6 +1,11 @@
 import { spawn } from "child_process";
 
 export function run(cmd: string, args: string[]): Promise<string> {
+  return runCapture(cmd, args).then((r) => r.stdout);
+}
+
+/** Как run, но отдаёт и stderr: ffmpeg пишет туда результаты анализирующих фильтров (cropdetect и т.п.). */
+export function runCapture(cmd: string, args: string[]): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const proc = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
@@ -9,7 +14,7 @@ export function run(cmd: string, args: string[]): Promise<string> {
     proc.stderr.on("data", (d) => (stderr += d));
     proc.on("error", reject);
     proc.on("close", (code) => {
-      if (code === 0) resolve(stdout);
+      if (code === 0) resolve({ stdout, stderr });
       else reject(new Error(`${cmd} exited with ${code}: ${stderr.slice(-2000)}`));
     });
   });

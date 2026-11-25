@@ -4,7 +4,7 @@
  */
 import * as fs from "fs";
 import * as path from "path";
-import { ffmpeg, probe } from "./ffmpeg";
+import { ffmpeg, probe, runCapture } from "./ffmpeg";
 import { transcribeWords } from "./transcribe";
 import { moderateClip } from "./moderation";
 import { censorText, isSwear } from "./censor";
@@ -45,6 +45,8 @@ export const COMPILATION_SETTINGS = {
   maxTotalSec: 120,
   /** Длительность общего заголовка в начале, сек. */
   introSec: 2,
+  /** Сколько секунд виден заголовок куска, если сверху нет свободной полосы (дальше только бейдж #N). */
+  titleSec: 2.5,
   titleFont: process.env.CLIPS_TITLE_FONT || "Arial Black",
 } as const;
 
@@ -133,7 +135,7 @@ async function generateTitles(items: { streamer: string; originalTitle: string; 
 ${list}
 
 Придумай:
-- items: по одному заголовку на каждый момент, в том же порядке. 2-6 слов, до 38 символов, по-русски, без эмодзи и хэштегов.
+- items: по одному заголовку на каждый момент, в том же порядке. 2-6 слов, до 28 символов, по-русски, без эмодзи и хэштегов.
   Заголовок отражает суть момента и цепляет («Бустер сломал стул», «Эвелон не ожидал»). Имя стримера можно, если влезает.
   Не выдумывай того, чего нет в транскрипте или названии. Без мата (если цитируешь: «б***ь»).
 - headline: общий заголовок подборки, до 32 символов («ТОП-5 МОМЕНТОВ НЕДЕЛИ»).
@@ -189,10 +191,42 @@ function wrapTitle(title: string, maxLine = 20): string {
 }
 
 /**
- * Плашка куска: крупный жёлтый номер и белый заголовок сверху на полупрозрачной подложке.
- * Появляется с «поп»-анимацией. Для первого куска дополнительно общий заголовок по центру в начале.
+ * Сколько пикселей сверху итогового кадра 1080x1920 не занято картинкой исходника
+ * (чёрная полоса в самом шортсе или размытый фон, если исходник не 9:16). Туда плашку можно ставить без потерь.
  */
-function buildOverlayAss(opts: { rank: number; title: string; duration: number; font: string; headline?: string }): string {
+async function freeTopPx(sourcePath: string): Promise<number> {
+  const info = await probe(sourcePath);
+  if (!info.width || !info.height) return 0;
+  // reset=0: окно копится по всем кадрам, получаем максимальную область, где когда-либо была картинка.
+  const { stderr: log } = await runCapture(process.env.FFMPEG_PATH || "ffmpeg", [
+    "-hide_banner", "-i", sourcePath, "-vf", "fps=2,cropdetect=limit=24:round=2:reset=0", "-an", "-f", "null", "-",
+  ]).catch(() => ({ stderr: "" }));
+  const matches = [...log.matchAll(/crop=(\d+):(\d+):(\d+):(\d+)/g)];
+  const last = matches[matches.length - 1];
+  const cropY = last ? Number(last[4]) : 0;
+  const scale = Math.min(W / info.width, H / info.height);
+  const offsetY = (H - info.height * scale) / 2;
+  return Math.max(0, Math.round(offsetY + cropY * scale));
+}
+
+const RANK_SIZE = 100;
+const TITLE_SIZE = 54;
+const TITLE_LINE = 70;
+
+/**
+ * Плашка куска: жёлтый номер и белый заголовок на полупрозрачной подложке.
+ * - Если сверху есть свободная полоса (чёрная или размытый фон), плашка стоит в ней весь кусок.
+ * - Иначе номер и заголовок видны первые titleSec секунд, потом остаётся маленький бейдж «#N» в углу.
+ * Для первого куска в начале дополнительно общий заголовок подборки.
+ */
+function buildOverlayAss(opts: {
+  rank: number;
+  title: string;
+  duration: number;
+  font: string;
+  freeTop: number;
+  headline?: string;
+}): string {
   const { font } = opts;
   const header = [
     "[Script Info]",
@@ -204,26 +238,41 @@ function buildOverlayAss(opts: { rank: number; title: string; duration: number; 
     "",
     "[V4+ Styles]",
     "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-    // Номер: жёлтый (&H0000D7FF = #FFD700), толстая чёрная обводка.
-    `Style: Rank,${font},150,&H0000D7FF,&H0000D7FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,9,4,8,40,40,110,204`,
+    // Номер: жёлтый (&H0000D7FF = #FFD700), чёрная обводка.
+    `Style: Rank,${font},${RANK_SIZE},&H0000D7FF,&H0000D7FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,7,3,8,40,40,0,204`,
+    // Бейдж в углу после того, как заголовок ушёл.
+    `Style: Badge,${font},64,&H0000D7FF,&H0000D7FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,5,2,7,0,0,0,204`,
     // Заголовок: белый на полупрозрачной чёрной подложке (BorderStyle 3 = box).
-    `Style: Title,${font},70,&H00FFFFFF,&H00FFFFFF,&H50000000,&H50000000,-1,0,0,0,100,100,0,0,3,18,0,8,60,60,290,204`,
-    // Общий заголовок подборки в начале, сверху (по центру мешает чужим субтитрам).
-    `Style: Headline,${font},96,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,8,4,8,60,60,140,204`,
+    `Style: Title,${font},${TITLE_SIZE},&H00FFFFFF,&H00FFFFFF,&H60000000,&H60000000,-1,0,0,0,100,100,0,0,3,12,0,8,60,60,0,204`,
+    `Style: Headline,${font},90,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,7,3,8,60,60,0,204`,
     "",
     "[Events]",
     "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
   ];
-  const pop = "{\\fad(150,0)\\fscx60\\fscy60\\t(0,180,\\fscx112\\fscy112)\\t(180,280,\\fscx100\\fscy100)}";
+  const title = wrapTitle(assEscape(opts.title.toUpperCase()), 22);
+  const lines = title.split("\\N").length;
+  const blockH = RANK_SIZE + 10 + lines * TITLE_LINE + 12;
+  const inBar = opts.freeTop >= blockH + 30;
+  const top = inBar ? Math.round((opts.freeTop - blockH) / 2) : 50;
+  const titleY = top + RANK_SIZE + 10;
+
+  const pop = "\\fscx60\\fscy60\\t(0,180,\\fscx112\\fscy112)\\t(180,280,\\fscx100\\fscy100)";
   const start = opts.headline ? COMPILATION_SETTINGS.introSec : 0;
   const end = opts.duration + 1;
+  const titleEnd = inBar ? end : Math.min(end, start + COMPILATION_SETTINGS.titleSec);
+  const fadeOut = inBar ? 0 : 250;
+
   const events = [
-    `Dialogue: 1,${assTime(start)},${assTime(end)},Rank,,0,0,0,,${pop}#${opts.rank}`,
-    `Dialogue: 0,${assTime(start + 0.1)},${assTime(end)},Title,,0,0,0,,{\\fad(200,0)}${wrapTitle(assEscape(opts.title.toUpperCase()), 18)}`,
+    `Dialogue: 1,${assTime(start)},${assTime(titleEnd)},Rank,,0,0,0,,{\\pos(${W / 2},${top})\\fad(150,${fadeOut})${pop}}#${opts.rank}`,
+    `Dialogue: 0,${assTime(start + 0.1)},${assTime(titleEnd)},Title,,0,0,0,,{\\pos(${W / 2},${titleY})\\fad(200,${fadeOut})}${title}`,
   ];
+  if (!inBar && titleEnd < end) {
+    events.push(`Dialogue: 1,${assTime(titleEnd - 0.1)},${assTime(end)},Badge,,0,0,0,,{\\pos(40,40)\\fad(250,0)}#${opts.rank}`);
+  }
   if (opts.headline) {
+    const headlineY = inBar ? Math.max(30, Math.round((opts.freeTop - 200) / 2)) : 60;
     events.push(
-      `Dialogue: 2,${assTime(0)},${assTime(COMPILATION_SETTINGS.introSec)},Headline,,0,0,0,,{\\fad(0,200)\\c&H0000D7FF&}${wrapTitle(assEscape(opts.headline.toUpperCase()), 14)}`
+      `Dialogue: 2,${assTime(0)},${assTime(COMPILATION_SETTINGS.introSec)},Headline,,0,0,0,,{\\pos(${W / 2},${headlineY})\\fad(0,200)\\c&H0000D7FF&}${wrapTitle(assEscape(opts.headline.toUpperCase()), 16)}`
     );
   }
   return [...header, ...events, ""].join("\n");
@@ -236,7 +285,14 @@ async function renderItem(item: CompilationItem, rank: number, workDir: string, 
   const assPath = path.join(workDir, `${item.candidate.videoId}-overlay.ass`);
   fs.writeFileSync(
     assPath,
-    buildOverlayAss({ rank, title: item.title, duration: item.duration, font: COMPILATION_SETTINGS.titleFont, headline }),
+    buildOverlayAss({
+      rank,
+      title: item.title,
+      duration: item.duration,
+      font: COMPILATION_SETTINGS.titleFont,
+      freeTop: await freeTopPx(item.sourcePath),
+      headline,
+    }),
     "utf8"
   );
   const info = await probe(item.sourcePath);
@@ -275,13 +331,20 @@ export interface CompilationOptions {
   channel?: string;
   noDb?: boolean;
   dryRun?: boolean;
+  /** Собрать из конкретных шортсов (id видео), например чтобы пересобрать пример. */
+  videoIds?: string[];
 }
 
 export async function buildCompilation(options: CompilationOptions = {}): Promise<CompilationResult | null> {
   const want = options.items ?? COMPILATION_SETTINGS.items;
   console.log(`\n🔎 Collecting shorts`);
   let candidates = await collectCandidates(options.channel);
-  if (!options.noDb) candidates = await filterUnused(candidates);
+  if (options.videoIds?.length) {
+    const ids = new Set(options.videoIds);
+    candidates = candidates.filter((c) => ids.has(c.videoId));
+  } else if (!options.noDb) {
+    candidates = await filterUnused(candidates);
+  }
   console.log(`  ${candidates.length} candidates after filters`);
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);

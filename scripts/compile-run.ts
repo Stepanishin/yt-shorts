@@ -1,7 +1,7 @@
 /**
  * Подборка из готовых YouTube Shorts для Instagram Reels (см. lib/clips/compilation.ts).
  *
- *   npx tsx scripts/compile-run.ts [--items 5] [--channel buster] [--dry-run] [--no-db]
+ *   npx tsx scripts/compile-run.ts [--items 5] [--channel buster] [--dry-run] [--no-db] [--videos id1,id2,...]
  *
  * Нужны: OPENAI_API_KEY, MONGODB_URI (если без --no-db), yt-dlp и ffmpeg.
  * Опционально: PLAYEROK_MIDROLL_PATH, CLIPS_OUTPUT_DIR, CLIPS_TITLE_FONT.
@@ -22,6 +22,7 @@ async function main() {
     channel: arg("channel"),
     dryRun: process.argv.includes("--dry-run"),
     noDb: process.argv.includes("--no-db"),
+    videoIds: arg("videos")?.split(",").filter(Boolean),
   });
   if (!result) return;
   console.log(`\n✅ ${result.outputPath} (${result.duration.toFixed(1)}s)`);
